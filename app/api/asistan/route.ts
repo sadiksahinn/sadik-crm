@@ -37,7 +37,7 @@ Kullanıcı mesajını analiz et ve sadece JSON döndür.
 
 JSON:
 {
-  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "unknown",
+  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "unknown",
   "customer_name": "",
   "title": "",
   "amount": 0,
@@ -55,6 +55,7 @@ Kurallar:
 - "verdim", "harcadım", market, yakıt, yemek vb. => expense
 - "ayda 8 reels 12 story olacak" => service_plan
 - "bugün ne yapıyoruz" => daily_plan
+- "bugün kimden para alacağım", "tahsilat var mı", "kimden ödeme alacağım" => collection_query
 - emin değilsen unknown
         `,
       },
@@ -82,6 +83,42 @@ export async function POST(req: Request) {
     }
 
     const ai = await analyzeMessage(text);
+
+    if (ai.type === "collection_query") {
+      const { data: payments } = await supabase
+        .from("payment_tracking")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .lte("due_date", today())
+        .order("due_date", { ascending: true });
+
+      const total = (payments || []).reduce((t: number, p: any) => t + Number(p.amount || 0), 0);
+
+      if (!payments || payments.length === 0) {
+        return NextResponse.json({
+          ok: true,
+          type: "tahsilat",
+          message: "Bugün için bekleyen tahsilat görünmüyor. İstersen yeni tahsilat kaydı oluşturabilirsin.",
+        });
+      }
+
+      return NextResponse.json({
+        ok: true,
+        type: "tahsilat",
+        message:
+          `Bugün tahsil edilecek toplam: ${new Intl.NumberFormat("tr-TR", {
+            style: "currency",
+            currency: "TRY",
+            maximumFractionDigits: 0,
+          }).format(total)}\n\n` +
+          payments.map((p: any) => `• ${p.title} — ${new Intl.NumberFormat("tr-TR", {
+            style: "currency",
+            currency: "TRY",
+            maximumFractionDigits: 0,
+          }).format(Number(p.amount || 0))} — Son gün: ${p.due_date}`).join("\n"),
+      });
+    }
 
     if (ai.type === "daily_plan") {
       const { data: followups } = await supabase
