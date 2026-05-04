@@ -43,6 +43,8 @@ export default function HomePage() {
   const [taskCount, setTaskCount] = useState(0);
   const [todayIncome, setTodayIncome] = useState(0);
   const [todayExpense, setTodayExpense] = useState(0);
+  const [todayCollections, setTodayCollections] = useState(0);
+  const [collectionCount, setCollectionCount] = useState(0);
   const [agenda, setAgenda] = useState<any[]>([]);
 
   useEffect(() => {
@@ -98,6 +100,16 @@ export default function HomePage() {
         .select("amount")
         .eq("user_id", user.id)
         .eq("expense_date", today);
+
+      const { data: collections } = await supabase
+        .from("payment_tracking")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .lte("due_date", today);
+
+      setTodayCollections((collections || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0));
+      setCollectionCount((collections || []).length);
 
       const { data: followups } = await supabase
         .from("followups")
@@ -199,7 +211,7 @@ export default function HomePage() {
           </div>
 
           <Link href="/asistan" className="inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-[#61aebd] to-[#e5ab53] px-5 py-3 text-slate-950 font-black shadow-lg">
-            Günlük Net: {money(net)} <span>›</span>
+            Günlük Net: {money(todayCollections)} <span>›</span>
           </Link>
         </div>
       </section>
@@ -215,7 +227,7 @@ export default function HomePage() {
             ["+", "Müşteri\nEkle", "/musteriler"],
             ["☏", "Mesaj\nGönder", "/asistan"],
             ["▣", "İçerik\nOluştur", "/asistan"],
-            ["◔", "Rapor\nAl", "/asistan"],
+            ["◔", "Tahsilat\nTakip", "/tahsilatlar"],
             ["✧", "Asistan’a\nSor", "/asistan"],
           ].map(([icon, label, href]) => (
             <Link key={label} href={href} className="bg-white rounded-[22px] p-3 shadow-sm text-center min-h-[82px] flex flex-col items-center justify-center">
@@ -267,9 +279,9 @@ export default function HomePage() {
             <div className="h-11 w-11 bg-blue-50 rounded-2xl grid place-items-center text-xl">⌁</div>
             <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full font-black">↑ %0</span>
           </div>
-          <h3 className="mt-3 font-black">Net Kasa</h3>
+          <h3 className="mt-3 font-black">Tahsilat</h3>
           <p className="text-3xl font-black mt-2">{money(net)}</p>
-          <p className="text-slate-500 text-sm">Toplam durum</p>
+          <p className="text-slate-500 text-sm">Bekleyen ödeme</p>
           <Spark color="#3b82f6" />
         </Link>
       </section>
