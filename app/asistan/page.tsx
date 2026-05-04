@@ -171,7 +171,15 @@ export default function AsistanPage() {
             <p className="whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
 
             {msg.record && (
-              <div className="mt-3 rounded-2xl bg-gradient-to-r from-blue-50 via-fuchsia-50 to-orange-50 border border-slate-100 p-3">
+              <div className={`mt-3 rounded-2xl border p-3 ${
+                msg.record.type === "gelir"
+                  ? "bg-emerald-50 border-emerald-100"
+                  : msg.record.type === "gider"
+                  ? "bg-orange-50 border-orange-100"
+                  : msg.record.type === "iş" || msg.record.type === "müşteri"
+                  ? "bg-purple-50 border-purple-100"
+                  : "bg-blue-50 border-blue-100"
+              }`}>
                 <p className="text-xs font-black text-purple-600 mb-1">
                   ✨ {msg.record.type.toUpperCase()} KAYDI
                 </p>

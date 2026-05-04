@@ -238,7 +238,12 @@ export async function POST(req: Request) {
       lower.includes("gönderdi") ||
       lower.includes("gonderdi") ||
       lower.includes("geldi") ||
-      lower.includes("gelir")
+      lower.includes("gelir") ||
+      lower.includes("ödeme aldım") ||
+      lower.includes("odeme aldim") ||
+      lower.includes("para aldım") ||
+      lower.includes("para aldim") ||
+      lower.includes("tahsil ettim")
     ) {
       const title = cleanTitle(text) || "Gelir";
 
