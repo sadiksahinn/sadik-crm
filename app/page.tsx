@@ -47,6 +47,10 @@ export default function HomePage() {
 
   useEffect(() => {
     async function load() {
+    const { data: userData } = await supabase.auth.getUser();
+
+    const { data: userData } = await supabase.auth.getUser();
+
       const { data: session } = await supabase.auth.getSession();
 
       if (!session.session) {

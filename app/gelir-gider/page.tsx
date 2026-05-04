@@ -45,6 +45,10 @@ export default function GelirGiderPage() {
   const today = new Date().toISOString().slice(0, 10);
 
   async function loadData() {
+    const { data: userData } = await supabase.auth.getUser();
+
+    const { data: userData } = await supabase.auth.getUser();
+
     const { data: incomeData } = await supabase
       .from("income")
       .select("*")
