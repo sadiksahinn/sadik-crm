@@ -1,114 +1,65 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
-function greetingText(fullName: string) {
-  const firstName = (fullName || "Kullanıcı").trim().split(" ")[0];
-  const hour = new Date().getHours();
-  const greeting = hour >= 5 && hour < 12 ? "Günaydın" : "Merhaba";
-  return `${greeting}, ${firstName}`;
-}
-
-function money(value: number) {
+function money(v: number) {
   return new Intl.NumberFormat("tr-TR", {
     style: "currency",
     currency: "TRY",
     maximumFractionDigits: 0,
-  }).format(value || 0);
+  }).format(v || 0);
 }
 
-export default function Home() {
-  const [ready, setReady] = useState(false);
+function firstName(name: string) {
+  return (name || "Kullanıcı").trim().split(" ")[0];
+}
+
+function greeting(name: string) {
+  const hour = new Date().getHours();
+  return `${hour >= 5 && hour < 12 ? "Günaydın" : "Merhaba"}, ${firstName(name)}`;
+}
+
+function Spark({ color = "#8b5cf6" }: { color?: string }) {
+  return (
+    <svg viewBox="0 0 120 44" className="w-24 h-10">
+      <path d="M5 34 C20 12, 28 35, 42 22 S65 8, 78 22 S98 38, 115 10" fill="none" stroke={color} strokeWidth="4" strokeLinecap="round"/>
+      <path d="M5 34 C20 12, 28 35, 42 22 S65 8, 78 22 S98 38, 115 10 L115 44 L5 44 Z" fill={color} opacity=".12"/>
+    </svg>
+  );
+}
+
+export default function HomePage() {
+  const [fullName, setFullName] = useState("Kullanıcı");
+  const [avatar, setAvatar] = useState("");
   const [customerCount, setCustomerCount] = useState(0);
+  const [taskCount, setTaskCount] = useState(0);
   const [todayIncome, setTodayIncome] = useState(0);
   const [todayExpense, setTodayExpense] = useState(0);
-  const [pendingTasks, setPendingTasks] = useState(0);
-  const [avatar, setAvatar] = useState("");
-  const [fullName, setFullName] = useState("Kullanıcı");
-  const [totalIncome, setTotalIncome] = useState(0);
-  const [totalExpense, setTotalExpense] = useState(0);
-  const [topCategory, setTopCategory] = useState("Yok");
-  const [lastRecords, setLastRecords] = useState<any[]>([]);
+  const [agenda, setAgenda] = useState<any[]>([]);
 
   useEffect(() => {
-    async function start() {
-      const { data } = await supabase.auth.getSession();
+    async function load() {
+      const { data: session } = await supabase.auth.getSession();
 
-      if (!data.session) {
+      if (!session.session) {
         window.location.href = "/login";
         return;
       }
 
-      const today = new Date().toISOString().slice(0, 10);
+      const user = session.session.user;
 
-      const { count } = await supabase
-        .from("customers")
-        .select("*", { count: "exact", head: true });
-
-      const { data: incomes } = await supabase
-        .from("income")
-        .select("amount")
-        .eq("income_date", today);
-
-      const { data: expenses } = await supabase
-        .from("expenses")
-        .select("amount")
-        .eq("expense_date", today);
-
-      const { count: taskCount } = await supabase
-        .from("tasks")
-        .select("*", { count: "exact", head: true })
-        .neq("status", "tamamlandı");
-
-      const { data: allIncome } = await supabase
-        .from("income")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      const { data: allExpenses } = await supabase
-        .from("expenses")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      const incomeTotal = allIncome?.reduce((t, i) => t + Number(i.amount), 0) || 0;
-      const expenseTotal = allExpenses?.reduce((t, i) => t + Number(i.amount), 0) || 0;
-
-      const categories: Record<string, number> = {};
-      allExpenses?.forEach((e: any) => {
-        const key = e.category || "Diğer";
-        categories[key] = (categories[key] || 0) + Number(e.amount);
-      });
-
-      const top = Object.entries(categories).sort((a, b) => b[1] - a[1])[0];
-
-      const records = [
-        ...(allIncome || []).map((i: any) => ({ ...i, type: "gelir" })),
-        ...(allExpenses || []).map((e: any) => ({ ...e, type: "gider" })),
-      ]
-        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 4);
-
-      setCustomerCount(count || 0);
-      setTodayIncome(incomes?.reduce((t, i) => t + Number(i.amount), 0) || 0);
-      setTodayExpense(expenses?.reduce((t, i) => t + Number(i.amount), 0) || 0);
-      setPendingTasks(taskCount || 0);
-      setTotalIncome(incomeTotal);
-      setTotalExpense(expenseTotal);
-      setTopCategory(top ? top[0] : "Yok");
-      setLastRecords(records);
-      setAvatar(localStorage.getItem("valkea-avatar") || "");
       const { data: profile } = await supabase
         .from("profiles")
-        .select("avatar_url, full_name, onboarding_completed")
-        .eq("id", data.session.user.id)
+        .select("full_name, avatar_url, onboarding_completed")
+        .eq("id", user.id)
         .single();
 
       if (!profile?.onboarding_completed) {
@@ -116,142 +67,240 @@ export default function Home() {
         return;
       }
 
-      setAvatar(profile?.avatar_url || "");
       setFullName(profile?.full_name || "Kullanıcı");
-      setReady(true);
+      setAvatar(profile?.avatar_url || "");
+
+      const today = new Date().toISOString().slice(0, 10);
+
+      const { count: customers } = await supabase
+        .from("customers")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      const { count: tasks } = await supabase
+        .from("followups")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .lte("followup_date", today);
+
+      const { data: incomes } = await supabase
+        .from("income")
+        .select("amount")
+        .eq("user_id", user.id)
+        .eq("income_date", today);
+
+      const { data: expenses } = await supabase
+        .from("expenses")
+        .select("amount")
+        .eq("user_id", user.id)
+        .eq("expense_date", today);
+
+      const { data: followups } = await supabase
+        .from("followups")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .lte("followup_date", today)
+        .limit(3);
+
+      const { data: contents } = await supabase
+        .from("content_calendar")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "planlandı")
+        .lte("publish_date", today)
+        .limit(3);
+
+      setCustomerCount(customers || 0);
+      setTaskCount(tasks || 0);
+      setTodayIncome((incomes || []).reduce((a: number, b: any) => a + Number(b.amount || 0), 0));
+      setTodayExpense((expenses || []).reduce((a: number, b: any) => a + Number(b.amount || 0), 0));
+
+      setAgenda([
+        ...(followups || []).map((x: any) => ({
+          icon: "💸",
+          title: x.title,
+          sub: "Ödeme / takip bekliyor",
+          type: "Ödeme",
+          color: "orange",
+        })),
+        ...(contents || []).map((x: any) => ({
+          icon: "🎬",
+          title: x.content_title,
+          sub: "Paylaşım kontrolü",
+          type: "İçerik",
+          color: "pink",
+        })),
+      ].slice(0, 3));
     }
 
-    start();
+    load();
   }, []);
 
-  if (!ready) {
-    return (
-      <main className="min-h-screen bg-[#f7f8fc] grid place-items-center">
-        <div className="font-bold text-slate-500">Valkea açılıyor...</div>
-      </main>
-    );
-  }
+  const net = todayIncome - todayExpense;
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-6 pb-24">
-      <header className="flex items-center justify-between mb-5">
-        <div className="relative h-12 w-40">
-          <Image src="/valkea-logo.png" alt="Valkea Assistant" fill priority className="object-contain object-left" />
+    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-6 pb-32">
+      <header className="flex items-center justify-between mb-7">
+        <div className="relative w-40 h-16">
+          <Image src="/valkea-logo.png" alt="Valkea" fill className="object-contain object-left" priority />
         </div>
 
-        <div className="flex gap-2">
-          <div className="h-10 w-10 rounded-full bg-white shadow-lg grid place-items-center text-sm">🔔</div>
-          <Link href="/profil" className="h-10 w-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 shadow-lg grid place-items-center text-white font-black">
-            {avatar ? (
-              <img src={avatar} alt="Profil" className="h-full w-full object-cover" />
-            ) : (
-              "S"
-            )}
+        <div className="flex items-center gap-3">
+          <button className="h-14 w-14 rounded-2xl bg-white shadow-sm grid place-items-center text-2xl relative">
+            🔔
+            <span className="absolute top-3 right-3 h-2.5 w-2.5 rounded-full bg-fuchsia-500" />
+          </button>
+
+          <Link href="/profil" className="h-14 w-14 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 shadow-lg grid place-items-center text-white font-black text-xl">
+            {avatar ? <img src={avatar} className="h-full w-full object-cover" alt="Profil" /> : firstName(fullName)[0]}
           </Link>
         </div>
       </header>
 
-      <section className="mb-4">
-        <h1 className="text-3xl font-black tracking-tight">{greetingText(fullName)} 👋</h1>
-        <p className="text-slate-500 mt-1 text-base">Gününü birlikte planlayalım.</p>
+      <section className="mb-7">
+        <h1 className="text-[34px] leading-tight font-black">{greeting(fullName)} 👋</h1>
+        <p className="text-slate-500 text-lg mt-1">Gününü birlikte planlayalım.</p>
       </section>
 
-      <section className="relative overflow-hidden rounded-[26px] bg-white shadow-[0_14px_40px_rgba(15,23,42,0.08)] p-4 mb-4">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400" />
-        <p className="text-xs font-black text-purple-600">BUGÜN</p>
-        <h2 className="text-2xl font-black mt-2">Kontrol sende.</h2>
-        <p className="text-slate-500 text-sm mt-1">Planla, yönet, büyüt.</p>
-        <div className="mt-3 inline-flex rounded-full bg-slate-950 text-white px-4 py-2 text-sm font-black">
-          Günlük Net: {money(todayIncome - todayExpense)}
-        </div>
+      <section className="relative overflow-hidden bg-white rounded-[34px] p-5 shadow-sm mb-6">
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400" />
+        <div className="absolute right-0 top-12 h-44 w-44 rounded-full bg-gradient-to-br from-blue-100 via-fuchsia-100 to-orange-100 blur-xl opacity-80" />
 
-        <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <div className="h-9 w-9 rounded-xl bg-blue-50 grid place-items-center">✓</div>
-            <div className="text-2xl font-black mt-2">{pendingTasks}</div>
-            <p className="text-xs text-slate-500">Görev</p>
+        <div className="relative z-10">
+          <p className="text-purple-600 font-black text-sm mb-4">BUGÜN</p>
+          <h2 className="text-3xl font-black leading-tight">
+            Bugün odak: {taskCount || agenda.length || 0} kritik işlem
+          </h2>
+          <p className="text-slate-500 mt-2">Planla, yönet, büyüt.</p>
+
+          <div className="grid grid-cols-3 gap-4 mt-6 mb-5">
+            <div>
+              <div className="h-12 w-12 bg-blue-50 rounded-2xl grid place-items-center text-xl mb-2">✓</div>
+              <p className="text-2xl font-black">{taskCount}</p>
+              <p className="text-xs text-slate-500">Görev</p>
+            </div>
+
+            <div>
+              <div className="h-12 w-12 bg-purple-50 rounded-2xl grid place-items-center text-xl mb-2">👥</div>
+              <p className="text-2xl font-black">{customerCount}</p>
+              <p className="text-xs text-slate-500">Müşteri</p>
+            </div>
+
+            <div>
+              <div className="h-12 w-12 bg-orange-50 rounded-2xl grid place-items-center text-xl mb-2">₺</div>
+              <p className="text-2xl font-black">{money(todayIncome)}</p>
+              <p className="text-xs text-slate-500">Gelir</p>
+            </div>
           </div>
 
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <div className="h-9 w-9 rounded-xl bg-purple-50 grid place-items-center">👥</div>
-            <div className="text-2xl font-black mt-2">{customerCount}</div>
-            <p className="text-xs text-slate-500">Müşteri</p>
-          </div>
-
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <div className="h-9 w-9 rounded-xl bg-orange-50 grid place-items-center">₺</div>
-            <div className="text-xl font-black mt-2">{money(todayIncome)}</div>
-            <p className="text-xs text-slate-500">Gelir</p>
-          </div>
+          <Link href="/asistan" className="inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400 px-5 py-3 text-white font-black shadow-lg">
+            Günlük Net: {money(net)} <span>›</span>
+          </Link>
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 mb-5">
-        <Link href="/musteriler" className="bg-white rounded-[22px] p-4 shadow-sm">
-          <div className="h-10 w-10 rounded-xl bg-blue-50 grid place-items-center mb-3">👥</div>
-          <p className="text-slate-500 text-sm">Müşteriler</p>
-          <h3 className="text-2xl font-black">{customerCount}</h3>
-          <p className="text-xs text-slate-400">Aktif portföy</p>
-        </Link>
-
-        <Link href="/gelir-gider" className="bg-white rounded-[22px] p-4 shadow-sm">
-          <div className="h-10 w-10 rounded-xl bg-purple-50 grid place-items-center mb-3">₺</div>
-          <p className="text-slate-500 text-sm">Gelir</p>
-          <h3 className="text-2xl font-black">{money(todayIncome)}</h3>
-          <p className="text-xs text-slate-400">Bugünkü gelir</p>
-        </Link>
-
-        <Link href="/gelir-gider" className="bg-white rounded-[22px] p-4 shadow-sm">
-          <div className="h-10 w-10 rounded-xl bg-red-50 grid place-items-center mb-3">↘</div>
-          <p className="text-slate-500 text-sm">Gider</p>
-          <h3 className="text-2xl font-black">{money(todayExpense)}</h3>
-          <p className="text-xs text-slate-400">Bugünkü gider</p>
-        </Link>
-
-        <Link href="/raporlar" className="bg-white rounded-[22px] p-4 shadow-sm">
-          <div className="h-10 w-10 rounded-xl bg-orange-50 grid place-items-center mb-3">📊</div>
-          <p className="text-slate-500 text-sm">Net Kasa</p>
-          <h3 className="text-2xl font-black">{money(totalIncome - totalExpense)}</h3>
-          <p className="text-xs text-slate-400">Toplam durum</p>
-        </Link>
-      </section>
-
-      <section className="mb-5">
-        <h2 className="font-black text-slate-700 text-sm tracking-wide mb-3">KISA RAPOR</h2>
-
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="bg-white rounded-[22px] p-4 shadow-sm">
-            <p className="text-slate-500 text-sm">Toplam Gelir</p>
-            <h3 className="text-xl font-black text-emerald-600">{money(totalIncome)}</h3>
-          </div>
-
-          <div className="bg-white rounded-[22px] p-4 shadow-sm">
-            <p className="text-slate-500 text-sm">Toplam Gider</p>
-            <h3 className="text-xl font-black text-red-500">{money(totalExpense)}</h3>
-          </div>
+      <section className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-black tracking-wide text-slate-700">HIZLI ERİŞİM</h2>
+          <Link href="/asistan" className="text-purple-600 font-black text-sm">Düzenle ✎</Link>
         </div>
 
-        <div className="bg-white rounded-[22px] p-4 shadow-sm mb-3">
-          <p className="text-slate-500 text-sm">En Çok Gider Kategorisi</p>
-          <h3 className="text-xl font-black">{topCategory}</h3>
-        </div>
-
-        <div className="grid gap-2">
-          {lastRecords.map((item) => (
-            <div key={item.id} className="bg-white rounded-2xl p-3 shadow-sm flex justify-between items-center">
-              <div>
-                <h3 className="font-black text-sm">{item.title}</h3>
-                <p className="text-xs text-slate-500">{item.type === "gelir" ? "Gelir" : item.category || "Gider"}</p>
+        <div className="grid grid-cols-5 gap-3">
+          {[
+            ["+", "Müşteri\nEkle", "/musteriler"],
+            ["☏", "Mesaj\nGönder", "/asistan"],
+            ["▣", "İçerik\nOluştur", "/asistan"],
+            ["◔", "Rapor\nAl", "/asistan"],
+            ["✧", "Asistan’a\nSor", "/asistan"],
+          ].map(([icon, label, href]) => (
+            <Link key={label} href={href} className="bg-white rounded-[22px] p-3 shadow-sm text-center min-h-[94px] flex flex-col items-center justify-center">
+              <div className="text-3xl bg-slate-50 h-11 w-11 rounded-2xl grid place-items-center mb-2 text-purple-600">
+                {icon}
               </div>
-              <p className={item.type === "gelir" ? "font-black text-emerald-600" : "font-black text-red-500"}>
-                {item.type === "gelir" ? "+" : "-"}{money(Number(item.amount))}
-              </p>
+              <p className="text-[12px] font-black whitespace-pre-line leading-tight">{label}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid grid-cols-2 gap-3 mb-7">
+        <div className="bg-white rounded-[26px] p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="h-11 w-11 bg-purple-50 rounded-2xl grid place-items-center text-xl">👥</div>
+            <span className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full font-black">↑ %12</span>
+          </div>
+          <h3 className="mt-3 font-black">Müşteriler</h3>
+          <p className="text-3xl font-black mt-2">{customerCount}</p>
+          <p className="text-slate-500 text-sm">Aktif portföy</p>
+          <Spark color="#a855f7" />
+        </div>
+
+        <div className="bg-white rounded-[26px] p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="h-11 w-11 bg-emerald-50 rounded-2xl grid place-items-center text-xl">₺</div>
+            <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full font-black">↑ %0</span>
+          </div>
+          <h3 className="mt-3 font-black">Gelir</h3>
+          <p className="text-3xl font-black mt-2">{money(todayIncome)}</p>
+          <p className="text-slate-500 text-sm">Bugünkü gelir</p>
+          <Spark color="#22c55e" />
+        </div>
+
+        <div className="bg-white rounded-[26px] p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="h-11 w-11 bg-red-50 rounded-2xl grid place-items-center text-xl">↘</div>
+            <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full font-black">↑ %0</span>
+          </div>
+          <h3 className="mt-3 font-black">Gider</h3>
+          <p className="text-3xl font-black mt-2">{money(todayExpense)}</p>
+          <p className="text-slate-500 text-sm">Bugünkü gider</p>
+          <Spark color="#f43f5e" />
+        </div>
+
+        <div className="bg-white rounded-[26px] p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="h-11 w-11 bg-blue-50 rounded-2xl grid place-items-center text-xl">⌁</div>
+            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full font-black">↑ %0</span>
+          </div>
+          <h3 className="mt-3 font-black">Net Kasa</h3>
+          <p className="text-3xl font-black mt-2">{money(net)}</p>
+          <p className="text-slate-500 text-sm">Toplam durum</p>
+          <Spark color="#3b82f6" />
+        </div>
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-black tracking-wide text-slate-700">BUGÜNÜN AJANDASI</h2>
+          <Link href="/hatirlatmalar" className="text-purple-600 font-black text-sm">Tümü →</Link>
+        </div>
+
+        <div className="relative pl-8">
+          <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gradient-to-b from-blue-500 via-fuchsia-500 to-orange-400 rounded-full" />
+
+          {(agenda.length ? agenda : [
+            { icon: "☏", title: "Müşteri Araması", sub: "Bugün için takip görünmüyor", type: "Müşteri" },
+            { icon: "▣", title: "İçerik Planı", sub: "Yeni plan ekleyebilirsin", type: "İçerik" },
+            { icon: "₺", title: "Ödeme Takibi", sub: "Bekleyen ödeme kontrolü", type: "Ödeme" },
+          ]).map((item, i) => (
+            <div key={i} className="relative bg-white rounded-[22px] p-4 shadow-sm mb-3 flex items-center justify-between">
+              <span className="absolute -left-[31px] h-3 w-3 rounded-full bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400" />
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-2xl bg-slate-50 grid place-items-center text-2xl">{item.icon}</div>
+                <div>
+                  <h3 className="font-black">{item.title}</h3>
+                  <p className="text-slate-500 text-sm">{item.sub}</p>
+                </div>
+              </div>
+              <div className="text-xs text-purple-600 font-black">{item.type} ›</div>
             </div>
           ))}
         </div>
       </section>
 
-      <Link href="/asistan" className="fixed right-5 bottom-24 h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 shadow-2xl grid place-items-center text-white text-3xl">
+      <Link href="/asistan" className="fixed bottom-28 right-6 h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 shadow-[0_18px_45px_rgba(168,85,247,0.45)] grid place-items-center text-white text-4xl z-[9998]">
         +
       </Link>
     </main>
