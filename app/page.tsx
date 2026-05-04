@@ -25,7 +25,6 @@ export default function Home() {
   const [todayExpense, setTodayExpense] = useState(0);
   const [pendingTasks, setPendingTasks] = useState(0);
   const [avatar, setAvatar] = useState("");
-  const [avatar, setAvatar] = useState("");
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpense, setTotalExpense] = useState(0);
   const [topCategory, setTopCategory] = useState("Yok");
