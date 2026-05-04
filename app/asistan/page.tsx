@@ -38,6 +38,33 @@ export default function AsistanPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+
+    async function loadAutoMessage() {
+      if (autoMessageLoaded) return;
+
+      try {
+        const res = await fetch("/api/asistan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: "Günlük özet ver" }),
+        });
+
+        const data = await res.json();
+
+        if (data?.message) {
+          setMessages((prev:any) => [
+            ...prev,
+            { role: "assistant", content: data.message },
+          ]);
+        }
+
+        setAutoMessageLoaded(true);
+      } catch (e) {
+        console.log("AI auto load error");
+      }
+    }
+
+    loadAutoMessage();
     async function loadProfile() {
       const { data } = await supabase.auth.getUser();
       const user = data.user;
