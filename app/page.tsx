@@ -24,6 +24,10 @@ export default function Home() {
   const [todayIncome, setTodayIncome] = useState(0);
   const [todayExpense, setTodayExpense] = useState(0);
   const [pendingTasks, setPendingTasks] = useState(0);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
+  const [topCategory, setTopCategory] = useState("Yok");
+  const [lastRecords, setLastRecords] = useState<any[]>([]);
 
   useEffect(() => {
     async function start() {
@@ -55,10 +59,42 @@ export default function Home() {
         .select("*", { count: "exact", head: true })
         .neq("status", "tamamlandı");
 
+      const { data: allIncome } = await supabase
+        .from("income")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      const { data: allExpenses } = await supabase
+        .from("expenses")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      const incomeTotal = allIncome?.reduce((t, i) => t + Number(i.amount), 0) || 0;
+      const expenseTotal = allExpenses?.reduce((t, i) => t + Number(i.amount), 0) || 0;
+
+      const categories: Record<string, number> = {};
+      allExpenses?.forEach((e: any) => {
+        const key = e.category || "Diğer";
+        categories[key] = (categories[key] || 0) + Number(e.amount);
+      });
+
+      const top = Object.entries(categories).sort((a, b) => b[1] - a[1])[0];
+
+      const records = [
+        ...(allIncome || []).map((i: any) => ({ ...i, type: "gelir" })),
+        ...(allExpenses || []).map((e: any) => ({ ...e, type: "gider" })),
+      ]
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 4);
+
       setCustomerCount(count || 0);
       setTodayIncome(incomes?.reduce((t, i) => t + Number(i.amount), 0) || 0);
       setTodayExpense(expenses?.reduce((t, i) => t + Number(i.amount), 0) || 0);
       setPendingTasks(taskCount || 0);
+      setTotalIncome(incomeTotal);
+      setTotalExpense(expenseTotal);
+      setTopCategory(top ? top[0] : "Yok");
+      setLastRecords(records);
       setReady(true);
     }
 
@@ -98,6 +134,9 @@ export default function Home() {
         <p className="text-xs font-black text-purple-600">BUGÜN</p>
         <h2 className="text-2xl font-black mt-2">Kontrol sende.</h2>
         <p className="text-slate-500 text-sm mt-1">Planla, yönet, büyüt.</p>
+        <div className="mt-3 inline-flex rounded-full bg-slate-950 text-white px-4 py-2 text-sm font-black">
+          Günlük Net: {money(todayIncome - todayExpense)}
+        </div>
 
         <div className="grid grid-cols-3 gap-2 mt-4">
           <div className="rounded-2xl bg-slate-50 p-3">
@@ -142,12 +181,47 @@ export default function Home() {
           <p className="text-xs text-slate-400">Bugünkü gider</p>
         </Link>
 
-        <Link href="/hatirlatmalar" className="bg-white rounded-[22px] p-4 shadow-sm">
-          <div className="h-10 w-10 rounded-xl bg-orange-50 grid place-items-center mb-3">📈</div>
-          <p className="text-slate-500 text-sm">Performans</p>
-          <h3 className="text-2xl font-black">%78</h3>
-          <p className="text-xs text-slate-400">Aylık durum</p>
+        <Link href="/raporlar" className="bg-white rounded-[22px] p-4 shadow-sm">
+          <div className="h-10 w-10 rounded-xl bg-orange-50 grid place-items-center mb-3">📊</div>
+          <p className="text-slate-500 text-sm">Net Kasa</p>
+          <h3 className="text-2xl font-black">{money(totalIncome - totalExpense)}</h3>
+          <p className="text-xs text-slate-400">Toplam durum</p>
         </Link>
+      </section>
+
+      <section className="mb-5">
+        <h2 className="font-black text-slate-700 text-sm tracking-wide mb-3">KISA RAPOR</h2>
+
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="bg-white rounded-[22px] p-4 shadow-sm">
+            <p className="text-slate-500 text-sm">Toplam Gelir</p>
+            <h3 className="text-xl font-black text-emerald-600">{money(totalIncome)}</h3>
+          </div>
+
+          <div className="bg-white rounded-[22px] p-4 shadow-sm">
+            <p className="text-slate-500 text-sm">Toplam Gider</p>
+            <h3 className="text-xl font-black text-red-500">{money(totalExpense)}</h3>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-[22px] p-4 shadow-sm mb-3">
+          <p className="text-slate-500 text-sm">En Çok Gider Kategorisi</p>
+          <h3 className="text-xl font-black">{topCategory}</h3>
+        </div>
+
+        <div className="grid gap-2">
+          {lastRecords.map((item) => (
+            <div key={item.id} className="bg-white rounded-2xl p-3 shadow-sm flex justify-between items-center">
+              <div>
+                <h3 className="font-black text-sm">{item.title}</h3>
+                <p className="text-xs text-slate-500">{item.type === "gelir" ? "Gelir" : item.category || "Gider"}</p>
+              </div>
+              <p className={item.type === "gelir" ? "font-black text-emerald-600" : "font-black text-red-500"}>
+                {item.type === "gelir" ? "+" : "-"}{money(Number(item.amount))}
+              </p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <Link href="/asistan" className="fixed right-5 bottom-24 h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 shadow-2xl grid place-items-center text-white text-3xl">
