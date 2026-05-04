@@ -52,6 +52,22 @@ function extractAmount(text: string) {
   return match ? Number(match[1]) : 0;
 }
 
+
+function detectCategory(text: string) {
+  const t = text.toLowerCase();
+
+  if (t.includes("market") || t.includes("migros") || t.includes("a101") || t.includes("bim")) return "Gıda";
+  if (t.includes("yakıt") || t.includes("yakit") || t.includes("benzin") || t.includes("mazot") || t.includes("otopark")) return "Ulaşım";
+  if (t.includes("reklam") || t.includes("meta") || t.includes("instagram") || t.includes("google ads")) return "Pazarlama";
+  if (t.includes("yemek") || t.includes("kahve") || t.includes("restoran")) return "Yemek";
+  if (t.includes("kamera") || t.includes("lens") || t.includes("ekipman") || t.includes("tripod")) return "Ekipman";
+  if (t.includes("ofis") || t.includes("kira") || t.includes("elektrik") || t.includes("internet")) return "Ofis";
+  if (t.includes("yazılım") || t.includes("yazilim") || t.includes("abonelik") || t.includes("vercel") || t.includes("supabase")) return "Yazılım";
+
+  return "Diğer";
+}
+
+
 function cleanTitle(text: string) {
   return text
     .replace(/\d+/g, "")
@@ -184,7 +200,7 @@ export async function POST(req: Request) {
         title,
         amount,
         expense_date: today(),
-        category: "asistan",
+        category: detectCategory(text),
         payment_method: "asistan",
         note: text,
       })
