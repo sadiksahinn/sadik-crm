@@ -28,9 +28,7 @@ export default function AdminPage() {
   async function loadAdmin() {
     const { data: userData } = await supabase.auth.getUser();
 
-    const { data: userData } = await supabase.auth.getUser();
 
-    const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
 
     if (!user) {
