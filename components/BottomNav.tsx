@@ -32,7 +32,7 @@ export default function BottomNav() {
             <Link key={tab.name} href={tab.href} className="flex flex-col items-center justify-center gap-1 py-1">
               <div className={`h-10 w-10 rounded-2xl grid place-items-center text-[24px] ${
                 active
-                  ? "bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 text-white shadow-lg"
+                  ? "bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-white shadow-lg"
                   : "bg-white/45 text-slate-500"
               }`}>
                 {tab.icon}

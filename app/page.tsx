@@ -157,7 +157,7 @@ export default function HomePage() {
             <span className="absolute top-3 right-3 h-2.5 w-2.5 rounded-full bg-fuchsia-500" />
           </button>
 
-          <Link href="/profil" className="h-14 w-14 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 shadow-lg grid place-items-center text-white font-black text-xl">
+          <Link href="/profil" className="h-14 w-14 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] shadow-lg grid place-items-center text-white font-black text-xl">
             {avatar ? <img src={avatar} className="h-full w-full object-cover" alt="Profil" /> : firstName(fullName)[0]}
           </Link>
         </div>
@@ -169,7 +169,7 @@ export default function HomePage() {
       </section>
 
       <section className="relative overflow-hidden bg-white rounded-[30px] p-4 shadow-sm mb-5">
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400" />
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#61aebd] to-[#e5ab53]" />
         <div className="absolute right-0 top-12 h-44 w-44 rounded-full bg-gradient-to-br from-blue-100 via-fuchsia-100 to-orange-100 blur-xl opacity-80" />
 
         <div className="relative z-10">
@@ -199,7 +199,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <Link href="/asistan" className="inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400 px-5 py-3 text-white font-black shadow-lg">
+          <Link href="/asistan" className="inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-[#61aebd] to-[#e5ab53] px-5 py-3 text-white font-black shadow-lg">
             Günlük Net: {money(net)} <span>›</span>
           </Link>
         </div>
@@ -282,7 +282,7 @@ export default function HomePage() {
         </div>
 
         <div className="relative pl-8">
-          <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gradient-to-b from-blue-500 via-fuchsia-500 to-orange-400 rounded-full" />
+          <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#61aebd] to-[#e5ab53] rounded-full" />
 
           {(agenda.length ? agenda : [
             { icon: "☏", title: "Müşteri Araması", sub: "Bugün için takip görünmüyor", type: "Müşteri" },
@@ -290,7 +290,7 @@ export default function HomePage() {
             { icon: "₺", title: "Ödeme Takibi", sub: "Bekleyen ödeme kontrolü", type: "Ödeme" },
           ]).map((item, i) => (
             <div key={i} className="relative bg-white rounded-[22px] p-4 shadow-sm mb-3 flex items-center justify-between">
-              <span className="absolute -left-[31px] h-3 w-3 rounded-full bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400" />
+              <span className="absolute -left-[31px] h-3 w-3 rounded-full bg-gradient-to-br from-[#61aebd] to-[#e5ab53]" />
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-2xl bg-slate-50 grid place-items-center text-2xl">{item.icon}</div>
                 <div>
@@ -304,7 +304,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <Link href="/asistan" className="fixed bottom-28 right-6 h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 shadow-[0_18px_45px_rgba(168,85,247,0.45)] grid place-items-center text-white text-4xl z-[9998]">
+      <Link href="/asistan" className="fixed bottom-28 right-6 h-16 w-16 rounded-full bg-gradient-to-br from-[#61aebd] to-[#e5ab53] shadow-[0_18px_45px_rgba(168,85,247,0.45)] grid place-items-center text-white text-4xl z-[9998]">
         +
       </Link>
     </main>

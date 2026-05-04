@@ -16,3 +16,18 @@ html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   display: none;
 }
+
+:root {
+  --primary: #61aebd;
+  --accent: #e5ab53;
+}
+
+.gradient-main {
+  background: linear-gradient(135deg, #61aebd, #e5ab53);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #61aebd, #e5ab53);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
