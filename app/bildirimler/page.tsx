@@ -59,28 +59,31 @@ export default function BildirimlerPage() {
 
     setItems([
       ...(payments || []).map((x: any) => ({
+        ...x,
+        itemType: "payment",
         type: "Tahsilat",
         icon: "₺",
         title: x.title,
         desc: `${money(Number(x.amount || 0))} bekleyen ödeme`,
         date: x.due_date,
-        href: "/tahsilatlar",
       })),
       ...(followups || []).map((x: any) => ({
+        ...x,
+        itemType: "followup",
         type: "Takip",
         icon: "□",
         title: x.title,
         desc: "Bekleyen takip görevi",
         date: x.followup_date,
-        href: "/hatirlatmalar",
       })),
       ...(contents || []).map((x: any) => ({
+        ...x,
+        itemType: "content",
         type: "İçerik",
         icon: "◉",
         title: x.content_title,
         desc: "Paylaşım kontrolü gerekiyor",
         date: x.publish_date,
-        href: "/musteriler",
       })),
     ]);
   }
@@ -88,6 +91,53 @@ export default function BildirimlerPage() {
   useEffect(() => {
     load();
   }, []);
+
+  async function completeItem(item: any) {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+    if (!user) return;
+
+    if (item.itemType === "payment") {
+      await supabase
+        .from("payment_tracking")
+        .update({ status: "ödendi", paid_date: today() })
+        .eq("id", item.id);
+
+      await supabase.from("income").insert({
+        user_id: user.id,
+        title: item.title,
+        amount: Number(item.amount || 0),
+        income_date: today(),
+        payment_method: "Bildirim merkezi",
+        note: "Bildirim merkezinden ödendi yapıldı.",
+      });
+    }
+
+    if (item.itemType === "followup") {
+      await supabase
+        .from("followups")
+        .update({ status: "tamamlandı" })
+        .eq("id", item.id);
+    }
+
+    if (item.itemType === "content") {
+      await supabase
+        .from("content_calendar")
+        .update({ status: "tamamlandı" })
+        .eq("id", item.id);
+
+      await supabase.from("activity_logs").insert({
+        user_id: user.id,
+        customer_id: item.customer_id,
+        service_id: item.service_id || null,
+        action_title: "İçerik paylaşıldı",
+        action_detail: `${item.content_title} bildirim merkezinden tamamlandı.`,
+        action_type: "tamamlandı",
+      });
+    }
+
+    load();
+  }
 
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
@@ -110,25 +160,34 @@ export default function BildirimlerPage() {
 
       <section className="grid gap-3">
         {items.map((item, i) => (
-          <Link
-            key={i}
-            href={item.href}
-            className="bg-white rounded-[24px] p-4 shadow-sm flex items-center justify-between"
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-2xl bg-[#61aebd]/10 text-[#61aebd] grid place-items-center text-2xl font-black">
-                {item.icon}
+          <div key={`${item.itemType}-${item.id}-${i}`} className="bg-white rounded-[24px] p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-2xl bg-[#61aebd]/10 text-[#61aebd] grid place-items-center text-2xl font-black">
+                  {item.icon}
+                </div>
+
+                <div>
+                  <p className="text-xs font-black text-[#e5ab53]">{item.type} · {item.date}</p>
+                  <h3 className="font-black">{item.title}</h3>
+                  <p className="text-slate-500 text-sm">{item.desc}</p>
+                </div>
               </div>
 
-              <div>
-                <p className="text-xs font-black text-[#e5ab53]">{item.type} · {item.date}</p>
-                <h3 className="font-black">{item.title}</h3>
-                <p className="text-slate-500 text-sm">{item.desc}</p>
-              </div>
+              <span className="text-slate-400 font-black">›</span>
             </div>
 
-            <span className="text-slate-400 font-black">›</span>
-          </Link>
+            <button
+              onClick={() => completeItem(item)}
+              className="mt-3 w-full bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-3 font-black"
+            >
+              {item.itemType === "payment"
+                ? "Ödendi Yap"
+                : item.itemType === "content"
+                ? "Paylaşıldı Yap"
+                : "Tamamlandı Yap"}
+            </button>
+          </div>
         ))}
 
         {items.length === 0 && (
