@@ -64,7 +64,6 @@ export default function AsistanPage() {
 
   async function runCommand() {
     const text = command.trim();
-    const lower = text.toLowerCase();
 
     if (!text) {
       setResult("Önce bir komut yaz.");
@@ -75,73 +74,18 @@ export default function AsistanPage() {
     setResult("Komut işleniyor...");
 
     try {
-      if (lower.includes("gelir") || lower.includes("aldım") || lower.includes("aldim")) {
-        const amount = extractAmount(text);
-        const title = cleanTitle(text) || "Asistan gelir kaydı";
+      const res = await fetch("/api/asistan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ command: text })
+      });
 
-        const { error } = await supabase.from("income").insert({
-          title,
-          amount,
-          income_date: detectDate(text),
-          payment_method: "asistan",
-          note: text,
-        });
+      const data = await res.json();
 
-        if (error) throw error;
-        setResult(`Gelir kaydedildi ✅\n${title} - ${amount} TL`);
-      } 
-      else if (lower.includes("gider") || lower.includes("harcadım") || lower.includes("harcadim")) {
-        const amount = extractAmount(text);
-        const title = cleanTitle(text) || "Asistan gider kaydı";
-
-        const { error } = await supabase.from("expenses").insert({
-          title,
-          amount,
-          category: "asistan",
-          expense_date: detectDate(text),
-          payment_method: "asistan",
-          note: text,
-        });
-
-        if (error) throw error;
-        setResult(`Gider kaydedildi ✅\n${title} - ${amount} TL`);
-      } 
-      else if (lower.includes("hatırlat") || lower.includes("hatirlat")) {
-        const title = cleanTitle(text) || "Asistan hatırlatması";
-
-        const { error } = await supabase.from("reminders").insert({
-          title,
-          description: text,
-          reminder_date: detectDate(text),
-          reminder_time: extractTime(text),
-          priority: lower.includes("acil") ? "acil" : "normal",
-          status: "bekliyor",
-        });
-
-        if (error) throw error;
-        setResult(`Hatırlatma oluşturuldu ✅\n${title}`);
-      } 
-      else if (lower.includes("müşteri") || lower.includes("musteri")) {
-        const title = cleanTitle(text) || "Yeni müşteri";
-
-        const { error } = await supabase.from("customers").insert({
-          name: title,
-          brand_name: title,
-          status: "potansiyel",
-          source: "asistan",
-          notes: text,
-        });
-
-        if (error) throw error;
-        setResult(`Müşteri oluşturuldu ✅\n${title}`);
-      } 
-      else {
-        setResult(
-          "Bu komutu henüz anlayamadım. Şöyle deneyebilirsin:\n\n“Bugün 20000 TL gelir yaz”\n“3500 TL reklam gideri yaz”\n“Yarın saat 14:00 çekim hatırlat”"
-        );
-      }
-
-      setCommand("");
+      setResult(data.message || "İşlem tamamlandı.");
+      if (data.ok) setCommand("");
     } catch (err: any) {
       setResult("Hata oluştu: " + err.message);
     }
