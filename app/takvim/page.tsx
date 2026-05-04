@@ -9,6 +9,13 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
+function googleCalendarLink(title:string, date:string){
+  const start = date.replaceAll("-", "") + "T090000";
+  const end = date.replaceAll("-", "") + "T100000";
+
+  return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${start}/${end}`;
+}
+
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -95,7 +102,13 @@ export default function TakvimPage() {
                 <p className="text-slate-500 text-sm">{item.status || "planlandı"}</p>
               </div>
             </div>
-            <span className="text-slate-400 font-black">›</span>
+            <a 
+      href={googleCalendarLink(item.title, item.date)}
+      target="_blank"
+      className="text-[#61aebd] font-black text-sm"
+    >
+      Takvime Ekle
+    </a>
           </div>
         ))}
 
