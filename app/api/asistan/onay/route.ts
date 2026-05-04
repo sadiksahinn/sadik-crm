@@ -93,7 +93,15 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         ok: true,
+        type: "iş",
         message: `✅ İş kaydı oluşturuldu.\n\n${proposal.customer_name}\n${proposal.amount ? `Bedel: ${proposal.amount} TL` : ""}`,
+        record: {
+          id: customer.id,
+          type: "iş",
+          title: proposal.customer_name,
+          amount: Number(proposal.amount || 0),
+          table: "customers"
+        }
       });
     }
 
@@ -130,7 +138,14 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         ok: true,
+        type: "plan",
         message: `✅ Plan onaylandı ve kaydedildi.\n\n${customer.brand_name || customer.name}\n${planText}`,
+        record: {
+          id: customer.id,
+          type: "plan",
+          title: customer.brand_name || customer.name,
+          table: "activity_logs"
+        }
       });
     }
 

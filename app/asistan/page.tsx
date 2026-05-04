@@ -116,6 +116,7 @@ export default function AsistanPage() {
       {
         role: "assistant",
         text: data.message || "İşlem tamamlandı.",
+        record: data.record,
       },
     ]);
 
