@@ -42,116 +42,191 @@ export default async function Home() {
   const todayExpense =
     expenses?.reduce((total, item) => total + Number(item.amount), 0) || 0;
 
-  const cards = [
-    { title: "Müşteri", value: customerCount || 0, icon: "👥" },
-    { title: "Gelir", value: money(todayIncome), icon: "💰" },
-    { title: "Gider", value: money(todayExpense), icon: "📉" },
-    { title: "Bekleyen", value: pendingTasks || 0, icon: "⏳" },
-  ];
-
   return (
-    <main className="min-h-screen bg-[#050505] text-white px-5 pt-6 pb-28">
-      <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-zinc-800 via-zinc-950 to-black p-6 shadow-2xl mb-5">
-        <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute -left-12 bottom-0 h-32 w-32 rounded-full bg-blue-500/10 blur-3xl" />
-
-        <p className="text-sm text-zinc-400">Bugünkü kontrol merkezi</p>
-        <h1 className="text-4xl font-black mt-2 tracking-tight">
-          Sadık CRM 🚀
-        </h1>
-        <p className="text-zinc-400 mt-2 leading-relaxed">
-          Müşteri, ödeme, görev ve asistan sistemin tek panelde.
-        </p>
-
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <Link
-            href="/musteriler"
-            className="rounded-2xl bg-white text-black p-4 font-bold active:scale-95 transition"
-          >
-            + Müşteri
-          </Link>
-
-          <Link
-            href="/asistan"
-            className="rounded-2xl bg-zinc-800/80 border border-white/10 p-4 font-bold active:scale-95 transition"
-          >
-            AI Asistan
-          </Link>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-2 gap-3 mb-5">
-        {cards.map((card) => (
-          <div
-            key={card.title}
-            className="rounded-[28px] bg-zinc-900/90 border border-white/10 p-5 shadow-xl"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-zinc-400 text-sm">{card.title}</p>
-              <span className="text-xl">{card.icon}</span>
-            </div>
-            <h2 className="text-3xl font-black tracking-tight">{card.value}</h2>
+    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-5 pt-8 pb-28">
+      <header className="flex items-center justify-between mb-7">
+        <div>
+          <div className="text-3xl font-black tracking-[0.35em] text-slate-900">
+            VALKEA
           </div>
-        ))}
-      </section>
+          <div className="text-[10px] tracking-[0.55em] text-slate-500 mt-1">
+            ASSISTANT
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <div className="h-12 w-12 rounded-full bg-white shadow-xl grid place-items-center">
+            🔔
+          </div>
+          <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 shadow-xl grid place-items-center text-white font-black">
+            S
+          </div>
+        </div>
+      </header>
 
       <section className="mb-5">
-        <h2 className="text-xl font-black mb-3">Hızlı İşlemler</h2>
+        <h1 className="text-4xl font-black tracking-tight">
+          Günaydın, Sadık 👋
+        </h1>
+        <p className="text-slate-500 mt-2 text-lg">
+          Valkea Assistant hazır, gününü birlikte planlayalım.
+        </p>
+      </section>
 
-        <div className="grid gap-3">
-          <Link
-            href="/musteriler"
-            className="group rounded-[28px] bg-zinc-900 border border-white/10 p-5 flex items-center justify-between active:scale-[0.98] transition"
-          >
-            <div>
-              <h3 className="text-xl font-black">Müşteri Yönetimi</h3>
-              <p className="text-zinc-400 mt-1">Ekle, düzenle, sil ve takip et</p>
+      <section className="relative overflow-hidden rounded-[32px] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.10)] border border-white p-6 mb-5">
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400" />
+        <div className="absolute -right-8 top-12 h-44 w-44 rounded-full bg-gradient-to-br from-blue-400/20 via-fuchsia-400/20 to-orange-400/20 blur-2xl" />
+
+        <p className="text-sm font-bold text-purple-600">BUGÜN</p>
+        <h2 className="text-3xl font-black mt-3">
+          Bugün kontrol sende.
+        </h2>
+        <p className="text-slate-500 mt-1">
+          Planla, yönet, büyüt.
+        </p>
+
+        <div className="grid grid-cols-3 gap-3 mt-6">
+          <div>
+            <div className="h-12 w-12 rounded-2xl bg-blue-50 grid place-items-center text-xl">
+              ✓
             </div>
-            <span className="h-11 w-11 rounded-full bg-white text-black grid place-items-center text-xl">
-              →
-            </span>
+            <div className="text-2xl font-black mt-2">{pendingTasks || 0}</div>
+            <p className="text-sm text-slate-500">Görev</p>
+          </div>
+
+          <div>
+            <div className="h-12 w-12 rounded-2xl bg-purple-50 grid place-items-center text-xl">
+              👥
+            </div>
+            <div className="text-2xl font-black mt-2">{customerCount || 0}</div>
+            <p className="text-sm text-slate-500">Müşteri</p>
+          </div>
+
+          <div>
+            <div className="h-12 w-12 rounded-2xl bg-orange-50 grid place-items-center text-xl">
+              💳
+            </div>
+            <div className="text-2xl font-black mt-2">{money(todayIncome)}</div>
+            <p className="text-sm text-slate-500">Gelir</p>
+          </div>
+        </div>
+
+        <Link
+          href="/musteriler"
+          className="inline-flex items-center gap-3 mt-6 bg-white border border-slate-200 rounded-full px-6 py-3 shadow-sm font-bold text-slate-700"
+        >
+          Detaylara git <span className="text-purple-600">→</span>
+        </Link>
+      </section>
+
+      <section className="grid grid-cols-2 gap-3 mb-6">
+        <Link href="/musteriler" className="bg-white rounded-[26px] p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
+          <div className="h-12 w-12 rounded-2xl bg-blue-50 grid place-items-center text-2xl mb-4">👥</div>
+          <p className="text-slate-500">Müşteriler</p>
+          <h3 className="text-3xl font-black">{customerCount || 0}</h3>
+          <p className="text-sm text-slate-400">Aktif portföy</p>
+        </Link>
+
+        <Link href="/gelir-gider" className="bg-white rounded-[26px] p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
+          <div className="h-12 w-12 rounded-2xl bg-purple-50 grid place-items-center text-2xl mb-4">₺</div>
+          <p className="text-slate-500">Gelir</p>
+          <h3 className="text-3xl font-black">{money(todayIncome)}</h3>
+          <p className="text-sm text-slate-400">Bugünkü gelir</p>
+        </Link>
+
+        <Link href="/gelir-gider" className="bg-white rounded-[26px] p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
+          <div className="h-12 w-12 rounded-2xl bg-red-50 grid place-items-center text-2xl mb-4">↘</div>
+          <p className="text-slate-500">Gider</p>
+          <h3 className="text-3xl font-black">{money(todayExpense)}</h3>
+          <p className="text-sm text-slate-400">Bugünkü gider</p>
+        </Link>
+
+        <Link href="/hatirlatmalar" className="bg-white rounded-[26px] p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
+          <div className="h-12 w-12 rounded-2xl bg-orange-50 grid place-items-center text-2xl mb-4">📈</div>
+          <p className="text-slate-500">Performans</p>
+          <h3 className="text-3xl font-black">%78</h3>
+          <p className="text-sm text-slate-400">Aylık durum</p>
+        </Link>
+      </section>
+
+      <section className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-black text-slate-700 tracking-wide">HIZLI KOMUTLAR</h2>
+          <span className="text-slate-400">Tümü ›</span>
+        </div>
+
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          <Link href="/musteriler" className="min-w-[120px] bg-white rounded-2xl p-4 shadow-sm font-bold">
+            <div className="text-3xl text-blue-500 mb-2">＋</div>
+            Müşteri<br />Ekle
           </Link>
-
-          <Link
-            href="/gelir-gider"
-            className="rounded-[28px] bg-zinc-900 border border-white/10 p-5 flex items-center justify-between active:scale-[0.98] transition"
-          >
-            <div>
-              <h3 className="text-xl font-black">Gelir - Gider</h3>
-              <p className="text-zinc-400 mt-1">Günlük kasa ve finans takibi</p>
-            </div>
-            <span className="h-11 w-11 rounded-full bg-zinc-800 grid place-items-center text-xl">
-              →
-            </span>
+          <Link href="/asistan" className="min-w-[120px] bg-white rounded-2xl p-4 shadow-sm font-bold">
+            <div className="text-2xl mb-2">💬</div>
+            Mesaj<br />Gönder
           </Link>
-
-          <Link
-            href="/hatirlatmalar"
-            className="rounded-[28px] bg-zinc-900 border border-white/10 p-5 flex items-center justify-between active:scale-[0.98] transition"
-          >
-            <div>
-              <h3 className="text-xl font-black">Hatırlatmalar</h3>
-              <p className="text-zinc-400 mt-1">Çekim, ödeme ve teslim planı</p>
-            </div>
-            <span className="h-11 w-11 rounded-full bg-zinc-800 grid place-items-center text-xl">
-              →
-            </span>
+          <Link href="/asistan" className="min-w-[120px] bg-white rounded-2xl p-4 shadow-sm font-bold">
+            <div className="text-2xl mb-2">🎬</div>
+            İçerik<br />Oluştur
+          </Link>
+          <Link href="/raporlar" className="min-w-[120px] bg-white rounded-2xl p-4 shadow-sm font-bold">
+            <div className="text-2xl mb-2">📊</div>
+            Rapor<br />Al
           </Link>
         </div>
       </section>
 
-      <nav className="fixed bottom-4 left-4 right-4 rounded-[28px] border border-white/10 bg-zinc-950/90 backdrop-blur-xl p-3 grid grid-cols-4 gap-2 shadow-2xl">
-        <Link href="/" className="text-center rounded-2xl bg-white text-black py-3 text-xs font-bold">
-          Ana
+      <section>
+        <h2 className="font-black text-slate-700 tracking-wide mb-4">BUGÜNÜN AKIŞI</h2>
+
+        <div className="grid gap-4">
+          <div className="flex gap-4 items-center">
+            <div className="text-blue-500 font-bold w-14">10:00</div>
+            <div className="flex-1 bg-white rounded-3xl p-4 shadow-sm">
+              <h3 className="font-black">Müşteri Araması</h3>
+              <p className="text-slate-500 text-sm">Görüşme ve takip</p>
+            </div>
+          </div>
+
+          <div className="flex gap-4 items-center">
+            <div className="text-purple-500 font-bold w-14">13:00</div>
+            <div className="flex-1 bg-white rounded-3xl p-4 shadow-sm">
+              <h3 className="font-black">İçerik Çekimi</h3>
+              <p className="text-slate-500 text-sm">Reels / sosyal medya planı</p>
+            </div>
+          </div>
+
+          <div className="flex gap-4 items-center">
+            <div className="text-orange-500 font-bold w-14">16:00</div>
+            <div className="flex-1 bg-white rounded-3xl p-4 shadow-sm">
+              <h3 className="font-black">Ödeme Takibi</h3>
+              <p className="text-slate-500 text-sm">Bekleyen ödemeleri kontrol et</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Link
+        href="/asistan"
+        className="fixed right-6 bottom-24 h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 shadow-2xl grid place-items-center text-white text-4xl"
+      >
+        +
+      </Link>
+
+      <nav className="fixed bottom-4 left-4 right-4 rounded-[28px] bg-white/95 backdrop-blur-xl shadow-[0_20px_60px_rgba(15,23,42,0.18)] p-3 grid grid-cols-5 gap-1">
+        <Link href="/" className="text-center text-purple-600 font-bold text-xs">
+          🏠<br />Ana Sayfa
         </Link>
-        <Link href="/musteriler" className="text-center rounded-2xl bg-zinc-900 py-3 text-xs font-bold">
-          Müşteri
+        <Link href="/asistan" className="text-center text-slate-500 font-bold text-xs">
+          🤖<br />Asistan
         </Link>
-        <Link href="/gelir-gider" className="text-center rounded-2xl bg-zinc-900 py-3 text-xs font-bold">
-          Finans
+        <Link href="/hatirlatmalar" className="text-center text-slate-500 font-bold text-xs">
+          📋<br />Görevler
         </Link>
-        <Link href="/asistan" className="text-center rounded-2xl bg-zinc-900 py-3 text-xs font-bold">
-          AI
+        <Link href="/musteriler" className="text-center text-slate-500 font-bold text-xs">
+          👥<br />CRM
+        </Link>
+        <Link href="/profil" className="text-center text-slate-500 font-bold text-xs">
+          👤<br />Profil
         </Link>
       </nav>
     </main>
