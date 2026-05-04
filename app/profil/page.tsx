@@ -190,7 +190,7 @@ export default function ProfilPage() {
           <input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Görev / ünvan" className="bg-slate-100 rounded-2xl p-4 outline-none" />
           <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Kısa profil açıklaması" className="bg-slate-100 rounded-2xl p-4 outline-none min-h-[90px]" />
 
-          <button onClick={saveProfile} className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 rounded-2xl p-4 font-black">
+          <button onClick={saveProfile} className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black">
             Bilgileri Kaydet
           </button>
         </div>
@@ -211,7 +211,7 @@ export default function ProfilPage() {
           <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon numarası" className="bg-slate-100 rounded-2xl p-4 outline-none" />
 
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={sendPhoneCode} className="bg-slate-950 text-slate-950 rounded-2xl p-4 font-black">
+            <button onClick={sendPhoneCode} className="bg-slate-950 text-white rounded-2xl p-4 font-black">
               Kod Gönder
             </button>
 
@@ -229,7 +229,7 @@ export default function ProfilPage() {
 
         <div className="grid gap-3">
           {role === "superadmin" && (
-            <Link href="/admin" className="block w-full bg-slate-950 text-slate-950 rounded-2xl p-4 font-black text-center">
+            <Link href="/admin" className="block w-full bg-slate-950 text-white rounded-2xl p-4 font-black text-center">
               Admin Panel
             </Link>
           )}
