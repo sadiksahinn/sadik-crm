@@ -14,6 +14,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   async function login() {
+    if (!email || !password) {
+      alert("E-posta ve şifre gir.");
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -28,6 +33,11 @@ export default function LoginPage() {
   }
 
   async function register() {
+    if (!email || !password) {
+      alert("E-posta ve şifre gir.");
+      return;
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -38,29 +48,18 @@ export default function LoginPage() {
       return;
     }
 
-    alert("Hesap oluşturuldu. Şimdi giriş yapabilirsin.");
+    alert("Hesap oluşturuldu. Mailine gelen onay bağlantısına tıkla, sonra giriş yap.");
   }
 
   return (
     <main className="min-h-screen bg-[#f7f8fc] px-6 py-10 flex flex-col justify-center">
       <div className="bg-white rounded-[36px] p-6 shadow-[0_20px_70px_rgba(15,23,42,0.12)]">
         <div className="relative h-24 w-full mb-8">
-          <Image
-            src="/valkea-logo.png"
-            alt="Valkea"
-            fill
-            className="object-contain"
-            priority
-          />
+          <Image src="/valkea-logo.png" alt="Valkea" fill className="object-contain" priority />
         </div>
 
-        <h1 className="text-4xl font-black text-slate-950">
-          Hoş geldin 👋
-        </h1>
-
-        <p className="text-slate-500 mt-2 mb-6">
-          Valkea Assistant hesabına giriş yap.
-        </p>
+        <h1 className="text-4xl font-black text-slate-950">Hoş geldin 👋</h1>
+        <p className="text-slate-500 mt-2 mb-6">Valkea Assistant hesabına giriş yap.</p>
 
         <div className="grid gap-3">
           <input
