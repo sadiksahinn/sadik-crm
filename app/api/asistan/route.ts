@@ -117,9 +117,13 @@ export async function POST(req: Request) {
 
     if (
       lower.includes("iş aldım") ||
+      lower.includes("işi aldım") ||
       lower.includes("is aldim") ||
+      lower.includes("isi aldim") ||
       lower.includes("iş aldık") ||
+      lower.includes("işi aldık") ||
       lower.includes("is aldik") ||
+      lower.includes("isi aldik") ||
       lower.includes("iş alındı") ||
       lower.includes("is alindi") ||
       lower.includes("anlaşma yaptık") ||
