@@ -229,7 +229,7 @@ export default function HomePage() {
       </section>
 
       <section className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-white rounded-[26px] p-4 shadow-sm">
+        <Link href="/gelir-gider" className="bg-white rounded-[26px] p-4 shadow-sm block">
           <div className="flex items-center justify-between">
             <div className="h-11 w-11 bg-[#61aebd]/10 rounded-2xl grid place-items-center text-xl">👥</div>
             <span className="text-xs text-[#61aebd] bg-[#61aebd]/10 px-2 py-1 rounded-full font-black">↑ %12</span>
@@ -238,9 +238,9 @@ export default function HomePage() {
           <p className="text-3xl font-black mt-2">{customerCount}</p>
           <p className="text-slate-500 text-sm">Aktif portföy</p>
           <Spark color="#a855f7" />
-        </div>
+        </Link>
 
-        <div className="bg-white rounded-[26px] p-4 shadow-sm">
+        <Link href="/gelir-gider" className="bg-white rounded-[26px] p-4 shadow-sm block">
           <div className="flex items-center justify-between">
             <div className="h-11 w-11 bg-emerald-50 rounded-2xl grid place-items-center text-xl">₺</div>
             <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full font-black">↑ %0</span>
@@ -249,9 +249,9 @@ export default function HomePage() {
           <p className="text-3xl font-black mt-2">{money(todayIncome)}</p>
           <p className="text-slate-500 text-sm">Bugünkü gelir</p>
           <Spark color="#22c55e" />
-        </div>
+        </Link>
 
-        <div className="bg-white rounded-[26px] p-4 shadow-sm">
+        <Link href="/gelir-gider" className="bg-white rounded-[26px] p-4 shadow-sm block">
           <div className="flex items-center justify-between">
             <div className="h-11 w-11 bg-red-50 rounded-2xl grid place-items-center text-xl">↘</div>
             <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full font-black">↑ %0</span>
@@ -260,9 +260,9 @@ export default function HomePage() {
           <p className="text-3xl font-black mt-2">{money(todayExpense)}</p>
           <p className="text-slate-500 text-sm">Bugünkü gider</p>
           <Spark color="#f43f5e" />
-        </div>
+        </Link>
 
-        <div className="bg-white rounded-[26px] p-4 shadow-sm">
+        <Link href="/gelir-gider" className="bg-white rounded-[26px] p-4 shadow-sm block">
           <div className="flex items-center justify-between">
             <div className="h-11 w-11 bg-blue-50 rounded-2xl grid place-items-center text-xl">⌁</div>
             <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full font-black">↑ %0</span>
@@ -271,7 +271,7 @@ export default function HomePage() {
           <p className="text-3xl font-black mt-2">{money(net)}</p>
           <p className="text-slate-500 text-sm">Toplam durum</p>
           <Spark color="#3b82f6" />
-        </div>
+        </Link>
       </section>
 
       <section>
