@@ -20,22 +20,25 @@ function money(value: number) {
 type ChatMessage = {
   role: "user" | "assistant";
   text: string;
-  record?: {
-    id: string;
-    type: "gelir" | "gider" | "hatırlatma" | "müşteri" | "iş";
-    title: string;
-    amount?: number;
-    table?: string;
-  };
+  record?: any;
   proposal?: any;
 };
 
 export default function AsistanPage() {
+  const [fullName, setFullName] = useState("Kullanıcı");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [command, setCommand] = useState("");
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
-    async function loadProfileForAssistant() {
+    async function loadProfile() {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
-      if (!user) return;
+
+      if (!user) {
+        window.location.href = "/login";
+        return;
+      }
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -43,24 +46,20 @@ export default function AsistanPage() {
         .eq("id", user.id)
         .single();
 
-      setFullName(profile?.full_name || "Kullanıcı");
+      const name = profile?.full_name || "Kullanıcı";
+      const firstName = name.trim().split(" ")[0];
+
+      setFullName(name);
+      setMessages([
+        {
+          role: "assistant",
+          text: `Merhaba ${firstName} 👋 Bana doğal şekilde yazabilirsin. Örn: “Markete 300 TL verdim” veya “Suite Halı 20000 TL ödeme yaptı”.`,
+        },
+      ]);
     }
 
-    loadProfileForAssistant();
+    loadProfile();
   }, []);
-
-  const [fullName, setFullName] = useState("Kullanıcı");
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      text: "Merhaba {fullName.split(" ")[0]} 👋 Bana doğal şekilde yazabilirsin. Örn: “Markete 300 TL verdim” veya “Suite Halı 20000 TL ödedi”.",
-    },
-  ]);
-  const [command, setCommand] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [editing, setEditing] = useState<ChatMessage["record"] | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editAmount, setEditAmount] = useState("");
 
   async function sendMessage() {
     const text = command.trim();
@@ -78,28 +77,18 @@ export default function AsistanPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           command: text,
-          access_token: sessionData.session?.access_token
+          access_token: sessionData.session?.access_token,
         }),
       });
 
       const data = await res.json();
-
-      const record = data.record
-        ? {
-            id: data.record.id,
-            type: data.type,
-            title: data.record.title,
-            amount: data.record.amount,
-            table: data.record.table,
-          }
-        : undefined;
 
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           text: data.message || "İşlem tamamlandı.",
-          record,
+          record: data.record,
           proposal: data.proposal,
         },
       ]);
@@ -113,7 +102,6 @@ export default function AsistanPage() {
     setLoading(false);
   }
 
-
   async function approveProposal(proposal: any) {
     setLoading(true);
 
@@ -124,7 +112,7 @@ export default function AsistanPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         proposal,
-        access_token: sessionData.session?.access_token
+        access_token: sessionData.session?.access_token,
       }),
     });
 
@@ -142,65 +130,12 @@ export default function AsistanPage() {
     setLoading(false);
   }
 
-  async function deleteRecord(record: NonNullable<ChatMessage["record"]>) {
-    const ok = confirm("Bu kaydı silmek istiyor musun?");
-    if (!ok || !record.table) return;
-
-    await supabase.from(record.table).delete().eq("id", record.id);
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        text: `🗑️ Kayıt silindi: ${record.title}`,
-      },
-    ]);
-  }
-
-  function openEdit(record: NonNullable<ChatMessage["record"]>) {
-    setEditing(record);
-    setEditTitle(record.title || "");
-    setEditAmount(record.amount ? String(record.amount) : "");
-  }
-
-  async function saveEdit() {
-    if (!editing?.table) return;
-
-    const payload: any = {};
-
-    if (editing.table === "income" || editing.table === "expenses") {
-      payload.title = editTitle;
-      payload.amount = Number(editAmount || 0);
-    }
-
-    if (editing.table === "reminders") {
-      payload.title = editTitle;
-    }
-
-    if (editing.table === "customers") {
-      payload.name = editTitle;
-      payload.brand_name = editTitle;
-    }
-
-    await supabase.from(editing.table).update(payload).eq("id", editing.id);
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        text: `✅ Kayıt güncellendi: ${editTitle}${editAmount ? " · " + money(Number(editAmount)) : ""}`,
-      },
-    ]);
-
-    setEditing(null);
-  }
-
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-6 pb-28">
       <header className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-3xl font-black">Valkea Asistan</h1>
-          <p className="text-slate-500 text-sm">Konuşarak kayıt oluştur.</p>
+          <p className="text-slate-500 text-sm">Konuşarak CRM yönet.</p>
         </div>
 
         <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-bold">
@@ -220,81 +155,40 @@ export default function AsistanPage() {
           >
             <p className="whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
 
-
             {msg.proposal && (
               <div className="mt-3 rounded-2xl bg-purple-50 border border-purple-100 p-3">
-                <p className="text-xs font-black text-purple-600 mb-2">✨ ÖNERİLEN PLAN</p>
+                <p className="text-xs font-black text-purple-600 mb-2">
+                  ✨ ÖNERİ
+                </p>
 
-                <div className="text-sm text-slate-700 leading-relaxed">
-                  <p><b>Müşteri:</b> {msg.proposal.customer_name}</p>
-                  {msg.proposal.reels && <p><b>Reels:</b> Ayda {msg.proposal.reels}</p>}
-                  {msg.proposal.story && <p><b>Story:</b> Ayda {msg.proposal.story}</p>}
-                  {msg.proposal.post && <p><b>Post:</b> Ayda {msg.proposal.post}</p>}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <button
-                    onClick={() => approveProposal(msg.proposal)}
-                    className="bg-slate-950 text-white rounded-xl p-3 text-sm font-black"
-                  >
-                    Onayla
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      setMessages((prev) => [
-                        ...prev,
-                        { role: "assistant", text: "Tamam, kaydetmedim. Daha net bilgi verirsen yeniden önerebilirim." },
-                      ])
-                    }
-                    className="bg-white rounded-xl p-3 text-sm font-black shadow-sm"
-                  >
-                    Vazgeç
-                  </button>
-                </div>
+                <button
+                  onClick={() => approveProposal(msg.proposal)}
+                  className="w-full bg-slate-950 text-white rounded-xl p-3 text-sm font-black"
+                >
+                  Onayla
+                </button>
               </div>
             )}
 
             {msg.record && (
-              <div className={`mt-3 rounded-2xl border p-3 ${
-                msg.record.type === "gelir"
-                  ? "bg-emerald-50 border-emerald-100"
-                  : msg.record.type === "gider"
-                  ? "bg-orange-50 border-orange-100"
-                  : msg.record.type === "iş" || msg.record.type === "müşteri"
-                  ? "bg-purple-50 border-purple-100"
-                  : "bg-blue-50 border-blue-100"
-              }`}>
+              <div
+                className={`mt-3 rounded-2xl border p-3 ${
+                  msg.record.type === "gelir"
+                    ? "bg-emerald-50 border-emerald-100"
+                    : msg.record.type === "gider"
+                    ? "bg-orange-50 border-orange-100"
+                    : "bg-purple-50 border-purple-100"
+                }`}
+              >
                 <p className="text-xs font-black text-purple-600 mb-1">
-                  ✨ {msg.record.type.toUpperCase()} KAYDI
+                  ✨ {String(msg.record.type || "KAYIT").toUpperCase()}
                 </p>
-
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="font-black">{msg.record.title}</h3>
-                    {typeof msg.record.amount === "number" && (
-                      <p className="text-2xl font-black text-slate-950">
-                        {money(msg.record.amount)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <button
-                    onClick={() => openEdit(msg.record!)}
-                    className="bg-white rounded-xl p-3 text-sm font-black shadow-sm"
-                  >
-                    Düzenle
-                  </button>
-
-                  <button
-                    onClick={() => deleteRecord(msg.record!)}
-                    className="bg-red-50 text-red-600 rounded-xl p-3 text-sm font-black"
-                  >
-                    Sil
-                  </button>
-                </div>
+                <h3 className="font-black">{msg.record.title}</h3>
+                {typeof msg.record.amount === "number" && (
+                  <p className="text-2xl font-black">
+                    {money(msg.record.amount)}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -306,47 +200,6 @@ export default function AsistanPage() {
           </div>
         )}
       </section>
-
-      {editing && (
-        <section className="fixed left-4 right-4 bottom-28 bg-white rounded-[28px] p-4 shadow-[0_20px_70px_rgba(15,23,42,0.25)] border border-slate-100">
-          <h2 className="text-xl font-black mb-3">Kaydı Düzenle</h2>
-
-          <div className="grid gap-3">
-            <input
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              className="bg-slate-100 rounded-2xl p-4 outline-none"
-              placeholder="Başlık"
-            />
-
-            {(editing.type === "gelir" || editing.type === "gider") && (
-              <input
-                value={editAmount}
-                onChange={(e) => setEditAmount(e.target.value)}
-                type="number"
-                className="bg-slate-100 rounded-2xl p-4 outline-none"
-                placeholder="Tutar"
-              />
-            )}
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={saveEdit}
-                className="bg-slate-950 text-white rounded-2xl p-4 font-black"
-              >
-                Kaydet
-              </button>
-
-              <button
-                onClick={() => setEditing(null)}
-                className="bg-slate-100 rounded-2xl p-4 font-black"
-              >
-                Vazgeç
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
 
       <section className="fixed bottom-4 left-4 right-4 bg-white rounded-[28px] p-3 shadow-[0_18px_60px_rgba(15,23,42,0.18)]">
         <div className="flex gap-2">
