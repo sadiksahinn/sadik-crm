@@ -49,6 +49,7 @@ export default function HomePage() {
   const [dailyIncome, setDailyIncome] = useState(0);
   const [dailyExpense, setDailyExpense] = useState(0);
   const [dailyCollection, setDailyCollection] = useState(0);
+  const [aiSuggestion, setAiSuggestion] = useState("");
   const [agenda, setAgenda] = useState<any[]>([]);
 
   useEffect(() => {
