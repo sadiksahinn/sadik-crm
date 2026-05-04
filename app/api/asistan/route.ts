@@ -100,17 +100,26 @@ export async function POST(req: Request) {
         .lte("reminder_date", today())
         .order("reminder_date", { ascending: true });
 
+      const { data: contents } = await supabase
+        .from("content_calendar")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "planlandı")
+        .lte("publish_date", today())
+        .order("publish_date", { ascending: true });
+
       const items = [
-        ...(followups || []).map((x: any) => `• ${x.title}`),
-        ...(reminders || []).map((x: any) => `• ${x.title}`),
+        ...(followups || []).map((x: any) => `💸 ${x.title}`),
+        ...(reminders || []).map((x: any) => `⏰ ${x.title}`),
+        ...(contents || []).map((x: any) => `📲 ${x.content_title} paylaşımı kontrol et`),
       ];
 
       return NextResponse.json({
         ok: true,
         type: "program",
         message: items.length
-          ? `Bugün bunları yapıyoruz 👇\n\n${items.join("\n")}`
-          : "Bugün için kayıtlı takip görünmüyor. Yeni iş, ödeme ya da paylaşım planı ekleyebilirsin.",
+          ? `Bugün bunları yapıyoruz 👇\n\n${items.join("\n")}\n\nBunları bitirdikçe bana “tamamlandı” diye yazabilirsin.`
+          : "Bugün için bekleyen takip görünmüyor. İstersen yeni iş, ödeme veya paylaşım planı ekleyelim.",
       });
     }
 
