@@ -10,6 +10,13 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
+function greetingText(fullName: string) {
+  const firstName = (fullName || "Kullanıcı").trim().split(" ")[0];
+  const hour = new Date().getHours();
+  const greeting = hour >= 5 && hour < 12 ? "Günaydın" : "Merhaba";
+  return `${greeting}, ${firstName}`;
+}
+
 function money(value: number) {
   return new Intl.NumberFormat("tr-TR", {
     style: "currency",
@@ -145,7 +152,7 @@ export default function Home() {
       </header>
 
       <section className="mb-4">
-        <h1 className="text-3xl font-black tracking-tight">Günaydın, {fullName} 👋</h1>
+        <h1 className="text-3xl font-black tracking-tight">{greetingText(fullName)} 👋</h1>
         <p className="text-slate-500 mt-1 text-base">Gününü birlikte planlayalım.</p>
       </section>
 
