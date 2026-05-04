@@ -37,7 +37,7 @@ Kullanıcı mesajını analiz et ve sadece JSON döndür.
 
 JSON:
 {
-  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "unknown",
+  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "collection_paid" | "unknown",
   "customer_name": "",
   "title": "",
   "amount": 0,
@@ -56,6 +56,7 @@ Kurallar:
 - "ayda 8 reels 12 story olacak" => service_plan
 - "bugün ne yapıyoruz" => daily_plan
 - "bugün kimden para alacağım", "tahsilat var mı", "kimden ödeme alacağım" => collection_query
+- "tahsilat tamamlandı", "ödeme alındı", "parasını aldım" => collection_paid
 - emin değilsen unknown
         `,
       },
@@ -83,6 +84,58 @@ export async function POST(req: Request) {
     }
 
     const ai = await analyzeMessage(text);
+
+    if (ai.type === "collection_paid") {
+      const searchName = ai.customer_name || ai.title || "";
+
+      const { data: payments } = await supabase
+        .from("payment_tracking")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .ilike("title", `%${searchName}%`)
+        .order("due_date", { ascending: true })
+        .limit(1);
+
+      const payment = payments?.[0];
+
+      if (!payment) {
+        return NextResponse.json({
+          ok: false,
+          message: "Bu müşteri için bekleyen tahsilat bulamadım. Tahsilat ekranından kontrol edebilirsin.",
+        });
+      }
+
+      await supabase
+        .from("payment_tracking")
+        .update({
+          status: "ödendi",
+          paid_date: today(),
+        })
+        .eq("id", payment.id);
+
+      const { data: income, error: incomeError } = await supabase
+        .from("income")
+        .insert({
+          user_id: user.id,
+          title: payment.title,
+          amount: Number(payment.amount || 0),
+          income_date: today(),
+          payment_method: "Asistan tahsilat",
+          note: "Asistan komutuyla tahsilat ödendi olarak işaretlendi.",
+        })
+        .select()
+        .single();
+
+      if (incomeError) throw incomeError;
+
+      return NextResponse.json({
+        ok: true,
+        type: "gelir",
+        message: `✅ Tahsilat tamamlandı ve gelire işlendi.\n\n${payment.title}`,
+        record: { ...income, type: "gelir", table: "income" },
+      });
+    }
 
     if (ai.type === "collection_query") {
       const { data: payments } = await supabase
