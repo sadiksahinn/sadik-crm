@@ -100,17 +100,24 @@ export default function BildirimlerPage() {
     if (item.itemType === "payment") {
       await supabase
         .from("payment_tracking")
-        .update({ status: "ödendi", paid_date: today() })
+        .update({ status: "ödendi", paid_date: today(), income_created: true })
         .eq("id", item.id);
 
-      await supabase.from("income").insert({
+      if (!item.income_created) {
+      const { data: createdIncome } = await supabase.from("income").insert({
         user_id: user.id,
         title: item.title,
         amount: Number(item.amount || 0),
         income_date: today(),
         payment_method: "Bildirim merkezi",
         note: "Bildirim merkezinden ödendi yapıldı.",
-      });
+      }).select().single();
+
+      await supabase
+        .from("payment_tracking")
+        .update({ income_id: createdIncome?.id, income_created: true })
+        .eq("id", item.id);
+      }
     }
 
     if (item.itemType === "followup") {

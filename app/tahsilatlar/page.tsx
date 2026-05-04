@@ -88,17 +88,25 @@ export default function TahsilatlarPage() {
       .update({
         status: "ödendi",
         paid_date: today(),
+        income_created: true,
       })
       .eq("id", item.id);
 
-    await supabase.from("income").insert({
+    if (!item.income_created) {
+      const { data: createdIncome } = await supabase.from("income").insert({
       user_id: user.id,
       title: item.title,
       amount: Number(item.amount || 0),
       income_date: today(),
       payment_method: "Tahsilat",
       note: "Tahsilat ekranından ödendi olarak işaretlendi.",
-    });
+    }).select().single();
+
+    await supabase
+      .from("payment_tracking")
+      .update({ income_id: createdIncome?.id, income_created: true })
+      .eq("id", item.id);
+    }
 
     load();
   }

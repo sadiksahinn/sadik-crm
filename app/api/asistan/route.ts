@@ -113,8 +113,17 @@ export async function POST(req: Request) {
         .update({
           status: "ödendi",
           paid_date: today(),
+          income_created: true,
         })
         .eq("id", payment.id);
+
+      if (payment.income_created) {
+        return NextResponse.json({
+          ok: true,
+          type: "gelir",
+          message: `✅ Bu tahsilat zaten gelire işlenmiş.\n\n${payment.title}`,
+        });
+      }
 
       const { data: income, error: incomeError } = await supabase
         .from("income")
@@ -130,6 +139,11 @@ export async function POST(req: Request) {
         .single();
 
       if (incomeError) throw incomeError;
+
+      await supabase
+        .from("payment_tracking")
+        .update({ income_id: income?.id, income_created: true })
+        .eq("id", payment.id);
 
       return NextResponse.json({
         ok: true,
