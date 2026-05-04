@@ -3,23 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const icons: Record<string, string> = {
-  Ana: "⌂",
-  Asistan: "✧",
-  Görev: "□",
-  CRM: "◌",
-  Profil: "○",
-};
-
 export default function BottomNav() {
   const pathname = usePathname();
 
+  if (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/asistan")
+  ) {
+    return null;
+  }
+
   const tabs = [
-    { name: "Ana", href: "/" },
-    { name: "Asistan", href: "/asistan" },
-    { name: "Görev", href: "/hatirlatmalar" },
-    { name: "CRM", href: "/musteriler" },
-    { name: "Profil", href: "/profil" },
+    { name: "Ana", href: "/", icon: "⌂" },
+    { name: "Finans", href: "/gelir-gider", icon: "₺" },
+    { name: "Görev", href: "/hatirlatmalar", icon: "□" },
+    { name: "CRM", href: "/musteriler", icon: "◌" },
+    { name: "Profil", href: "/profil", icon: "○" },
   ];
 
   return (
@@ -29,26 +29,15 @@ export default function BottomNav() {
           const active = pathname === tab.href;
 
           return (
-            <Link
-              key={tab.name}
-              href={tab.href}
-              className="flex flex-col items-center justify-center gap-1 py-1"
-            >
-              <div
-                className={`h-10 w-10 rounded-2xl grid place-items-center text-[24px] leading-none transition ${
-                  active
-                    ? "bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 text-white shadow-[0_12px_30px_rgba(168,85,247,0.35)]"
-                    : "bg-white/45 text-slate-500"
-                }`}
-              >
-                {icons[tab.name]}
+            <Link key={tab.name} href={tab.href} className="flex flex-col items-center justify-center gap-1 py-1">
+              <div className={`h-10 w-10 rounded-2xl grid place-items-center text-[24px] ${
+                active
+                  ? "bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 text-white shadow-lg"
+                  : "bg-white/45 text-slate-500"
+              }`}>
+                {tab.icon}
               </div>
-
-              <span
-                className={`text-[11px] font-black ${
-                  active ? "text-slate-950" : "text-slate-400"
-                }`}
-              >
+              <span className={`text-[11px] font-black ${active ? "text-slate-950" : "text-slate-400"}`}>
                 {tab.name}
               </span>
             </Link>

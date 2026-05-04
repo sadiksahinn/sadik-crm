@@ -9,218 +9,238 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
-function money(value: number) {
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function money(v: number) {
   return new Intl.NumberFormat("tr-TR", {
     style: "currency",
     currency: "TRY",
     maximumFractionDigits: 0,
-  }).format(value || 0);
+  }).format(v || 0);
 }
 
-type Income = {
-  id: string;
-  title: string;
-  amount: number;
-  income_date: string;
-  payment_method: string | null;
-  note: string | null;
-};
-
-type Expense = {
-  id: string;
-  title: string;
-  category: string | null;
-  amount: number;
-  expense_date: string;
-  payment_method: string | null;
-  note: string | null;
-};
-
 export default function GelirGiderPage() {
-  const [tab, setTab] = useState<"gelir" | "gider">("gelir");
-  const [incomes, setIncomes] = useState<Income[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [tab, setTab] = useState<"income" | "expense">("income");
+  const [title, setTitle] = useState("");
+  const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState("Nakit");
+  const [note, setNote] = useState("");
+  const [incomeTotal, setIncomeTotal] = useState(0);
+  const [expenseTotal, setExpenseTotal] = useState(0);
+  const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const today = new Date().toISOString().slice(0, 10);
-
-  async function loadData() {
+  async function load() {
     const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
 
-    const { data: userData } = await supabase.auth.getUser();
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
 
-    const { data: incomeData } = await supabase
+    const { data: incomes } = await supabase
       .from("income")
       .select("*")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
-    const { data: expenseData } = await supabase
+    const { data: expenses } = await supabase
       .from("expenses")
       .select("*")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
-    setIncomes(incomeData || []);
-    setExpenses(expenseData || []);
+    setIncomeTotal((incomes || []).reduce((a, b: any) => a + Number(b.amount || 0), 0));
+    setExpenseTotal((expenses || []).reduce((a, b: any) => a + Number(b.amount || 0), 0));
+
+    const mixed = [
+      ...(incomes || []).map((x: any) => ({ ...x, kind: "gelir" })),
+      ...(expenses || []).map((x: any) => ({ ...x, kind: "gider" })),
+    ].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+
+    setRecords(mixed);
   }
 
   useEffect(() => {
-    loadData();
+    load();
   }, []);
 
-  const totalIncome = incomes.reduce((t, i) => t + Number(i.amount), 0);
-  const totalExpense = expenses.reduce((t, i) => t + Number(i.amount), 0);
-  const net = totalIncome - totalExpense;
-
-  async function addIncome(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLoading(true);
-
-    const form = new FormData(e.currentTarget);
-
-    const { error } = await supabase.from("income").insert({
-      title: String(form.get("title") || ""),
-      amount: Number(form.get("amount") || 0),
-      income_date: String(form.get("date") || today),
-      payment_method: String(form.get("payment_method") || ""),
-      note: String(form.get("note") || ""),
-    });
-
-    setLoading(false);
-
-    if (error) {
-      alert("Gelir ekleme hatası: " + error.message);
+  async function saveRecord() {
+    if (!title.trim() || !amount) {
+      alert("Başlık ve tutar gir.");
       return;
     }
 
-    e.currentTarget.reset();
-    loadData();
-  }
-
-  async function addExpense(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
     setLoading(true);
 
-    const form = new FormData(e.currentTarget);
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
 
-    const { error } = await supabase.from("expenses").insert({
-      title: String(form.get("title") || ""),
-      category: String(form.get("category") || ""),
-      amount: Number(form.get("amount") || 0),
-      expense_date: String(form.get("date") || today),
-      payment_method: String(form.get("payment_method") || ""),
-      note: String(form.get("note") || ""),
-    });
-
-    setLoading(false);
-
-    if (error) {
-      alert("Gider ekleme hatası: " + error.message);
+    if (!user) {
+      alert("Oturum bulunamadı.");
+      setLoading(false);
       return;
     }
 
-    e.currentTarget.reset();
-    loadData();
+    if (tab === "income") {
+      const { error } = await supabase.from("income").insert({
+        user_id: user.id,
+        title,
+        amount: Number(amount),
+        income_date: today(),
+        payment_method: method,
+        note,
+      });
+
+      if (error) {
+        alert("Gelir ekleme hatası: " + error.message);
+        setLoading(false);
+        return;
+      }
+    } else {
+      const { error } = await supabase.from("expenses").insert({
+        user_id: user.id,
+        title,
+        amount: Number(amount),
+        expense_date: today(),
+        category: "Genel",
+        payment_method: method,
+        note,
+      });
+
+      if (error) {
+        alert("Gider ekleme hatası: " + error.message);
+        setLoading(false);
+        return;
+      }
+    }
+
+    setTitle("");
+    setAmount("");
+    setNote("");
+    setLoading(false);
+    load();
   }
+
+  const net = incomeTotal - expenseTotal;
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-6 pb-28">
-      <header className="flex items-center justify-between mb-5">
+    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-6 pb-32">
+      <header className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-black">Gelir - Gider</h1>
-          <p className="text-slate-500 text-sm">Kasa ve finans takibi</p>
+          <h1 className="text-4xl font-black">Gelir - Gider</h1>
+          <p className="text-slate-500">Kasa ve finans takibi</p>
         </div>
 
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-bold">
+        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">
           Ana
         </Link>
       </header>
 
-      <section className="grid grid-cols-3 gap-2 mb-5">
-        <div className="bg-white rounded-2xl p-3 shadow-sm">
-          <p className="text-slate-500 text-xs">Gelir</p>
-          <h2 className="text-xl font-black">{money(totalIncome)}</h2>
+      <section className="grid grid-cols-3 gap-3 mb-5">
+        <div className="bg-white rounded-3xl p-4 shadow-sm">
+          <p className="text-slate-500">Gelir</p>
+          <h2 className="text-2xl font-black text-emerald-600">{money(incomeTotal)}</h2>
         </div>
-        <div className="bg-white rounded-2xl p-3 shadow-sm">
-          <p className="text-slate-500 text-xs">Gider</p>
-          <h2 className="text-xl font-black">{money(totalExpense)}</h2>
+
+        <div className="bg-white rounded-3xl p-4 shadow-sm">
+          <p className="text-slate-500">Gider</p>
+          <h2 className="text-2xl font-black text-red-600">{money(expenseTotal)}</h2>
         </div>
-        <div className="bg-slate-950 text-white rounded-2xl p-3 shadow-sm">
-          <p className="text-slate-300 text-xs">Net</p>
-          <h2 className="text-xl font-black">{money(net)}</h2>
+
+        <div className="bg-slate-950 text-white rounded-3xl p-4 shadow-sm">
+          <p className="text-slate-300">Net</p>
+          <h2 className="text-2xl font-black">{money(net)}</h2>
         </div>
       </section>
 
-      <section className="bg-white rounded-[26px] p-4 shadow-sm mb-5">
-        <div className="grid grid-cols-2 gap-2 mb-4">
+      <section className="bg-white rounded-[32px] p-5 shadow-sm mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-4">
           <button
-            onClick={() => setTab("gelir")}
-            className={`rounded-2xl p-3 font-bold ${tab === "gelir" ? "bg-slate-950 text-white" : "bg-slate-100"}`}
+            onClick={() => setTab("income")}
+            className={`rounded-2xl p-4 font-black ${tab === "income" ? "bg-slate-950 text-white" : "bg-slate-100"}`}
           >
             Gelir Ekle
           </button>
+
           <button
-            onClick={() => setTab("gider")}
-            className={`rounded-2xl p-3 font-bold ${tab === "gider" ? "bg-slate-950 text-white" : "bg-slate-100"}`}
+            onClick={() => setTab("expense")}
+            className={`rounded-2xl p-4 font-black ${tab === "expense" ? "bg-slate-950 text-white" : "bg-slate-100"}`}
           >
             Gider Ekle
           </button>
         </div>
 
-        {tab === "gelir" ? (
-          <form onSubmit={addIncome} className="grid gap-3">
-            <input name="title" required placeholder="Gelir başlığı / müşteri" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-            <input name="amount" required type="number" placeholder="Tutar" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-            <input name="date" type="date" defaultValue={today} className="bg-slate-100 rounded-2xl p-4 outline-none" />
-            <select name="payment_method" className="bg-slate-100 rounded-2xl p-4 outline-none">
-              <option value="nakit">Nakit</option>
-              <option value="havale">Havale</option>
-              <option value="kart">Kart</option>
-              <option value="diğer">Diğer</option>
-            </select>
-            <textarea name="note" placeholder="Not" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-            <button disabled={loading} className="bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400 text-white rounded-2xl p-4 font-black">
-              {loading ? "Kaydediliyor..." : "Geliri Kaydet"}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={addExpense} className="grid gap-3">
-            <input name="title" required placeholder="Gider başlığı" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-            <input name="amount" required type="number" placeholder="Tutar" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-            <input name="category" placeholder="Kategori: reklam, yakıt, yemek..." className="bg-slate-100 rounded-2xl p-4 outline-none" />
-            <input name="date" type="date" defaultValue={today} className="bg-slate-100 rounded-2xl p-4 outline-none" />
-            <select name="payment_method" className="bg-slate-100 rounded-2xl p-4 outline-none">
-              <option value="nakit">Nakit</option>
-              <option value="havale">Havale</option>
-              <option value="kart">Kart</option>
-              <option value="diğer">Diğer</option>
-            </select>
-            <textarea name="note" placeholder="Not" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-            <button disabled={loading} className="bg-slate-950 text-white rounded-2xl p-4 font-black">
-              {loading ? "Kaydediliyor..." : "Gideri Kaydet"}
-            </button>
-          </form>
-        )}
+        <div className="grid gap-3">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={tab === "income" ? "Örn: Suite Halı ödeme" : "Örn: Market"}
+            className="bg-slate-100 rounded-2xl p-4 outline-none"
+          />
+
+          <input
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            type="number"
+            placeholder="Tutar"
+            className="bg-slate-100 rounded-2xl p-4 outline-none"
+          />
+
+          <select
+            value={method}
+            onChange={(e) => setMethod(e.target.value)}
+            className="bg-slate-100 rounded-2xl p-4 outline-none"
+          >
+            <option>Nakit</option>
+            <option>Havale/EFT</option>
+            <option>Kredi Kartı</option>
+            <option>Diğer</option>
+          </select>
+
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Not"
+            className="bg-slate-100 rounded-2xl p-4 outline-none min-h-[100px]"
+          />
+
+          <button
+            onClick={saveRecord}
+            disabled={loading}
+            className="bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400 text-white rounded-2xl p-4 font-black"
+          >
+            {loading ? "Kaydediliyor..." : "Kaydet"}
+          </button>
+        </div>
       </section>
 
       <section>
-        <h2 className="font-black text-slate-700 text-sm tracking-wide mb-3">SON KAYITLAR</h2>
+        <h2 className="text-sm font-black tracking-wide text-slate-700 mb-3">SON KAYITLAR</h2>
 
         <div className="grid gap-3">
-          {[...incomes.map(i => ({...i, type: "gelir"})), ...expenses.map(e => ({...e, type: "gider"}))]
-            .slice(0, 12)
-            .map((item: any) => (
-              <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm flex justify-between gap-3">
-                <div>
-                  <h3 className="font-black">{item.title}</h3>
-                  <p className="text-slate-500 text-sm">
-                    {item.type === "gelir" ? "Gelir" : "Gider"} · {item.payment_method || "Yöntem yok"}
-                  </p>
-                </div>
-                <div className={item.type === "gelir" ? "text-emerald-600 font-black" : "text-red-500 font-black"}>
-                  {item.type === "gelir" ? "+" : "-"}{money(Number(item.amount))}
-                </div>
+          {records.map((r) => (
+            <div key={`${r.kind}-${r.id}`} className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
+              <div>
+                <p className={`text-xs font-black ${r.kind === "gelir" ? "text-emerald-600" : "text-red-600"}`}>
+                  {r.kind.toUpperCase()}
+                </p>
+                <h3 className="font-black">{r.title}</h3>
+                <p className="text-slate-500 text-sm">{r.payment_method || "Yöntem yok"}</p>
               </div>
-            ))}
+
+              <p className="text-xl font-black">{money(r.amount)}</p>
+            </div>
+          ))}
+
+          {records.length === 0 && (
+            <div className="bg-white rounded-2xl p-4 shadow-sm text-slate-500">
+              Henüz kayıt yok.
+            </div>
+          )}
         </div>
       </section>
     </main>
