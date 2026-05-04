@@ -51,10 +51,15 @@ export default function AsistanPage() {
     setLoading(true);
 
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+
       const res = await fetch("/api/asistan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command: text }),
+        body: JSON.stringify({
+          command: text,
+          access_token: sessionData.session?.access_token
+        }),
       });
 
       const data = await res.json();

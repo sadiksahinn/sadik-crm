@@ -1,3 +1,4 @@
+cat > ~/sadik-crm/app/api/asistan/route.ts <<'EOF'
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -10,40 +11,10 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function tomorrow() {
+function addDays(days: number) {
   const d = new Date();
-  d.setDate(d.getDate() + 1);
+  d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
-}
-
-function nextWeekday(dayIndex: number) {
-  const d = new Date();
-  const todayIndex = d.getDay();
-  let diff = dayIndex - todayIndex;
-  if (diff <= 0) diff += 7;
-  d.setDate(d.getDate() + diff);
-  return d.toISOString().slice(0, 10);
-}
-
-function detectDate(text: string) {
-  const t = text.toLowerCase();
-
-  if (t.includes("yarın") || t.includes("yarin")) return tomorrow();
-  if (t.includes("pazartesi")) return nextWeekday(1);
-  if (t.includes("salı") || t.includes("sali")) return nextWeekday(2);
-  if (t.includes("çarşamba") || t.includes("carsamba")) return nextWeekday(3);
-  if (t.includes("perşembe") || t.includes("persembe")) return nextWeekday(4);
-  if (t.includes("cuma")) return nextWeekday(5);
-  if (t.includes("cumartesi")) return nextWeekday(6);
-  if (t.includes("pazar")) return nextWeekday(0);
-
-  return today();
-}
-
-function extractTime(text: string) {
-  const match = text.match(/(\d{1,2})[:.](\d{2})/);
-  if (!match) return "";
-  return `${match[1].padStart(2, "0")}:${match[2]}:00`;
 }
 
 function extractAmount(text: string) {
@@ -52,53 +23,43 @@ function extractAmount(text: string) {
   return match ? Number(match[1]) : 0;
 }
 
-
-function detectCategory(text: string) {
-  const t = text.toLowerCase();
-
-  if (t.includes("market") || t.includes("migros") || t.includes("a101") || t.includes("bim")) return "Gıda";
-  if (t.includes("yakıt") || t.includes("yakit") || t.includes("benzin") || t.includes("mazot") || t.includes("otopark")) return "Ulaşım";
-  if (t.includes("reklam") || t.includes("meta") || t.includes("instagram") || t.includes("google ads")) return "Pazarlama";
-  if (t.includes("yemek") || t.includes("kahve") || t.includes("restoran")) return "Yemek";
-  if (t.includes("kamera") || t.includes("lens") || t.includes("ekipman") || t.includes("tripod")) return "Ekipman";
-  if (t.includes("ofis") || t.includes("kira") || t.includes("elektrik") || t.includes("internet")) return "Ofis";
-  if (t.includes("yazılım") || t.includes("yazilim") || t.includes("abonelik") || t.includes("vercel") || t.includes("supabase")) return "Yazılım";
-
-  return "Diğer";
-}
-
-
 function cleanTitle(text: string) {
   return text
     .replace(/\d+/g, "")
     .replace(/tl/gi, "")
-    .replace(/verdim/gi, "")
-    .replace(/harcadım/gi, "")
-    .replace(/harcadim/gi, "")
+    .replace(/iş aldım/gi, "")
+    .replace(/is aldim/gi, "")
+    .replace(/aldım/gi, "")
+    .replace(/aldim/gi, "")
+    .replace(/aylık/gi, "")
+    .replace(/aylik/gi, "")
+    .replace(/sosyal medya yönetimi/gi, "")
+    .replace(/sosyal medya yonetimi/gi, "")
+    .replace(/reels/gi, "")
+    .replace(/çekim/gi, "")
+    .replace(/cekim/gi, "")
     .replace(/ödedi/gi, "")
     .replace(/odedi/gi, "")
-    .replace(/gönderdi/gi, "")
-    .replace(/gonderdi/gi, "")
-    .replace(/geldi/gi, "")
-    .replace(/bugün/gi, "")
-    .replace(/bugun/gi, "")
-    .replace(/yarın/gi, "")
-    .replace(/yarin/gi, "")
-    .replace(/pazartesi/gi, "")
-    .replace(/salı/gi, "")
-    .replace(/sali/gi, "")
-    .replace(/çarşamba/gi, "")
-    .replace(/carsamba/gi, "")
-    .replace(/perşembe/gi, "")
-    .replace(/persembe/gi, "")
-    .replace(/cuma/gi, "")
-    .replace(/cumartesi/gi, "")
-    .replace(/pazar/gi, "")
-    .replace(/\d{1,2}[:.]\d{2}/g, "")
-    .replace(/hatırlat/gi, "")
-    .replace(/hatirlat/gi, "")
-    .replace(/saat/gi, "")
+    .replace(/verdim/gi, "")
     .trim();
+}
+
+function detectCategory(text: string) {
+  const t = text.toLowerCase();
+  if (t.includes("market") || t.includes("migros") || t.includes("a101") || t.includes("bim")) return "Gıda";
+  if (t.includes("yakıt") || t.includes("yakit") || t.includes("benzin") || t.includes("mazot")) return "Ulaşım";
+  if (t.includes("reklam") || t.includes("meta") || t.includes("instagram")) return "Pazarlama";
+  if (t.includes("yemek") || t.includes("kahve") || t.includes("restoran")) return "Yemek";
+  if (t.includes("kamera") || t.includes("lens") || t.includes("ekipman")) return "Ekipman";
+  return "Diğer";
+}
+
+function nextPaymentDate(day: number) {
+  const d = new Date();
+  const currentDay = d.getDate();
+  d.setDate(day);
+  if (currentDay >= day) d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0, 10);
 }
 
 export async function POST(req: Request) {
@@ -107,28 +68,148 @@ export async function POST(req: Request) {
     const text = String(body.command || "").trim();
     const lower = text.toLowerCase();
 
+    const { data: userData } = await supabase.auth.getUser(body.access_token);
+    const user = userData.user;
+
+    if (!user) {
+      return NextResponse.json({ ok: false, message: "Oturum bulunamadı. Tekrar giriş yap." }, { status: 401 });
+    }
+
     if (!text) {
+      return NextResponse.json({ ok: false, message: "Komut boş." });
+    }
+
+    if (
+      lower.includes("bugün ne") ||
+      lower.includes("bugun ne") ||
+      lower.includes("bugünkü program") ||
+      lower.includes("bugunku program")
+    ) {
+      const { data: followups } = await supabase
+        .from("followups")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .lte("followup_date", today())
+        .order("followup_date", { ascending: true });
+
+      const { data: reminders } = await supabase
+        .from("reminders")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .lte("reminder_date", today())
+        .order("reminder_date", { ascending: true });
+
+      const items = [
+        ...(followups || []).map((x: any) => `• ${x.title}`),
+        ...(reminders || []).map((x: any) => `• ${x.title}`),
+      ];
+
       return NextResponse.json({
-        ok: false,
-        message: "Komut boş.",
+        ok: true,
+        type: "program",
+        message: items.length
+          ? `Bugün bunları yapıyoruz 👇\n\n${items.join("\n")}`
+          : "Bugün için kayıtlı takip görünmüyor. Yeni iş, ödeme ya da paylaşım planı ekleyebilirsin.",
       });
     }
 
-    // HATIRLATMA
+    if (
+      lower.includes("iş aldım") ||
+      lower.includes("is aldim") ||
+      lower.includes("müşteri aldım") ||
+      lower.includes("musteri aldim")
+    ) {
+      const amount = extractAmount(text);
+      const customerName = cleanTitle(text) || "Yeni müşteri";
+      const paymentDayMatch = lower.match(/her ay[ıi]n? (\d{1,2})/);
+      const paymentDay = paymentDayMatch ? Number(paymentDayMatch[1]) : null;
+
+      const { data: customer, error: customerError } = await supabase
+        .from("customers")
+        .insert({
+          name: customerName,
+          brand_name: customerName,
+          status: "aktif müşteri",
+          source: "asistan",
+          notes: text,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (customerError) throw customerError;
+
+      const { data: service, error: serviceError } = await supabase
+        .from("client_services")
+        .insert({
+          customer_id: customer.id,
+          service_name: lower.includes("sosyal medya") ? "Aylık sosyal medya yönetimi" : "Yeni iş / hizmet",
+          service_type: lower.includes("sosyal medya") ? "sosyal medya yönetimi" : "genel hizmet",
+          monthly_fee: amount || 0,
+          payment_day: paymentDay,
+          next_payment_date: paymentDay ? nextPaymentDate(paymentDay) : null,
+          start_date: today(),
+          status: "devam ediyor",
+          notes: text,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (serviceError) throw serviceError;
+
+      await supabase.from("activity_logs").insert({
+        customer_id: customer.id,
+        service_id: service.id,
+        action_title: "Yeni iş alındı",
+        action_detail: text,
+        action_type: "iş",
+        user_id: user.id,
+      });
+
+      if (paymentDay) {
+        await supabase.from("followups").insert({
+          customer_id: customer.id,
+          service_id: service.id,
+          title: `${customerName} ödeme takibi`,
+          followup_date: nextPaymentDate(paymentDay),
+          status: "bekliyor",
+          priority: "önemli",
+          message_suggestion: `Merhaba, bu ayki hizmet bedelimiz için ödeme günümüz geldi. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.`,
+          user_id: user.id,
+        });
+      }
+
+      const missing = [];
+      if (!amount) missing.push("hizmet bedeli");
+      if (!paymentDay) missing.push("aylık ödeme günü");
+      missing.push("ayda kaç reels/post/story yapılacak?");
+      missing.push("ilk çekim tarihi ne zaman?");
+      missing.push("ilk paylaşım tarihi var mı?");
+
+      return NextResponse.json({
+        ok: true,
+        type: "müşteri",
+        message:
+          `✨ Yeni iş kaydı oluşturuldu\n\n${customerName}\n${amount ? `Bedel: ${amount} TL\n` : ""}${paymentDay ? `Ödeme günü: Her ayın ${paymentDay}'i\n` : ""}\nŞimdi eksik bilgileri tamamlayalım:\n\n${missing.map((m) => `• ${m}`).join("\n")}`,
+        record: { ...customer, title: customerName, table: "customers" },
+      });
+    }
+
     if (lower.includes("hatırlat") || lower.includes("hatirlat")) {
       const title = cleanTitle(text) || "Hatırlatma";
-      const reminderDate = detectDate(text);
-      const reminderTime = extractTime(text);
 
       const { data, error } = await supabase
         .from("reminders")
         .insert({
           title,
           description: text,
-          reminder_date: reminderDate,
-          reminder_time: reminderTime || null,
+          reminder_date: lower.includes("yarın") || lower.includes("yarin") ? addDays(1) : today(),
           priority: lower.includes("acil") ? "acil" : "normal",
           status: "bekliyor",
+          user_id: user.id,
         })
         .select()
         .single();
@@ -139,12 +220,7 @@ export async function POST(req: Request) {
         ok: true,
         type: "hatırlatma",
         message: "✨ Hatırlatma oluşturuldu",
-        record: {
-          ...data,
-          title,
-          amount: undefined,
-          table: "reminders",
-        },
+        record: { ...data, title, table: "reminders" },
       });
     }
 
@@ -154,11 +230,10 @@ export async function POST(req: Request) {
       return NextResponse.json({
         ok: false,
         message:
-          "Tutar veya hatırlatma bilgisi bulamadım. Örn: “Market 300 TL” veya “Yarın 14:00 çekim hatırlat”.",
+          "Anlamam için biraz daha detay lazım.\n\nİş aldıysan şöyle yaz:\n“Suite Halı ile aylık sosyal medya yönetimi işi aldım 20000 TL her ayın 4’ü ödeme”\n\nGider için:\n“Market 300 TL”\n\nProgram için:\n“Bugün ne yapıyoruz?”",
       });
     }
 
-    // GELİR
     if (
       lower.includes("ödedi") ||
       lower.includes("odedi") ||
@@ -177,6 +252,7 @@ export async function POST(req: Request) {
           income_date: today(),
           payment_method: "asistan",
           note: text,
+          user_id: user.id,
         })
         .select()
         .single();
@@ -191,7 +267,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // DEFAULT GİDER
     const title = cleanTitle(text) || "Gider";
 
     const { data, error } = await supabase
@@ -203,6 +278,7 @@ export async function POST(req: Request) {
         category: detectCategory(text),
         payment_method: "asistan",
         note: text,
+        user_id: user.id,
       })
       .select()
       .single();
@@ -216,9 +292,6 @@ export async function POST(req: Request) {
       record: { ...data, table: "expenses" },
     });
   } catch (err: any) {
-    return NextResponse.json(
-      { ok: false, message: "Hata: " + err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, message: "Hata: " + err.message }, { status: 500 });
   }
 }
