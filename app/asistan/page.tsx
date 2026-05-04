@@ -9,96 +9,143 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
-function today() {
-  return new Date().toISOString().slice(0, 10);
+function money(value: number) {
+  return new Intl.NumberFormat("tr-TR", {
+    style: "currency",
+    currency: "TRY",
+    maximumFractionDigits: 0,
+  }).format(value || 0);
 }
 
-function tomorrow() {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
-}
-
-function extractAmount(text: string) {
-  const clean = text.toLowerCase().replace(/\./g, "").replace(/,/g, ".");
-  const match = clean.match(/(\d+(\.\d+)?)/);
-  return match ? Number(match[1]) : 0;
-}
-
-function extractTime(text: string) {
-  const match = text.match(/(\d{1,2})[:.](\d{2})/);
-  if (!match) return "";
-  return `${match[1].padStart(2, "0")}:${match[2]}:00`;
-}
-
-function detectDate(text: string) {
-  const t = text.toLowerCase();
-  if (t.includes("yarın") || t.includes("yarin")) return tomorrow();
-  return today();
-}
-
-function cleanTitle(text: string) {
-  return text
-    .replace(/\d+/g, "")
-    .replace(/tl/gi, "")
-    .replace(/gelir/gi, "")
-    .replace(/gider/gi, "")
-    .replace(/yaz/gi, "")
-    .replace(/bugün/gi, "")
-    .replace(/bugun/gi, "")
-    .replace(/yarın/gi, "")
-    .replace(/yarin/gi, "")
-    .replace(/saat/gi, "")
-    .replace(/hatırlat/gi, "")
-    .replace(/hatirlat/gi, "")
-    .replace(/müşteri/gi, "")
-    .replace(/musteri/gi, "")
-    .replace(/yeni/gi, "")
-    .trim();
-}
+type ChatMessage = {
+  role: "user" | "assistant";
+  text: string;
+  record?: {
+    id: string;
+    type: "gelir" | "gider" | "hatırlatma" | "müşteri";
+    title: string;
+    amount?: number;
+    table?: string;
+  };
+};
 
 export default function AsistanPage() {
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      role: "assistant",
+      text: "Merhaba Sadık 👋 Bana doğal şekilde yazabilirsin. Örn: “Markete 300 TL verdim” veya “Suite Halı 20000 TL ödedi”.",
+    },
+  ]);
   const [command, setCommand] = useState("");
-  const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState<ChatMessage["record"] | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editAmount, setEditAmount] = useState("");
 
-  async function runCommand() {
+  async function sendMessage() {
     const text = command.trim();
+    if (!text) return;
 
-    if (!text) {
-      setResult("Önce bir komut yaz.");
-      return;
-    }
-
+    setMessages((prev) => [...prev, { role: "user", text }]);
+    setCommand("");
     setLoading(true);
-    setResult("Komut işleniyor...");
 
     try {
       const res = await fetch("/api/asistan", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ command: text })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command: text }),
       });
 
       const data = await res.json();
 
-      setResult(data.message || "İşlem tamamlandı.");
-      if (data.ok) setCommand("");
+      const record = data.record
+        ? {
+            id: data.record.id,
+            type: data.type,
+            title: data.record.title,
+            amount: data.record.amount,
+            table: data.record.table,
+          }
+        : undefined;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: data.message || "İşlem tamamlandı.",
+          record,
+        },
+      ]);
     } catch (err: any) {
-      setResult("Hata oluştu: " + err.message);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: "Hata oluştu: " + err.message },
+      ]);
     }
 
     setLoading(false);
+  }
+
+  async function deleteRecord(record: NonNullable<ChatMessage["record"]>) {
+    const ok = confirm("Bu kaydı silmek istiyor musun?");
+    if (!ok || !record.table) return;
+
+    await supabase.from(record.table).delete().eq("id", record.id);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        text: `🗑️ Kayıt silindi: ${record.title}`,
+      },
+    ]);
+  }
+
+  function openEdit(record: NonNullable<ChatMessage["record"]>) {
+    setEditing(record);
+    setEditTitle(record.title || "");
+    setEditAmount(record.amount ? String(record.amount) : "");
+  }
+
+  async function saveEdit() {
+    if (!editing?.table) return;
+
+    const payload: any = {};
+
+    if (editing.table === "income" || editing.table === "expenses") {
+      payload.title = editTitle;
+      payload.amount = Number(editAmount || 0);
+    }
+
+    if (editing.table === "reminders") {
+      payload.title = editTitle;
+    }
+
+    if (editing.table === "customers") {
+      payload.name = editTitle;
+      payload.brand_name = editTitle;
+    }
+
+    await supabase.from(editing.table).update(payload).eq("id", editing.id);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        text: `✅ Kayıt güncellendi: ${editTitle}${editAmount ? " · " + money(Number(editAmount)) : ""}`,
+      },
+    ]);
+
+    setEditing(null);
   }
 
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-6 pb-28">
       <header className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-3xl font-black">AI Asistan</h1>
-          <p className="text-slate-500 text-sm">Komut yaz, CRM’e işlesin.</p>
+          <h1 className="text-3xl font-black">Valkea Asistan</h1>
+          <p className="text-slate-500 text-sm">Konuşarak kayıt oluştur.</p>
         </div>
 
         <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-bold">
@@ -106,58 +153,122 @@ export default function AsistanPage() {
         </Link>
       </header>
 
-      <section className="relative overflow-hidden bg-white rounded-[26px] p-4 shadow-sm mb-5">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400" />
-        <p className="text-xs font-black text-purple-600 mb-2">VALKEA ASSISTANT</p>
-        <h2 className="text-2xl font-black">Ne kaydedelim?</h2>
-        <p className="text-slate-500 text-sm mt-1">
-          Gelir, gider, müşteri ve hatırlatmaları tek komutla oluştur.
-        </p>
+      <section className="grid gap-3 mb-5">
+        {messages.map((msg, index) => (
+          <div
+            key={index}
+            className={`max-w-[88%] rounded-[24px] p-4 shadow-sm ${
+              msg.role === "user"
+                ? "ml-auto bg-slate-950 text-white"
+                : "mr-auto bg-white text-slate-950"
+            }`}
+          >
+            <p className="whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
+
+            {msg.record && (
+              <div className="mt-3 rounded-2xl bg-gradient-to-r from-blue-50 via-fuchsia-50 to-orange-50 border border-slate-100 p-3">
+                <p className="text-xs font-black text-purple-600 mb-1">
+                  ✨ {msg.record.type.toUpperCase()} KAYDI
+                </p>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-black">{msg.record.title}</h3>
+                    {typeof msg.record.amount === "number" && (
+                      <p className="text-2xl font-black text-slate-950">
+                        {money(msg.record.amount)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <button
+                    onClick={() => openEdit(msg.record!)}
+                    className="bg-white rounded-xl p-3 text-sm font-black shadow-sm"
+                  >
+                    Düzenle
+                  </button>
+
+                  <button
+                    onClick={() => deleteRecord(msg.record!)}
+                    className="bg-red-50 text-red-600 rounded-xl p-3 text-sm font-black"
+                  >
+                    Sil
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {loading && (
+          <div className="mr-auto bg-white rounded-[24px] p-4 shadow-sm text-slate-500">
+            İşleniyor...
+          </div>
+        )}
       </section>
 
-      <section className="bg-white rounded-[26px] p-4 shadow-sm mb-5">
-        <textarea
-          value={command}
-          onChange={(e) => setCommand(e.target.value)}
-          placeholder="Örn: Suite Halı’dan bugün 20000 TL gelir yaz"
-          className="w-full h-40 bg-slate-100 rounded-2xl p-4 outline-none resize-none"
-        />
+      {editing && (
+        <section className="fixed left-4 right-4 bottom-28 bg-white rounded-[28px] p-4 shadow-[0_20px_70px_rgba(15,23,42,0.25)] border border-slate-100">
+          <h2 className="text-xl font-black mb-3">Kaydı Düzenle</h2>
 
-        <button
-          onClick={runCommand}
-          disabled={loading}
-          className="w-full mt-3 bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400 text-white rounded-2xl p-4 font-black"
-        >
-          {loading ? "İşleniyor..." : "Komutu Çalıştır"}
-        </button>
-      </section>
+          <div className="grid gap-3">
+            <input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="bg-slate-100 rounded-2xl p-4 outline-none"
+              placeholder="Başlık"
+            />
 
-      {result && (
-        <section className="bg-slate-950 text-white rounded-[26px] p-4 shadow-sm mb-5 whitespace-pre-line">
-          {result}
+            {(editing.type === "gelir" || editing.type === "gider") && (
+              <input
+                value={editAmount}
+                onChange={(e) => setEditAmount(e.target.value)}
+                type="number"
+                className="bg-slate-100 rounded-2xl p-4 outline-none"
+                placeholder="Tutar"
+              />
+            )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={saveEdit}
+                className="bg-slate-950 text-white rounded-2xl p-4 font-black"
+              >
+                Kaydet
+              </button>
+
+              <button
+                onClick={() => setEditing(null)}
+                className="bg-slate-100 rounded-2xl p-4 font-black"
+              >
+                Vazgeç
+              </button>
+            </div>
+          </div>
         </section>
       )}
 
-      <section>
-        <h2 className="font-black text-slate-700 text-sm tracking-wide mb-3">
-          ÖRNEK KOMUTLAR
-        </h2>
+      <section className="fixed bottom-4 left-4 right-4 bg-white rounded-[28px] p-3 shadow-[0_18px_60px_rgba(15,23,42,0.18)]">
+        <div className="flex gap-2">
+          <input
+            value={command}
+            onChange={(e) => setCommand(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") sendMessage();
+            }}
+            placeholder="Örn: Markete 300 TL verdim"
+            className="flex-1 bg-slate-100 rounded-2xl px-4 outline-none"
+          />
 
-        <div className="grid gap-3">
-          {[
-            "Bugün Suite Halı’dan 20000 TL gelir yaz",
-            "3500 TL reklam gideri yaz",
-            "Yarın saat 14:00 Kader Aesthetic çekim hatırlat",
-            "Yeni müşteri Ahmet Yılmaz",
-          ].map((item) => (
-            <button
-              key={item}
-              onClick={() => setCommand(item)}
-              className="bg-white rounded-2xl p-4 text-left shadow-sm font-bold"
-            >
-              {item}
-            </button>
-          ))}
+          <button
+            onClick={sendMessage}
+            disabled={loading}
+            className="h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 text-white font-black"
+          >
+            →
+          </button>
         </div>
       </section>
     </main>

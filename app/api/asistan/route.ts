@@ -73,20 +73,21 @@ export async function POST(req: Request) {
       const amount = extractAmount(text);
       const title = cleanTitle(text) || "Asistan gelir kaydı";
 
-      const { error } = await supabase.from("income").insert({
+      const { data, error } = await supabase.from("income").insert({
         title,
         amount,
         income_date: detectDate(text),
         payment_method: "asistan",
         note: text,
-      });
+      }).select().single();
 
       if (error) throw error;
 
       return NextResponse.json({
         ok: true,
-        type: "income",
-        message: `Gelir kaydedildi ✅\n${title} - ${amount} TL`,
+        type: "gelir",
+        message: `✨ Gelir kaydedildi`,
+        record: { ...data, table: "income" },
       });
     }
 
@@ -94,62 +95,65 @@ export async function POST(req: Request) {
       const amount = extractAmount(text);
       const title = cleanTitle(text) || "Asistan gider kaydı";
 
-      const { error } = await supabase.from("expenses").insert({
+      const { data, error } = await supabase.from("expenses").insert({
         title,
         amount,
         category: "asistan",
         expense_date: detectDate(text),
         payment_method: "asistan",
         note: text,
-      });
+      }).select().single();
 
       if (error) throw error;
 
       return NextResponse.json({
         ok: true,
-        type: "expense",
-        message: `Gider kaydedildi ✅\n${title} - ${amount} TL`,
+        type: "gider",
+        message: `✨ Gider kaydedildi`,
+        record: { ...data, table: "expenses" },
       });
     }
 
     if (lower.includes("hatırlat") || lower.includes("hatirlat")) {
       const title = cleanTitle(text) || "Asistan hatırlatması";
 
-      const { error } = await supabase.from("reminders").insert({
+      const { data, error } = await supabase.from("reminders").insert({
         title,
         description: text,
         reminder_date: detectDate(text),
         reminder_time: extractTime(text),
         priority: lower.includes("acil") ? "acil" : "normal",
         status: "bekliyor",
-      });
+      }).select().single();
 
       if (error) throw error;
 
       return NextResponse.json({
         ok: true,
-        type: "reminder",
-        message: `Hatırlatma oluşturuldu ✅\n${title}`,
+        type: "hatırlatma",
+        message: `✨ Hatırlatma oluşturuldu`,
+        record: { ...data, table: "reminders" },
       });
     }
 
     if (lower.includes("müşteri") || lower.includes("musteri")) {
       const title = cleanTitle(text) || "Yeni müşteri";
 
-      const { error } = await supabase.from("customers").insert({
+      const { data, error } = await supabase.from("customers").insert({
         name: title,
         brand_name: title,
         status: "potansiyel",
         source: "asistan",
         notes: text,
-      });
+      }).select().single();
 
       if (error) throw error;
 
       return NextResponse.json({
         ok: true,
-        type: "customer",
-        message: `Müşteri oluşturuldu ✅\n${title}`,
+        type: "müşteri",
+        message: `✨ Müşteri oluşturuldu`,
+        record: { ...data, title: data.brand_name || data.name, table: "customers" },
       });
     }
 
