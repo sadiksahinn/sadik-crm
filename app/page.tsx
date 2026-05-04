@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -35,77 +36,65 @@ export default async function Home() {
     .select("*", { count: "exact", head: true })
     .neq("status", "tamamlandı");
 
-  const { data: pendingPayments } = await supabase
-    .from("payments")
-    .select("amount")
-    .neq("payment_status", "ödendi");
-
   const todayIncome =
     incomes?.reduce((total, item) => total + Number(item.amount), 0) || 0;
 
   const todayExpense =
     expenses?.reduce((total, item) => total + Number(item.amount), 0) || 0;
 
-  const pendingPaymentTotal =
-    pendingPayments?.reduce((total, item) => total + Number(item.amount), 0) || 0;
-
   return (
-    <main className="min-h-screen bg-black text-white px-5 py-6 md:p-10">
-      <div className="mb-8">
-        <h1 className="text-4xl md:text-5xl font-bold">Sadık CRM 🚀</h1>
+    <main className="min-h-screen bg-[#050505] text-white px-5 py-6">
+      <section className="rounded-[2rem] bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 p-6 mb-6 shadow-2xl">
+        <p className="text-zinc-400 text-sm">Bugünkü iş merkezi</p>
+        <h1 className="text-4xl font-black mt-2">Sadık CRM</h1>
         <p className="text-zinc-400 mt-2">
-          Kişisel asistan, müşteri takip ve gelir-gider sistemi
+          Müşteri, ödeme, görev ve günlük takip paneli
         </p>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-8">
-        <div className="bg-zinc-900 p-5 rounded-2xl">
-          <p className="text-zinc-400 text-sm">Toplam Müşteri</p>
-          <h2 className="text-3xl font-bold mt-2">{customerCount || 0}</h2>
+      <section className="grid grid-cols-2 gap-3 mb-6">
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl">
+          <p className="text-zinc-500 text-sm">Müşteri</p>
+          <h2 className="text-3xl font-black mt-2">{customerCount || 0}</h2>
         </div>
 
-        <div className="bg-zinc-900 p-5 rounded-2xl">
-          <p className="text-zinc-400 text-sm">Bugünkü Gelir</p>
-          <h2 className="text-3xl font-bold mt-2">{money(todayIncome)}</h2>
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl">
+          <p className="text-zinc-500 text-sm">Bekleyen İş</p>
+          <h2 className="text-3xl font-black mt-2">{pendingTasks || 0}</h2>
         </div>
 
-        <div className="bg-zinc-900 p-5 rounded-2xl">
-          <p className="text-zinc-400 text-sm">Bugünkü Gider</p>
-          <h2 className="text-3xl font-bold mt-2">{money(todayExpense)}</h2>
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl">
+          <p className="text-zinc-500 text-sm">Bugünkü Gelir</p>
+          <h2 className="text-2xl font-black mt-2">{money(todayIncome)}</h2>
         </div>
 
-        <div className="bg-zinc-900 p-5 rounded-2xl">
-          <p className="text-zinc-400 text-sm">Bekleyen İş</p>
-          <h2 className="text-3xl font-bold mt-2">{pendingTasks || 0}</h2>
+        <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl">
+          <p className="text-zinc-500 text-sm">Bugünkü Gider</p>
+          <h2 className="text-2xl font-black mt-2">{money(todayExpense)}</h2>
         </div>
+      </section>
 
-        <div className="bg-zinc-900 p-5 rounded-2xl col-span-2 md:col-span-1">
-          <p className="text-zinc-400 text-sm">Bekleyen Ödeme</p>
-          <h2 className="text-3xl font-bold mt-2">{money(pendingPaymentTotal)}</h2>
-        </div>
-      </div>
+      <section className="grid gap-3">
+        <Link href="/musteriler" className="bg-white text-black p-5 rounded-3xl font-bold flex justify-between items-center active:scale-95 transition">
+          <span>Müşteri Yönetimi</span>
+          <span>→</span>
+        </Link>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <button className="bg-zinc-900 text-left p-6 rounded-2xl active:scale-95 transition">
-          <h2 className="text-xl font-semibold">Müşteriler</h2>
-          <p className="text-zinc-400 mt-2">CRM Yönetimi</p>
-        </button>
+        <Link href="/gelir-gider" className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl font-bold flex justify-between items-center active:scale-95 transition">
+          <span>Gelir - Gider</span>
+          <span>→</span>
+        </Link>
 
-        <button className="bg-zinc-900 text-left p-6 rounded-2xl active:scale-95 transition">
-          <h2 className="text-xl font-semibold">Gelir-Gider</h2>
-          <p className="text-zinc-400 mt-2">Finans Takibi</p>
-        </button>
+        <Link href="/hatirlatmalar" className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl font-bold flex justify-between items-center active:scale-95 transition">
+          <span>Hatırlatmalar</span>
+          <span>→</span>
+        </Link>
 
-        <button className="bg-zinc-900 text-left p-6 rounded-2xl active:scale-95 transition">
-          <h2 className="text-xl font-semibold">Hatırlatmalar</h2>
-          <p className="text-zinc-400 mt-2">Ajanda Sistemi</p>
-        </button>
-
-        <button className="bg-zinc-900 text-left p-6 rounded-2xl active:scale-95 transition">
-          <h2 className="text-xl font-semibold">AI Asistan</h2>
-          <p className="text-zinc-400 mt-2">WhatsApp komut sistemi</p>
-        </button>
-      </div>
+        <Link href="/asistan" className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl font-bold flex justify-between items-center active:scale-95 transition">
+          <span>AI Asistan</span>
+          <span>→</span>
+        </Link>
+      </section>
     </main>
   );
 }
