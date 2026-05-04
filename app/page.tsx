@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { createClient } from "@supabase/supabase-js";
 
@@ -15,7 +18,26 @@ function money(value: number) {
   }).format(value || 0);
 }
 
-export default async function Home() {
+export default function Home() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        window.location.href = "/login";
+      } else {
+        setReady(true);
+      }
+    });
+  }, []);
+
+  if (!ready) {
+    return (
+      <main className="min-h-screen bg-[#f7f8fc] grid place-items-center">
+        <div className="text-slate-500 font-bold">Valkea açılıyor...</div>
+      </main>
+    );
+  }
   const today = new Date().toISOString().slice(0, 10);
 
   const { count: customerCount } = await supabase

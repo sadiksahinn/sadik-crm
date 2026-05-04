@@ -1,16 +1,85 @@
-export default function ProfilPage() {
-  return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-6 pb-24">
-      <h1 className="text-3xl font-black mb-2">Profil</h1>
-      <p className="text-slate-500 mb-5">Valkea Assistant kullanıcı ayarları.</p>
+"use client";
 
-      <div className="bg-white rounded-3xl p-5 shadow-sm">
-        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 text-white grid place-items-center text-2xl font-black mb-4">
-          S
+import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+import Link from "next/link";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+);
+
+export default function ProfilPage() {
+  const [email, setEmail] = useState("");
+  const [avatar, setAvatar] = useState("");
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setEmail(data.user?.email || "");
+    });
+
+    setAvatar(localStorage.getItem("valkea-avatar") || "");
+  }, []);
+
+  function uploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result);
+      localStorage.setItem("valkea-avatar", result);
+      setAvatar(result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
+
+  return (
+    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-6 pb-28">
+      <header className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-black">Profil</h1>
+          <p className="text-slate-500 text-sm">Valkea Assistant ayarları</p>
         </div>
-        <h2 className="text-2xl font-black">Sadık Şahin</h2>
-        <p className="text-slate-500">Valkea Assistant</p>
-      </div>
+
+        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-bold">
+          Ana
+        </Link>
+      </header>
+
+      <section className="bg-white rounded-[32px] p-5 shadow-sm">
+        <div className="flex items-center gap-4 mb-5">
+          <div className="h-24 w-24 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 grid place-items-center text-white text-3xl font-black">
+            {avatar ? (
+              <img src={avatar} alt="Profil" className="h-full w-full object-cover" />
+            ) : (
+              "S"
+            )}
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-black">Sadık Şahin</h2>
+            <p className="text-slate-500">{email || "Giriş yapılmadı"}</p>
+          </div>
+        </div>
+
+        <label className="block bg-slate-100 rounded-2xl p-4 font-bold text-center mb-3">
+          Profil Fotoğrafı Seç
+          <input type="file" accept="image/*" onChange={uploadAvatar} className="hidden" />
+        </label>
+
+        <button
+          onClick={logout}
+          className="w-full bg-red-50 text-red-600 rounded-2xl p-4 font-black"
+        >
+          Çıkış Yap
+        </button>
+      </section>
     </main>
   );
 }
