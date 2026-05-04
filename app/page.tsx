@@ -132,6 +132,15 @@ export default function HomePage() {
       setTodayIncome((incomes || []).reduce((a: number, b: any) => a + Number(b.amount || 0), 0));
       setTodayExpense((expenses || []).reduce((a: number, b: any) => a + Number(b.amount || 0), 0));
 
+      const { data: payments } = await supabase
+        .from("payment_tracking")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .lte("due_date", today)
+        .order("due_date", { ascending: true })
+        .limit(3);
+
       setAgenda([
         ...(payments || []).map((x: any) => ({
           icon: "₺",
