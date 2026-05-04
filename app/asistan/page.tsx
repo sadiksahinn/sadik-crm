@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 
@@ -31,6 +31,25 @@ type ChatMessage = {
 };
 
 export default function AsistanPage() {
+  useEffect(() => {
+    async function loadProfileForAssistant() {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+
+      setFullName(profile?.full_name || "Kullanıcı");
+    }
+
+    loadProfileForAssistant();
+  }, []);
+
+  const [fullName, setFullName] = useState("Kullanıcı");
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
