@@ -10,27 +10,49 @@ const supabase = createClient(
 );
 
 export default function ProfilPage() {
+  const [userId, setUserId] = useState("");
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setEmail(data.user?.email || "");
-    });
+    async function load() {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      if (!user) return;
 
-    setAvatar(localStorage.getItem("valkea-avatar") || "");
+      setUserId(user.id);
+      setEmail(user.email || "");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", user.id)
+        .single();
+
+      setAvatar(profile?.avatar_url || "");
+    }
+
+    load();
   }, []);
 
-  function uploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+  async function uploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !userId) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
+
+    reader.onload = async () => {
       const result = String(reader.result);
-      localStorage.setItem("valkea-avatar", result);
       setAvatar(result);
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: result })
+        .eq("id", userId);
+
+      if (error) alert(error.message);
     };
+
     reader.readAsDataURL(file);
   }
 
@@ -64,7 +86,7 @@ export default function ProfilPage() {
 
           <div>
             <h2 className="text-2xl font-black">Sadık Şahin</h2>
-            <p className="text-slate-500">{email || "Giriş yapılmadı"}</p>
+            <p className="text-slate-500">{email}</p>
           </div>
         </div>
 
@@ -73,17 +95,11 @@ export default function ProfilPage() {
           <input type="file" accept="image/*" onChange={uploadAvatar} className="hidden" />
         </label>
 
-        <Link
-          href="/admin"
-          className="block w-full bg-slate-950 text-white rounded-2xl p-4 font-black text-center mb-3"
-        >
+        <Link href="/admin" className="block w-full bg-slate-950 text-white rounded-2xl p-4 font-black text-center mb-3">
           Admin Panel
         </Link>
 
-        <button
-          onClick={logout}
-          className="w-full bg-red-50 text-red-600 rounded-2xl p-4 font-black"
-        >
+        <button onClick={logout} className="w-full bg-red-50 text-red-600 rounded-2xl p-4 font-black">
           Çıkış Yap
         </button>
       </section>

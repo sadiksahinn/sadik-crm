@@ -98,7 +98,13 @@ export default function Home() {
       setTopCategory(top ? top[0] : "Yok");
       setLastRecords(records);
       setAvatar(localStorage.getItem("valkea-avatar") || "");
-      setAvatar(localStorage.getItem("valkea-avatar") || "");
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", data.session.user.id)
+        .single();
+
+      setAvatar(profile?.avatar_url || "");
       setReady(true);
     }
 
