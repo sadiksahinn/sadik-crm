@@ -37,7 +37,7 @@ Kullanıcı mesajını analiz et ve sadece JSON döndür.
 
 JSON:
 {
-  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "collection_paid" | "task_completed" | "unknown",
+  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "collection_paid" | "task_completed" | "daily_summary" | "unknown",
   "customer_name": "",
   "title": "",
   "amount": 0,
@@ -58,6 +58,7 @@ Kurallar:
 - "bugün kimden para alacağım", "tahsilat var mı", "kimden ödeme alacağım" => collection_query
 - "tahsilat tamamlandı", "ödeme alındı", "parasını aldım" => collection_paid
 - "tamamlandı", "bitti", "yapıldı", "paylaşıldı" => task_completed
+- "günlük özet", "bugünün özeti", "rapor ver", "bugün durum ne" => daily_summary
 - emin değilsen unknown
         `,
       },
@@ -208,6 +209,60 @@ export async function POST(req: Request) {
       return NextResponse.json({
         ok: false,
         message: "Tamamlanacak kayıt bulamadım. Daha net yazabilir misin? Örn: “Suite Halı reels tamamlandı”.",
+      });
+    }
+
+    if (ai.type === "daily_summary") {
+      const todayDate = today();
+
+      const { data: incomes } = await supabase
+        .from("income")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("income_date", todayDate);
+
+      const { data: expenses } = await supabase
+        .from("expenses")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("expense_date", todayDate);
+
+      const { data: payments } = await supabase
+        .from("payment_tracking")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .lte("due_date", todayDate);
+
+      const { data: contents } = await supabase
+        .from("content_calendar")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "tamamlandı")
+        .eq("publish_date", todayDate);
+
+      const incomeTotal = (incomes || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
+      const expenseTotal = (expenses || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
+      const paymentTotal = (payments || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
+
+      const fmt = (n: number) =>
+        new Intl.NumberFormat("tr-TR", {
+          style: "currency",
+          currency: "TRY",
+          maximumFractionDigits: 0,
+        }).format(n);
+
+      return NextResponse.json({
+        ok: true,
+        type: "özet",
+        message:
+          `📌 Günlük özet\n\n` +
+          `💚 Bugünkü gelir: ${fmt(incomeTotal)}\n` +
+          `❤️ Bugünkü gider: ${fmt(expenseTotal)}\n` +
+          `💰 Bekleyen tahsilat: ${fmt(paymentTotal)}\n` +
+          `🎬 Tamamlanan içerik: ${(contents || []).length}\n` +
+          `🔔 Bekleyen ödeme sayısı: ${(payments || []).length}\n\n` +
+          `Net durum: ${fmt(incomeTotal - expenseTotal)}`,
       });
     }
 
