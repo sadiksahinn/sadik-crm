@@ -73,6 +73,13 @@ export default function ProfilPage() {
           <input type="file" accept="image/*" onChange={uploadAvatar} className="hidden" />
         </label>
 
+        <Link
+          href="/admin"
+          className="block w-full bg-slate-950 text-white rounded-2xl p-4 font-black text-center mb-3"
+        >
+          Admin Panel
+        </Link>
+
         <button
           onClick={logout}
           className="w-full bg-red-50 text-red-600 rounded-2xl p-4 font-black"
