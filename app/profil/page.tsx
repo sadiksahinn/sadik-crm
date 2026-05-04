@@ -82,7 +82,7 @@ export default function ProfilPage() {
 
       <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
         <div className="flex items-center gap-4 mb-5">
-          <div className="h-20 w-20 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] grid place-items-center text-white text-3xl font-black">
+          <div className="h-20 w-20 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] grid place-items-center text-slate-950 text-3xl font-black">
             {avatar ? <img src={avatar} alt="Profil" className="h-full w-full object-cover" /> : fullName[0]}
           </div>
 
@@ -97,7 +97,7 @@ export default function ProfilPage() {
           <input type="file" accept="image/*" onChange={uploadAvatar} className="hidden" />
         </label>
 
-        <Link href="/admin" className="block w-full bg-slate-950 text-white rounded-2xl p-4 font-black text-center mb-3">
+        <Link href="/admin" className="block w-full bg-white text-slate-950 rounded-2xl p-4 font-black text-center mb-3">
           Admin Panel
         </Link>
 

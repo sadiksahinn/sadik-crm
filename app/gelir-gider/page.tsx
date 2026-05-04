@@ -138,7 +138,7 @@ export default function GelirGiderPage() {
           <h2 className="text-lg font-black text-red-600">{money(expenseTotal)}</h2>
         </div>
 
-        <div className="bg-slate-950 text-white rounded-2xl p-3 shadow-sm">
+        <div className="bg-white text-slate-950 rounded-2xl p-3 shadow-sm">
           <p className="text-xs text-slate-300">Net</p>
           <h2 className="text-lg font-black">{money(incomeTotal - expenseTotal)}</h2>
         </div>
@@ -151,7 +151,7 @@ export default function GelirGiderPage() {
             onClick={() => setTab("gelir")}
             className={`rounded-2xl p-4 font-black ${
               tab === "gelir"
-                ? "bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white"
+                ? "bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950"
                 : "bg-slate-100 text-slate-600"
             }`}
           >
@@ -163,7 +163,7 @@ export default function GelirGiderPage() {
             onClick={() => setTab("gider")}
             className={`rounded-2xl p-4 font-black ${
               tab === "gider"
-                ? "bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white"
+                ? "bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950"
                 : "bg-slate-100 text-slate-600"
             }`}
           >
@@ -189,7 +189,7 @@ export default function GelirGiderPage() {
 
           <textarea name="note" placeholder="Not" className="bg-slate-100 rounded-2xl p-4 outline-none min-h-[90px]" />
 
-          <button disabled={loading} className="bg-slate-950 text-white rounded-2xl p-4 font-black">
+          <button disabled={loading} className="bg-white text-slate-950 rounded-2xl p-4 font-black">
             {loading ? "Kaydediliyor..." : tab === "gelir" ? "Geliri Kaydet" : "Gideri Kaydet"}
           </button>
         </form>

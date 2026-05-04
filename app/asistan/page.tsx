@@ -175,7 +175,7 @@ export default function AsistanPage() {
             key={index}
             className={`max-w-[88%] rounded-[24px] p-4 shadow-sm ${
               msg.role === "user"
-                ? "ml-auto bg-slate-950 text-white"
+                ? "ml-auto bg-white text-slate-950"
                 : "mr-auto bg-white text-slate-950"
             }`}
           >
@@ -215,7 +215,7 @@ export default function AsistanPage() {
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   <button
                     onClick={() => approveProposal(msg.proposal)}
-                    className="bg-slate-950 text-white rounded-xl p-3 text-sm font-black"
+                    className="bg-white text-slate-950 rounded-xl p-3 text-sm font-black"
                   >
                     Onayla
                   </button>
@@ -251,7 +251,7 @@ export default function AsistanPage() {
                   <div className="grid grid-cols-2 gap-2 mt-3">
                     <button
                       onClick={() => handlePaymentAction(msg.record, "paid")}
-                      className="bg-emerald-600 text-white rounded-xl p-3 text-sm font-black"
+                      className="bg-emerald-600 text-slate-950 rounded-xl p-3 text-sm font-black"
                     >
                       Ödeme Aldım
                     </button>
@@ -291,7 +291,7 @@ export default function AsistanPage() {
           <button
             onClick={sendMessage}
             disabled={loading}
-            className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-white font-black"
+            className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-slate-950 font-black"
           >
             →
           </button>

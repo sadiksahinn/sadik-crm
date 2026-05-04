@@ -156,7 +156,7 @@ export default function HomePage() {
             <span className="absolute top-3 right-3 h-2.5 w-2.5 rounded-full bg-fuchsia-500" />
           </button>
 
-          <Link href="/profil" className="h-14 w-14 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] shadow-lg grid place-items-center text-white font-black text-xl">
+          <Link href="/profil" className="h-14 w-14 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] shadow-lg grid place-items-center text-slate-950 font-black text-xl">
             {avatar ? <img src={avatar} className="h-full w-full object-cover" alt="Profil" /> : firstName(fullName)[0]}
           </Link>
         </div>
@@ -198,7 +198,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <Link href="/asistan" className="inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-[#61aebd] to-[#e5ab53] px-5 py-3 text-white font-black shadow-lg">
+          <Link href="/asistan" className="inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-[#61aebd] to-[#e5ab53] px-5 py-3 text-slate-950 font-black shadow-lg">
             Günlük Net: {money(net)} <span>›</span>
           </Link>
         </div>
@@ -303,7 +303,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <Link href="/asistan" className="fixed bottom-28 right-6 h-16 w-16 rounded-full bg-gradient-to-br from-[#61aebd] to-[#e5ab53] shadow-[0_18px_45px_rgba(168,85,247,0.45)] grid place-items-center text-white text-4xl z-[9998]">
+      <Link href="/asistan" className="fixed bottom-28 right-6 h-16 w-16 rounded-full bg-gradient-to-br from-[#61aebd] to-[#e5ab53] shadow-[0_18px_45px_rgba(168,85,247,0.45)] grid place-items-center text-slate-950 text-4xl z-[9998]">
         +
       </Link>
     </main>

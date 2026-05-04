@@ -80,14 +80,14 @@ export default function LoginPage() {
 
           <button
             onClick={login}
-            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black"
+            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 rounded-2xl p-4 font-black"
           >
             Giriş Yap
           </button>
 
           <button
             onClick={register}
-            className="bg-slate-950 text-white rounded-2xl p-4 font-black"
+            className="bg-white text-slate-950 rounded-2xl p-4 font-black"
           >
             İlk Kez Hesap Oluştur
           </button>

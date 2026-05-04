@@ -32,3 +32,14 @@ body::-webkit-scrollbar {
   -webkit-text-fill-color: transparent;
 }
 
+
+/* Force light mode - Valkea */
+html {
+  color-scheme: light !important;
+  background: #f7f8fc !important;
+}
+
+body {
+  background: #f7f8fc !important;
+  color: #070b1d !important;
+}

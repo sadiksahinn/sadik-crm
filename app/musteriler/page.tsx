@@ -89,7 +89,7 @@ export default function MusterilerPage() {
           <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon" className="bg-slate-100 rounded-2xl p-4 outline-none" />
           <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Not" className="bg-slate-100 rounded-2xl p-4 outline-none" />
 
-          <button onClick={addCustomer} className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black">
+          <button onClick={addCustomer} className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 rounded-2xl p-4 font-black">
             Müşteri Ekle
           </button>
         </div>

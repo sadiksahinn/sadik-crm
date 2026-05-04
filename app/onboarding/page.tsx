@@ -77,7 +77,7 @@ export default function OnboardingPage() {
 
           <button
             onClick={save}
-            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black"
+            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 rounded-2xl p-4 font-black"
           >
             Profilimi Tamamla
           </button>

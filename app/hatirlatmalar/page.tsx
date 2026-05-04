@@ -136,7 +136,7 @@ export default function HatirlatmalarPage() {
 
           <button
             disabled={loading}
-            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black"
+            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 rounded-2xl p-4 font-black"
           >
             {loading ? "Kaydediliyor..." : "Hatırlatmayı Kaydet"}
           </button>
@@ -177,7 +177,7 @@ export default function HatirlatmalarPage() {
               <div className="grid grid-cols-2 gap-2 mt-4">
                 <button
                   onClick={() => completeReminder(item.id)}
-                  className="bg-slate-950 text-white rounded-2xl p-3 font-bold"
+                  className="bg-white text-slate-950 rounded-2xl p-3 font-bold"
                 >
                   Tamamlandı
                 </button>

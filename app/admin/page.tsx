@@ -109,7 +109,7 @@ export default function AdminPage() {
         <div className="bg-white rounded-[28px] p-6 shadow-sm text-center">
           <h1 className="text-3xl font-black mb-2">Yetkisiz Erişim</h1>
           <p className="text-slate-500 mb-5">Bu alan sadece superadmin içindir.</p>
-          <Link href="/" className="bg-slate-950 text-white rounded-2xl px-5 py-3 font-bold">
+          <Link href="/" className="bg-white text-slate-950 rounded-2xl px-5 py-3 font-bold">
             Ana Sayfaya Dön
           </Link>
         </div>
@@ -176,7 +176,7 @@ export default function AdminPage() {
 
                 <button
                   onClick={() => changeRole(user.id, "superadmin")}
-                  className="bg-slate-950 text-white rounded-xl p-3 font-bold"
+                  className="bg-white text-slate-950 rounded-xl p-3 font-bold"
                 >
                   Superadmin Yap
                 </button>
