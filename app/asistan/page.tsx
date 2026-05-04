@@ -36,7 +36,7 @@ export default function AsistanPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [command, setCommand] = useState("");
   const [loading, setLoading] = useState(false);
-  const [autoMessageLoaded, setAutoMessageLoaded] = useState(false);
+  
 
   useEffect(() => {
 
@@ -82,10 +82,40 @@ export default function AsistanPage() {
 
       const firstName = (profile?.full_name || "Kullanıcı").split(" ")[0];
 
+      const today = new Date().toISOString().slice(0, 10);
+
+      const { data: payments } = await supabase
+        .from("payment_tracking")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .lte("due_date", today);
+
+      const { data: contents } = await supabase
+        .from("content_calendar")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "planlandı")
+        .lte("publish_date", today);
+
+      const { data: followups } = await supabase
+        .from("followups")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .lte("followup_date", today);
+
+      const paymentTotal = (payments || []).reduce((t:any, i:any) => t + Number(i.amount || 0), 0);
+
+      const intro =
+        (payments?.length || contents?.length || followups?.length)
+          ? `Merhaba ${firstName} 👋 Bugün ${payments?.length || 0} tahsilat, ${contents?.length || 0} içerik ve ${followups?.length || 0} takip kontrolün var. Bekleyen tahsilat toplamı: ${new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(paymentTotal)}.`
+          : `Merhaba ${firstName} 👋 Bugün kritik bir takip görünmüyor. Yeni iş, tahsilat veya içerik planı ekleyebilirsin.`;
+
       setMessages([
         {
           role: "assistant",
-          text: `Merhaba ${firstName} 👋 Bana doğal şekilde yazabilirsin.`,
+          text: intro,
         },
       ]);
     }
