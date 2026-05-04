@@ -24,17 +24,23 @@ type ChatMessage = {
   proposal?: any;
 };
 
+function recordStyle(type: string) {
+  if (type === "gelir") return "bg-emerald-50 border-emerald-200 text-emerald-900";
+  if (type === "gider") return "bg-red-50 border-red-200 text-red-900";
+  if (type === "iş") return "bg-purple-50 border-purple-200 text-purple-900";
+  if (type === "plan") return "bg-blue-50 border-blue-200 text-blue-900";
+  return "bg-slate-50 border-slate-200 text-slate-900";
+}
+
 export default function AsistanPage() {
-  const [fullName, setFullName] = useState("Kullanıcı");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [command, setCommand] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData.user;
-
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
       if (!user) {
         window.location.href = "/login";
         return;
@@ -46,14 +52,12 @@ export default function AsistanPage() {
         .eq("id", user.id)
         .single();
 
-      const name = profile?.full_name || "Kullanıcı";
-      const firstName = name.trim().split(" ")[0];
+      const firstName = (profile?.full_name || "Kullanıcı").split(" ")[0];
 
-      setFullName(name);
       setMessages([
         {
           role: "assistant",
-          text: `Merhaba ${firstName} 👋 Bana doğal şekilde yazabilirsin. Örn: “Markete 300 TL verdim” veya “Suite Halı 20000 TL ödeme yaptı”.`,
+          text: `Merhaba ${firstName} 👋 Bana doğal şekilde yazabilirsin.`,
         },
       ]);
     }
@@ -69,51 +73,13 @@ export default function AsistanPage() {
     setCommand("");
     setLoading(true);
 
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-
-      const res = await fetch("/api/asistan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          command: text,
-          access_token: sessionData.session?.access_token,
-        }),
-      });
-
-      const data = await res.json();
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: data.message || "İşlem tamamlandı.",
-          record: data.record,
-          proposal: data.proposal,
-        },
-      ]);
-    } catch (err: any) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: "Hata oluştu: " + err.message },
-      ]);
-    }
-
-    setLoading(false);
-  }
-
-
-  async function handlePaymentAction(record: any, action: "paid" | "later") {
-    setLoading(true);
-
     const { data: sessionData } = await supabase.auth.getSession();
 
-    const res = await fetch("/api/asistan/odeme", {
+    const res = await fetch("/api/asistan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        record,
-        action,
+        command: text,
         access_token: sessionData.session?.access_token,
       }),
     });
@@ -126,6 +92,7 @@ export default function AsistanPage() {
         role: "assistant",
         text: data.message || "İşlem tamamlandı.",
         record: data.record,
+        proposal: data.proposal,
       },
     ]);
 
@@ -142,6 +109,35 @@ export default function AsistanPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         proposal,
+        access_token: sessionData.session?.access_token,
+      }),
+    });
+
+    const data = await res.json();
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        text: data.message || "Kaydedildi.",
+        record: data.record,
+      },
+    ]);
+
+    setLoading(false);
+  }
+
+  async function handlePaymentAction(record: any, action: "paid" | "later") {
+    setLoading(true);
+
+    const { data: sessionData } = await supabase.auth.getSession();
+
+    const res = await fetch("/api/asistan/odeme", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        record,
+        action,
         access_token: sessionData.session?.access_token,
       }),
     });
@@ -186,38 +182,69 @@ export default function AsistanPage() {
             <p className="whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
 
             {msg.proposal && (
-              <div className="mt-3 rounded-2xl bg-purple-50 border border-purple-100 p-3">
+              <div className="mt-3 rounded-2xl bg-white border border-purple-200 p-3">
                 <p className="text-xs font-black text-purple-600 mb-2">
-                  ✨ ÖNERİ
+                  ✨ ONAY BEKLEYEN ÖNERİ
                 </p>
 
-                <button
-                  onClick={() => approveProposal(msg.proposal)}
-                  className="w-full bg-slate-950 text-white rounded-xl p-3 text-sm font-black"
-                >
-                  Onayla
-                </button>
+                <div className="text-sm text-slate-700 leading-relaxed">
+                  {msg.proposal.customer_name && (
+                    <p><b>Müşteri:</b> {msg.proposal.customer_name}</p>
+                  )}
+                  {msg.proposal.amount > 0 && (
+                    <p><b>Tutar:</b> {money(msg.proposal.amount)}</p>
+                  )}
+                  {msg.proposal.reels && <p><b>Reels:</b> Ayda {msg.proposal.reels}</p>}
+                  {msg.proposal.story && <p><b>Story:</b> Ayda {msg.proposal.story}</p>}
+                  {msg.proposal.post && <p><b>Post:</b> Ayda {msg.proposal.post}</p>}
+                </div>
+
+                {msg.proposal.missing_questions?.length > 0 && (
+                  <div className="mt-3 rounded-xl bg-purple-50 p-3">
+                    <p className="text-xs font-black text-purple-700 mb-1">
+                      Eksik bilgiler
+                    </p>
+                    <ul className="text-sm list-disc pl-4 text-purple-900">
+                      {msg.proposal.missing_questions.map((q: string, i: number) => (
+                        <li key={i}>{q}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <button
+                    onClick={() => approveProposal(msg.proposal)}
+                    className="bg-slate-950 text-white rounded-xl p-3 text-sm font-black"
+                  >
+                    Onayla
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setMessages((prev) => [
+                        ...prev,
+                        { role: "assistant", text: "Tamam, kaydetmedim. Bilgileri netleştirince tekrar yazabilirsin." },
+                      ])
+                    }
+                    className="bg-slate-100 rounded-xl p-3 text-sm font-black"
+                  >
+                    Vazgeç
+                  </button>
+                </div>
               </div>
             )}
 
             {msg.record && (
-              <div
-                className={`mt-3 rounded-2xl border p-3 ${
-                  msg.record.type === "gelir"
-                    ? "bg-emerald-50 border-emerald-100"
-                    : msg.record.type === "gider"
-                    ? "bg-orange-50 border-orange-100"
-                    : "bg-purple-50 border-purple-100"
-                }`}
-              >
-                <p className="text-xs font-black text-purple-600 mb-1">
-                  ✨ {String(msg.record.type || "KAYIT").toUpperCase()}
+              <div className={`mt-3 rounded-2xl border p-3 ${recordStyle(msg.record.type)}`}>
+                <p className="text-xs font-black mb-1">
+                  ✨ {String(msg.record.type || "KAYIT").toUpperCase()} KAYDI
                 </p>
+
                 <h3 className="font-black">{msg.record.title}</h3>
+
                 {typeof msg.record.amount === "number" && (
-                  <p className="text-2xl font-black">
-                    {money(msg.record.amount)}
-                  </p>
+                  <p className="text-2xl font-black">{money(msg.record.amount)}</p>
                 )}
 
                 {msg.record.ask_payment && (
@@ -237,7 +264,6 @@ export default function AsistanPage() {
                     </button>
                   </div>
                 )}
-
               </div>
             )}
           </div>
@@ -258,7 +284,7 @@ export default function AsistanPage() {
             onKeyDown={(e) => {
               if (e.key === "Enter") sendMessage();
             }}
-            placeholder="Örn: Markete 300 TL verdim"
+            placeholder="Örn: Suite Halı ile aylık 20000 TL iş aldım"
             className="flex-1 bg-slate-100 rounded-2xl px-4 outline-none"
           />
 
