@@ -79,6 +79,10 @@ export default function TahsilatlarPage() {
   }
 
   async function markPaid(item: any) {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+    if (!user) return;
+
     await supabase
       .from("payment_tracking")
       .update({
@@ -86,6 +90,15 @@ export default function TahsilatlarPage() {
         paid_date: today(),
       })
       .eq("id", item.id);
+
+    await supabase.from("income").insert({
+      user_id: user.id,
+      title: item.title,
+      amount: Number(item.amount || 0),
+      income_date: today(),
+      payment_method: "Tahsilat",
+      note: "Tahsilat ekranından ödendi olarak işaretlendi.",
+    });
 
     load();
   }
