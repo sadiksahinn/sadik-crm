@@ -9,14 +9,14 @@ export default function BottomNav() {
   const tabs = [
     { name: "Ana", href: "/", icon: "🏠" },
     { name: "Asistan", href: "/asistan", icon: "🤖" },
-    { name: "Görev", href: "/gorev", icon: "📋" },
-    { name: "CRM", href: "/crm", icon: "👥" },
+    { name: "Görev", href: "/hatirlatmalar", icon: "📋" },
+    { name: "CRM", href: "/musteriler", icon: "👥" },
     { name: "Profil", href: "/profil", icon: "👤" },
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-lg z-50">
-      <div className="flex justify-around py-2">
+    <nav className="fixed bottom-3 left-3 right-3 z-[9999] rounded-[28px] bg-white/95 backdrop-blur-xl shadow-[0_18px_60px_rgba(15,23,42,0.22)] px-2 py-3">
+      <div className="grid grid-cols-5 gap-1">
         {tabs.map((tab) => {
           const active = pathname === tab.href;
 
@@ -27,18 +27,18 @@ export default function BottomNav() {
               className="flex flex-col items-center justify-center gap-1"
             >
               <div
-                className={`p-2 rounded-2xl ${
+                className={`h-12 w-12 rounded-2xl grid place-items-center text-3xl ${
                   active
-                    ? "bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400 text-white shadow-md"
-                    : "text-gray-400"
+                    ? "bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 text-white shadow-lg"
+                    : "bg-slate-100 text-slate-500"
                 }`}
               >
-                <span className="text-2xl">{tab.icon}</span>
+                {tab.icon}
               </div>
 
               <span
-                className={`text-sm font-medium ${
-                  active ? "text-black" : "text-gray-400"
+                className={`text-[12px] font-black ${
+                  active ? "text-slate-950" : "text-slate-400"
                 }`}
               >
                 {tab.name}
@@ -47,6 +47,6 @@ export default function BottomNav() {
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }

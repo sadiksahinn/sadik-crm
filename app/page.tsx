@@ -254,14 +254,6 @@ export default function Home() {
       <Link href="/asistan" className="fixed right-5 bottom-24 h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 shadow-2xl grid place-items-center text-white text-3xl">
         +
       </Link>
-
-      <nav className="fixed bottom-4 left-3 right-3 rounded-[24px] bg-white/95 backdrop-blur-xl shadow-[0_18px_50px_rgba(15,23,42,0.18)] p-2 grid grid-cols-5 gap-1">
-        <Link href="/" className="text-center text-purple-600 font-bold text-[11px]">🏠<br />Ana</Link>
-        <Link href="/asistan" className="text-center text-slate-500 font-bold text-[11px]">🤖<br />Asistan</Link>
-        <Link href="/hatirlatmalar" className="text-center text-slate-500 font-bold text-[11px]">📋<br />Görev</Link>
-        <Link href="/musteriler" className="text-center text-slate-500 font-bold text-[11px]">👥<br />CRM</Link>
-        <Link href="/profil" className="text-center text-slate-500 font-bold text-[11px]">👤<br />Profil</Link>
-      </nav>
     </main>
   );
 }
