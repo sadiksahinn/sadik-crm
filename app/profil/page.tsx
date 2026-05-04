@@ -13,6 +13,7 @@ export default function ProfilPage() {
   const [userId, setUserId] = useState("");
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState("");
+  const [fullName, setFullName] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -25,11 +26,12 @@ export default function ProfilPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("avatar_url")
+        .select("avatar_url, full_name")
         .eq("id", user.id)
         .single();
 
       setAvatar(profile?.avatar_url || "");
+      setFullName(profile?.full_name || "Kullanıcı");
     }
 
     load();
@@ -85,7 +87,7 @@ export default function ProfilPage() {
           </div>
 
           <div>
-            <h2 className="text-2xl font-black">Sadık Şahin</h2>
+            <h2 className="text-2xl font-black">{fullName}</h2>
             <p className="text-slate-500">{email}</p>
           </div>
         </div>

@@ -25,6 +25,7 @@ export default function Home() {
   const [todayExpense, setTodayExpense] = useState(0);
   const [pendingTasks, setPendingTasks] = useState(0);
   const [avatar, setAvatar] = useState("");
+  const [fullName, setFullName] = useState("Sadık");
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpense, setTotalExpense] = useState(0);
   const [topCategory, setTopCategory] = useState("Yok");
@@ -99,11 +100,17 @@ export default function Home() {
       setAvatar(localStorage.getItem("valkea-avatar") || "");
       const { data: profile } = await supabase
         .from("profiles")
-        .select("avatar_url")
+        .select("avatar_url, full_name, onboarding_completed")
         .eq("id", data.session.user.id)
         .single();
 
+      if (!profile?.onboarding_completed) {
+        window.location.href = "/onboarding";
+        return;
+      }
+
       setAvatar(profile?.avatar_url || "");
+      setFullName(profile?.full_name || "Kullanıcı");
       setReady(true);
     }
 
@@ -138,7 +145,7 @@ export default function Home() {
       </header>
 
       <section className="mb-4">
-        <h1 className="text-3xl font-black tracking-tight">Günaydın, Sadık 👋</h1>
+        <h1 className="text-3xl font-black tracking-tight">Günaydın, {fullName} 👋</h1>
         <p className="text-slate-500 mt-1 text-base">Gününü birlikte planlayalım.</p>
       </section>
 
