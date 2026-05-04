@@ -17,8 +17,8 @@ export default function BottomNav() {
 
   const tabs = [
     { name: "Ana", href: "/", icon: "⌂" },
-    { name: "Asistan", href: "/asistan", icon: "✧" },
-    { name: "Görev", href: "/hatirlatmalar", icon: "□" },
+    { name: "Finans", href: "/gelir-gider", icon: "₺" },
+    { name: "Tahsilat", href: "/tahsilatlar", icon: "◔" },
     { name: "CRM", href: "/musteriler", icon: "◌" },
     { name: "Profil", href: "/profil", icon: "○" },
   ];
