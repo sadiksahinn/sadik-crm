@@ -13,13 +13,17 @@ export default function ProfilPage() {
   const [userId, setUserId] = useState("");
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [fullName, setFullName] = useState("Kullanıcı");
 
   useEffect(() => {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
-      if (!user) return;
+
+      if (!user) {
+        window.location.href = "/login";
+        return;
+      }
 
       setUserId(user.id);
       setEmail(user.email || "");
@@ -64,35 +68,31 @@ export default function ProfilPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-6 pb-28">
-      <header className="flex items-center justify-between mb-6">
+    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
+      <header className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-3xl font-black">Profil</h1>
-          <p className="text-slate-500 text-sm">Valkea Assistant ayarları</p>
+          <h1 className="text-4xl font-black">Profil</h1>
+          <p className="text-slate-500">Hesap ve uygulama ayarları</p>
         </div>
 
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-bold">
+        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">
           Ana
         </Link>
       </header>
 
-      <section className="bg-white rounded-[32px] p-5 shadow-sm">
+      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
         <div className="flex items-center gap-4 mb-5">
-          <div className="h-24 w-24 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] grid place-items-center text-white text-3xl font-black">
-            {avatar ? (
-              <img src={avatar} alt="Profil" className="h-full w-full object-cover" />
-            ) : (
-              "S"
-            )}
+          <div className="h-20 w-20 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] grid place-items-center text-white text-3xl font-black">
+            {avatar ? <img src={avatar} alt="Profil" className="h-full w-full object-cover" /> : fullName[0]}
           </div>
 
-          <div>
-            <h2 className="text-2xl font-black">{fullName}</h2>
-            <p className="text-slate-500">{email}</p>
+          <div className="min-w-0">
+            <h2 className="text-2xl font-black truncate">{fullName}</h2>
+            <p className="text-slate-500 text-sm truncate">{email}</p>
           </div>
         </div>
 
-        <label className="block bg-slate-100 rounded-2xl p-4 font-bold text-center mb-3">
+        <label className="block bg-slate-100 rounded-2xl p-4 font-black text-center mb-3">
           Profil Fotoğrafı Seç
           <input type="file" accept="image/*" onChange={uploadAvatar} className="hidden" />
         </label>

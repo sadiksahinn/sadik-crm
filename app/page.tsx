@@ -145,8 +145,8 @@ export default function HomePage() {
   const net = todayIncome - todayExpense;
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-6 pb-32">
-      <header className="flex items-center justify-between mb-7">
+    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-4 pb-32">
+      <header className="flex items-center justify-between mb-4">
         <div className="relative w-40 h-16">
           <Image src="/valkea-logo.png" alt="Valkea" fill className="object-contain object-left" priority />
         </div>
@@ -163,9 +163,9 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="mb-7">
-        <h1 className="text-[34px] leading-tight font-black">{greeting(fullName)} 👋</h1>
-        <p className="text-slate-500 text-lg mt-1">Gününü birlikte planlayalım.</p>
+      <section className="mb-4">
+        <h1 className="text-[30px] leading-tight font-black">{greeting(fullName)} 👋</h1>
+        <p className="text-slate-500 text-base mt-1">Gününü birlikte planlayalım.</p>
       </section>
 
       <section className="relative overflow-hidden bg-white rounded-[30px] p-4 shadow-sm mb-5">
@@ -229,7 +229,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 mb-7">
+      <section className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-white rounded-[26px] p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="h-11 w-11 bg-[#61aebd]/10 rounded-2xl grid place-items-center text-xl">👥</div>
