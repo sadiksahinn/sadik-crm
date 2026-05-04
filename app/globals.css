@@ -7,3 +7,12 @@
 body {
   margin: 0;
 }
+/* Mobile premium cleanup */
+html, body {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
