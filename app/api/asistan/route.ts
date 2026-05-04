@@ -95,18 +95,37 @@ export async function POST(req: Request) {
         .select("*")
         .eq("user_id", user.id)
         .eq("status", "bekliyor")
-        .ilike("title", `%${searchName}%`)
-        .order("due_date", { ascending: true })
-        .limit(1);
+        .order("due_date", { ascending: true });
 
-      const payment = payments?.[0];
+      const normalizedSearch = String(searchName || "")
+        .toLowerCase()
+        .replace("tahsilat", "")
+        .replace("tamamlandı", "")
+        .replace("odeme", "")
+        .replace("ödeme", "")
+        .trim();
 
-      if (!payment) {
+      const matches = (payments || []).filter((p: any) =>
+        String(p.title || "").toLowerCase().includes(normalizedSearch)
+      );
+
+      if (matches.length === 0) {
         return NextResponse.json({
           ok: false,
           message: "Bu müşteri için bekleyen tahsilat bulamadım. Tahsilat ekranından kontrol edebilirsin.",
         });
       }
+
+      if (matches.length > 1) {
+        return NextResponse.json({
+          ok: false,
+          message:
+            "Birden fazla benzer tahsilat buldum. Yanlış kayıt kapatmamak için tahsilat ekranından seçmeni istiyorum.\n\n" +
+            matches.map((p: any) => `• ${p.title} - ${p.amount} TL - ${p.due_date}`).join("\n"),
+        });
+      }
+
+      const payment = matches[0];
 
       await supabase
         .from("payment_tracking")
