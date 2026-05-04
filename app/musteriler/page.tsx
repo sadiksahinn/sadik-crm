@@ -21,12 +21,14 @@ export default async function CustomersPage() {
           </p>
         </div>
 
-        <a
-          href="/"
-          className="bg-zinc-900 px-4 py-2 rounded-xl"
-        >
-          Dashboard
-        </a>
+        <div className="flex gap-2">
+          <a href="/musteriler/yeni" className="bg-white text-black px-4 py-2 rounded-xl font-bold">
+            + Yeni
+          </a>
+          <a href="/" className="bg-zinc-900 px-4 py-2 rounded-xl">
+            Dashboard
+          </a>
+        </div>
       </div>
 
       <div className="grid gap-4">
