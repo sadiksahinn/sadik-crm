@@ -173,7 +173,7 @@ export default function HomePage() {
         <div className="absolute right-0 top-12 h-44 w-44 rounded-full bg-gradient-to-br from-blue-100 via-fuchsia-100 to-orange-100 blur-xl opacity-80" />
 
         <div className="relative z-10">
-          <p className="text-purple-600 font-black text-sm mb-4">BUGÜN</p>
+          <p className="text-[#61aebd] font-black text-sm mb-4">BUGÜN</p>
           <h2 className="text-[26px] font-black leading-tight">
             Bugün odak: {taskCount || agenda.length || 0} kritik işlem
           </h2>
@@ -187,7 +187,7 @@ export default function HomePage() {
             </div>
 
             <div>
-              <div className="h-10 w-10 bg-purple-50 rounded-2xl grid place-items-center text-xl mb-2">👥</div>
+              <div className="h-10 w-10 bg-[#61aebd]/10 rounded-2xl grid place-items-center text-xl mb-2">👥</div>
               <p className="text-xl font-black">{customerCount}</p>
               <p className="text-xs text-slate-500">Müşteri</p>
             </div>
@@ -208,7 +208,7 @@ export default function HomePage() {
       <section className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-black tracking-wide text-slate-700">HIZLI ERİŞİM</h2>
-          <Link href="/asistan" className="text-purple-600 font-black text-sm">Düzenle ✎</Link>
+          <Link href="/asistan" className="text-[#61aebd] font-black text-sm">Düzenle ✎</Link>
         </div>
 
         <div className="grid grid-cols-5 gap-3">
@@ -220,7 +220,7 @@ export default function HomePage() {
             ["✧", "Asistan’a\nSor", "/asistan"],
           ].map(([icon, label, href]) => (
             <Link key={label} href={href} className="bg-white rounded-[22px] p-3 shadow-sm text-center min-h-[82px] flex flex-col items-center justify-center">
-              <div className="text-2xl bg-slate-50 h-10 w-10 rounded-2xl grid place-items-center mb-2 text-purple-600">
+              <div className="text-2xl bg-slate-50 h-10 w-10 rounded-2xl grid place-items-center mb-2 text-[#61aebd]">
                 {icon}
               </div>
               <p className="text-[12px] font-black whitespace-pre-line leading-tight">{label}</p>
@@ -232,8 +232,8 @@ export default function HomePage() {
       <section className="grid grid-cols-2 gap-3 mb-7">
         <div className="bg-white rounded-[26px] p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <div className="h-11 w-11 bg-purple-50 rounded-2xl grid place-items-center text-xl">👥</div>
-            <span className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full font-black">↑ %12</span>
+            <div className="h-11 w-11 bg-[#61aebd]/10 rounded-2xl grid place-items-center text-xl">👥</div>
+            <span className="text-xs text-[#61aebd] bg-[#61aebd]/10 px-2 py-1 rounded-full font-black">↑ %12</span>
           </div>
           <h3 className="mt-3 font-black">Müşteriler</h3>
           <p className="text-3xl font-black mt-2">{customerCount}</p>
@@ -278,7 +278,7 @@ export default function HomePage() {
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-black tracking-wide text-slate-700">BUGÜNÜN AJANDASI</h2>
-          <Link href="/hatirlatmalar" className="text-purple-600 font-black text-sm">Tümü →</Link>
+          <Link href="/hatirlatmalar" className="text-[#61aebd] font-black text-sm">Tümü →</Link>
         </div>
 
         <div className="relative pl-8">
@@ -298,7 +298,7 @@ export default function HomePage() {
                   <p className="text-slate-500 text-sm">{item.sub}</p>
                 </div>
               </div>
-              <div className="text-xs text-purple-600 font-black">{item.type} ›</div>
+              <div className="text-xs text-[#61aebd] font-black">{item.type} ›</div>
             </div>
           ))}
         </div>

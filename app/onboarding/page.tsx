@@ -55,7 +55,7 @@ export default function OnboardingPage() {
   return (
     <main className="min-h-screen bg-[#f7f8fc] px-5 py-10 flex items-center">
       <section className="bg-white rounded-[34px] p-6 shadow-sm w-full">
-        <p className="text-purple-600 font-black text-sm mb-2">VALKEA ASSISTANT</p>
+        <p className="text-[#61aebd] font-black text-sm mb-2">VALKEA ASSISTANT</p>
         <h1 className="text-4xl font-black mb-2">Seni tanıyalım 👋</h1>
         <p className="text-slate-500 mb-6">
           Karşılama, profil ve kayıtlar sana özel görünsün.
@@ -77,7 +77,7 @@ export default function OnboardingPage() {
 
           <button
             onClick={save}
-            className="bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400 text-white rounded-2xl p-4 font-black"
+            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black"
           >
             Profilimi Tamamla
           </button>

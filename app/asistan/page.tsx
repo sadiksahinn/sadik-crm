@@ -27,7 +27,7 @@ type ChatMessage = {
 function recordStyle(type: string) {
   if (type === "gelir") return "bg-emerald-50 border-emerald-200 text-emerald-900";
   if (type === "gider") return "bg-red-50 border-red-200 text-red-900";
-  if (type === "iş") return "bg-purple-50 border-purple-200 text-purple-900";
+  if (type === "iş") return "bg-[#61aebd]/10 border-[#61aebd]/30 text-purple-900";
   if (type === "plan") return "bg-blue-50 border-blue-200 text-blue-900";
   return "bg-slate-50 border-slate-200 text-slate-900";
 }
@@ -182,8 +182,8 @@ export default function AsistanPage() {
             <p className="whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
 
             {msg.proposal && (
-              <div className="mt-3 rounded-2xl bg-white border border-purple-200 p-3">
-                <p className="text-xs font-black text-purple-600 mb-2">
+              <div className="mt-3 rounded-2xl bg-white border border-[#61aebd]/30 p-3">
+                <p className="text-xs font-black text-[#61aebd] mb-2">
                   ✨ ONAY BEKLEYEN ÖNERİ
                 </p>
 
@@ -200,7 +200,7 @@ export default function AsistanPage() {
                 </div>
 
                 {msg.proposal.missing_questions?.length > 0 && (
-                  <div className="mt-3 rounded-xl bg-purple-50 p-3">
+                  <div className="mt-3 rounded-xl bg-[#61aebd]/10 p-3">
                     <p className="text-xs font-black text-purple-700 mb-1">
                       Eksik bilgiler
                     </p>
@@ -291,7 +291,7 @@ export default function AsistanPage() {
           <button
             onClick={sendMessage}
             disabled={loading}
-            className="h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 text-white font-black"
+            className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-white font-black"
           >
             →
           </button>

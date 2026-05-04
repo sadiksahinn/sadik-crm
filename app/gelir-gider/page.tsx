@@ -211,7 +211,7 @@ export default function GelirGiderPage() {
           <button
             onClick={saveRecord}
             disabled={loading}
-            className="bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400 text-white rounded-2xl p-4 font-black"
+            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black"
           >
             {loading ? "Kaydediliyor..." : "Kaydet"}
           </button>

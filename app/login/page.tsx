@@ -80,7 +80,7 @@ export default function LoginPage() {
 
           <button
             onClick={login}
-            className="bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400 text-white rounded-2xl p-4 font-black"
+            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black"
           >
             Giriş Yap
           </button>

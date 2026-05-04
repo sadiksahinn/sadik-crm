@@ -136,7 +136,7 @@ export default function HatirlatmalarPage() {
 
           <button
             disabled={loading}
-            className="bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400 text-white rounded-2xl p-4 font-black"
+            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black"
           >
             {loading ? "Kaydediliyor..." : "Hatırlatmayı Kaydet"}
           </button>
@@ -160,7 +160,7 @@ export default function HatirlatmalarPage() {
             >
               <div className="flex justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black text-purple-600">
+                  <p className="text-xs font-black text-[#61aebd]">
                     {item.reminder_date} {item.reminder_time || ""}
                   </p>
                   <h3 className="font-black text-lg mt-1">{item.title}</h3>

@@ -31,3 +31,56 @@ body::-webkit-scrollbar {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* Valkea Theme */
+:root {
+  --valkea-primary: #61aebd;
+  --valkea-accent: #e5ab53;
+  --valkea-bg: #f7f8fc;
+  --valkea-card: #ffffff;
+  --valkea-text: #070b1d;
+  --valkea-muted: #64748b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --valkea-bg: #070b1d;
+    --valkea-card: #101628;
+    --valkea-text: #f8fafc;
+    --valkea-muted: #94a3b8;
+  }
+
+  body {
+    background: var(--valkea-bg);
+    color: var(--valkea-text);
+  }
+
+  .bg-white {
+    background-color: var(--valkea-card) !important;
+  }
+
+  .text-slate-950 {
+    color: var(--valkea-text) !important;
+  }
+
+  .text-slate-500,
+  .text-slate-400,
+  .text-slate-700 {
+    color: var(--valkea-muted) !important;
+  }
+
+  .bg-slate-50,
+  .bg-slate-100 {
+    background-color: rgba(255,255,255,0.06) !important;
+  }
+}
+
+.valkea-gradient {
+  background: linear-gradient(135deg, #61aebd, #e5ab53);
+}
+
+.valkea-text-gradient {
+  background: linear-gradient(135deg, #61aebd, #e5ab53);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

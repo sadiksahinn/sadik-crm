@@ -78,7 +78,7 @@ export default function ProfilPage() {
 
       <section className="bg-white rounded-[32px] p-5 shadow-sm">
         <div className="flex items-center gap-4 mb-5">
-          <div className="h-24 w-24 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 grid place-items-center text-white text-3xl font-black">
+          <div className="h-24 w-24 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] grid place-items-center text-white text-3xl font-black">
             {avatar ? (
               <img src={avatar} alt="Profil" className="h-full w-full object-cover" />
             ) : (
