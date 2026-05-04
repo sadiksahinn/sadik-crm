@@ -91,7 +91,15 @@ export async function POST(req: Request) {
       });
     }
 
-    if (lower.includes("gider") || lower.includes("harcadım") || lower.includes("harcadim")) {
+    if (
+  lower.includes("gider") ||
+  lower.includes("harcadım") ||
+  lower.includes("harcadim") ||
+  lower.includes("verdim") ||
+  lower.includes("ödeme") ||
+  lower.includes("odeme") ||
+  (extractAmount(text) > 0 && !lower.includes("ödedi") && !lower.includes("odedi"))
+) {
       const amount = extractAmount(text);
       const title = cleanTitle(text) || "Asistan gider kaydı";
 
