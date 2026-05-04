@@ -91,6 +91,19 @@ export async function POST(req: Request) {
         });
       }
 
+      if (Number(proposal.amount || 0) > 0) {
+        await supabase.from("payment_tracking").insert({
+          user_id: user.id,
+          customer_id: customer.id,
+          service_id: service.id,
+          title: `${proposal.customer_name} tahsilat`,
+          amount: Number(proposal.amount || 0),
+          due_date: proposal.payment_day ? nextPaymentDate(proposal.payment_day) : today(),
+          status: "bekliyor",
+          note: proposal.note || "AI iş kaydı sonrası otomatik tahsilat oluşturuldu.",
+        });
+      }
+
       return NextResponse.json({
         ok: true,
         type: "iş",
