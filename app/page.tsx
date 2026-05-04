@@ -133,6 +133,13 @@ export default function HomePage() {
       setTodayExpense((expenses || []).reduce((a: number, b: any) => a + Number(b.amount || 0), 0));
 
       setAgenda([
+        ...(payments || []).map((x: any) => ({
+          icon: "₺",
+          title: x.title,
+          sub: `${money(Number(x.amount || 0))} tahsilat bekliyor`,
+          type: "Tahsilat",
+          color: "gold",
+        })),
         ...(followups || []).map((x: any) => ({
           icon: "💸",
           title: x.title,
