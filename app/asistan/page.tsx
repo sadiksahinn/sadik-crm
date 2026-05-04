@@ -102,6 +102,36 @@ export default function AsistanPage() {
     setLoading(false);
   }
 
+
+  async function handlePaymentAction(record: any, action: "paid" | "later") {
+    setLoading(true);
+
+    const { data: sessionData } = await supabase.auth.getSession();
+
+    const res = await fetch("/api/asistan/odeme", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        record,
+        action,
+        access_token: sessionData.session?.access_token,
+      }),
+    });
+
+    const data = await res.json();
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        text: data.message || "İşlem tamamlandı.",
+        record: data.record,
+      },
+    ]);
+
+    setLoading(false);
+  }
+
   async function approveProposal(proposal: any) {
     setLoading(true);
 
@@ -189,6 +219,25 @@ export default function AsistanPage() {
                     {money(msg.record.amount)}
                   </p>
                 )}
+
+                {msg.record.ask_payment && (
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <button
+                      onClick={() => handlePaymentAction(msg.record, "paid")}
+                      className="bg-emerald-600 text-white rounded-xl p-3 text-sm font-black"
+                    >
+                      Ödeme Aldım
+                    </button>
+
+                    <button
+                      onClick={() => handlePaymentAction(msg.record, "later")}
+                      className="bg-white rounded-xl p-3 text-sm font-black shadow-sm"
+                    >
+                      Sonra Alacağım
+                    </button>
+                  </div>
+                )}
+
               </div>
             )}
           </div>

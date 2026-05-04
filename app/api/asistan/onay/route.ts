@@ -100,7 +100,9 @@ export async function POST(req: Request) {
           type: "iş",
           title: proposal.customer_name,
           amount: Number(proposal.amount || 0),
-          table: "customers"
+          payment_day: proposal.payment_day || null,
+          table: "customers",
+          ask_payment: true
         }
       });
     }
