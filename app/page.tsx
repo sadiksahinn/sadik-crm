@@ -45,6 +45,7 @@ export default function HomePage() {
   const [todayExpense, setTodayExpense] = useState(0);
   const [todayCollections, setTodayCollections] = useState(0);
   const [collectionCount, setCollectionCount] = useState(0);
+  const [notificationCount, setNotificationCount] = useState(0);
   const [agenda, setAgenda] = useState<any[]>([]);
 
   useEffect(() => {
@@ -141,6 +142,13 @@ export default function HomePage() {
         .order("due_date", { ascending: true })
         .limit(3);
 
+      const notifTotal =
+        (payments || []).length +
+        (followups || []).length +
+        (contents || []).length;
+
+      setNotificationCount(notifTotal);
+
       setAgenda([
         ...(payments || []).map((x: any) => ({
           icon: "₺",
@@ -181,7 +189,11 @@ export default function HomePage() {
         <div className="flex items-center gap-3">
           <Link href="/bildirimler" className="h-14 w-14 rounded-2xl bg-white shadow-sm grid place-items-center text-2xl relative">
             🔔
-            <span className="absolute top-3 right-3 h-2.5 w-2.5 rounded-full bg-[#e5ab53]" />
+            {notificationCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-6 h-6 px-1 rounded-full bg-[#e5ab53] text-white text-xs font-black grid place-items-center">
+                {notificationCount}
+              </span>
+            )}
           </Link>
 
           <Link href="/profil" className="h-14 w-14 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] shadow-lg grid place-items-center text-slate-950 font-black text-xl">
