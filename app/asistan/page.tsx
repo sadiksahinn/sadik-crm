@@ -34,7 +34,7 @@ export default function AsistanPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      text: "Merhaba Sadık 👋 Bana doğal şekilde yazabilirsin. Örn: “Markete 300 TL verdim” veya “Suite Halı 20000 TL ödedi”.",
+      text: "Merhaba {fullName.split(" ")[0]} 👋 Bana doğal şekilde yazabilirsin. Örn: “Markete 300 TL verdim” veya “Suite Halı 20000 TL ödedi”.",
     },
   ]);
   const [command, setCommand] = useState("");
