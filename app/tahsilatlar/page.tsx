@@ -204,8 +204,19 @@ export default function TahsilatlarPage() {
               )}
 
               <button
+                onClick={() => {
+                  const msg = `Merhaba, ${item.title} için ${money(Number(item.amount || 0))} tutarındaki ödeme günümüz gelmiştir. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.`;
+                  navigator.clipboard.writeText(msg);
+                  alert("WhatsApp mesajı kopyalandı.");
+                }}
+                className="bg-[#61aebd]/10 text-[#61aebd] rounded-xl p-3 font-black"
+              >
+                Mesaj
+              </button>
+
+              <button
                 onClick={() => deletePayment(item)}
-                className="bg-red-50 text-red-600 rounded-xl p-3 font-black"
+                className="bg-red-50 text-red-600 rounded-xl p-3 font-black col-span-2"
               >
                 Sil
               </button>
