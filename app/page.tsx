@@ -24,6 +24,7 @@ export default function Home() {
   const [todayIncome, setTodayIncome] = useState(0);
   const [todayExpense, setTodayExpense] = useState(0);
   const [pendingTasks, setPendingTasks] = useState(0);
+  const [avatar, setAvatar] = useState("");
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpense, setTotalExpense] = useState(0);
   const [topCategory, setTopCategory] = useState("Yok");
@@ -95,6 +96,7 @@ export default function Home() {
       setTotalExpense(expenseTotal);
       setTopCategory(top ? top[0] : "Yok");
       setLastRecords(records);
+      setAvatar(localStorage.getItem("valkea-avatar") || "");
       setReady(true);
     }
 
@@ -118,8 +120,12 @@ export default function Home() {
 
         <div className="flex gap-2">
           <div className="h-10 w-10 rounded-full bg-white shadow-lg grid place-items-center text-sm">🔔</div>
-          <Link href="/profil" className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 shadow-lg grid place-items-center text-white font-black">
-            S
+          <Link href="/profil" className="h-10 w-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400 shadow-lg grid place-items-center text-white font-black">
+            {avatar ? (
+              <img src={avatar} alt="Profil" className="h-full w-full object-cover" />
+            ) : (
+              "S"
+            )}
           </Link>
         </div>
       </header>
