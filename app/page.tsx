@@ -46,6 +46,9 @@ export default function HomePage() {
   const [todayCollections, setTodayCollections] = useState(0);
   const [collectionCount, setCollectionCount] = useState(0);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [dailyIncome, setDailyIncome] = useState(0);
+  const [dailyExpense, setDailyExpense] = useState(0);
+  const [dailyCollection, setDailyCollection] = useState(0);
   const [agenda, setAgenda] = useState<any[]>([]);
 
   useEffect(() => {
