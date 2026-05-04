@@ -118,8 +118,16 @@ export async function POST(req: Request) {
     if (
       lower.includes("iş aldım") ||
       lower.includes("is aldim") ||
+      lower.includes("iş aldık") ||
+      lower.includes("is aldik") ||
+      lower.includes("iş alındı") ||
+      lower.includes("is alindi") ||
+      lower.includes("anlaşma yaptık") ||
+      lower.includes("anlasma yaptik") ||
       lower.includes("müşteri aldım") ||
-      lower.includes("musteri aldim")
+      lower.includes("musteri aldim") ||
+      lower.includes("hizmet vereceğiz") ||
+      lower.includes("hizmet verecegiz")
     ) {
       const amount = extractAmount(text);
       const customerName = cleanTitle(text) || "Yeni müşteri";
