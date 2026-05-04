@@ -168,33 +168,33 @@ export default function HomePage() {
         <p className="text-slate-500 text-lg mt-1">Gününü birlikte planlayalım.</p>
       </section>
 
-      <section className="relative overflow-hidden bg-white rounded-[34px] p-5 shadow-sm mb-6">
+      <section className="relative overflow-hidden bg-white rounded-[30px] p-4 shadow-sm mb-5">
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-400" />
         <div className="absolute right-0 top-12 h-44 w-44 rounded-full bg-gradient-to-br from-blue-100 via-fuchsia-100 to-orange-100 blur-xl opacity-80" />
 
         <div className="relative z-10">
           <p className="text-purple-600 font-black text-sm mb-4">BUGÜN</p>
-          <h2 className="text-3xl font-black leading-tight">
+          <h2 className="text-[26px] font-black leading-tight">
             Bugün odak: {taskCount || agenda.length || 0} kritik işlem
           </h2>
           <p className="text-slate-500 mt-2">Planla, yönet, büyüt.</p>
 
-          <div className="grid grid-cols-3 gap-4 mt-6 mb-5">
+          <div className="grid grid-cols-3 gap-3 mt-4 mb-4">
             <div>
-              <div className="h-12 w-12 bg-blue-50 rounded-2xl grid place-items-center text-xl mb-2">✓</div>
-              <p className="text-2xl font-black">{taskCount}</p>
+              <div className="h-10 w-10 bg-blue-50 rounded-2xl grid place-items-center text-xl mb-2">✓</div>
+              <p className="text-xl font-black">{taskCount}</p>
               <p className="text-xs text-slate-500">Görev</p>
             </div>
 
             <div>
-              <div className="h-12 w-12 bg-purple-50 rounded-2xl grid place-items-center text-xl mb-2">👥</div>
-              <p className="text-2xl font-black">{customerCount}</p>
+              <div className="h-10 w-10 bg-purple-50 rounded-2xl grid place-items-center text-xl mb-2">👥</div>
+              <p className="text-xl font-black">{customerCount}</p>
               <p className="text-xs text-slate-500">Müşteri</p>
             </div>
 
             <div>
-              <div className="h-12 w-12 bg-orange-50 rounded-2xl grid place-items-center text-xl mb-2">₺</div>
-              <p className="text-2xl font-black">{money(todayIncome)}</p>
+              <div className="h-10 w-10 bg-orange-50 rounded-2xl grid place-items-center text-xl mb-2">₺</div>
+              <p className="text-xl font-black">{money(todayIncome)}</p>
               <p className="text-xs text-slate-500">Gelir</p>
             </div>
           </div>
@@ -219,8 +219,8 @@ export default function HomePage() {
             ["◔", "Rapor\nAl", "/asistan"],
             ["✧", "Asistan’a\nSor", "/asistan"],
           ].map(([icon, label, href]) => (
-            <Link key={label} href={href} className="bg-white rounded-[22px] p-3 shadow-sm text-center min-h-[94px] flex flex-col items-center justify-center">
-              <div className="text-3xl bg-slate-50 h-11 w-11 rounded-2xl grid place-items-center mb-2 text-purple-600">
+            <Link key={label} href={href} className="bg-white rounded-[22px] p-3 shadow-sm text-center min-h-[82px] flex flex-col items-center justify-center">
+              <div className="text-2xl bg-slate-50 h-10 w-10 rounded-2xl grid place-items-center mb-2 text-purple-600">
                 {icon}
               </div>
               <p className="text-[12px] font-black whitespace-pre-line leading-tight">{label}</p>
@@ -292,7 +292,7 @@ export default function HomePage() {
             <div key={i} className="relative bg-white rounded-[22px] p-4 shadow-sm mb-3 flex items-center justify-between">
               <span className="absolute -left-[31px] h-3 w-3 rounded-full bg-gradient-to-br from-blue-500 via-fuchsia-500 to-orange-400" />
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-2xl bg-slate-50 grid place-items-center text-2xl">{item.icon}</div>
+                <div className="h-10 w-10 rounded-2xl bg-slate-50 grid place-items-center text-2xl">{item.icon}</div>
                 <div>
                   <h3 className="font-black">{item.title}</h3>
                   <p className="text-slate-500 text-sm">{item.sub}</p>
