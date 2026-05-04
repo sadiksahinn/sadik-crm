@@ -18,7 +18,7 @@ export default function BottomNav() {
   const tabs = [
     { name: "Ana", href: "/", icon: "⌂" },
     { name: "Finans", href: "/gelir-gider", icon: "₺" },
-    { name: "Tahsilat", href: "/tahsilatlar", icon: "◔" },
+    { name: "Takvim", href: "/takvim", icon: "◔" },
     { name: "CRM", href: "/musteriler", icon: "◌" },
     { name: "Profil", href: "/profil", icon: "○" },
   ];

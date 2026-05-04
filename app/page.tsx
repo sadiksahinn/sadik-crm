@@ -258,7 +258,7 @@ export default function HomePage() {
           {[
             ["+", "Müşteri\nEkle", "/musteriler"],
             ["☏", "Mesaj\nGönder", "/asistan"],
-            ["▣", "İçerik\nOluştur", "/asistan"],
+            ["▣", "Takvim\nPlanla", "/takvim"],
             ["◔", "Tahsilat\nTakip", "/tahsilatlar"],
             ["✧", "Asistan’a\nSor", "/asistan"],
           ].map(([icon, label, href]) => (
