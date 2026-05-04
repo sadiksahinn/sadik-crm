@@ -1,4 +1,3 @@
-cat > ~/sadik-crm/app/api/asistan/route.ts <<'EOF'
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -11,36 +10,43 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function addDays(days: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 function extractAmount(text: string) {
   const clean = text.toLowerCase().replace(/\./g, "").replace(/,/g, ".");
   const match = clean.match(/(\d+(\.\d+)?)/);
   return match ? Number(match[1]) : 0;
 }
 
-function cleanTitle(text: string) {
+function cleanJobName(text: string) {
   return text
     .replace(/\d+/g, "")
     .replace(/tl/gi, "")
-    .replace(/iş aldım/gi, "")
-    .replace(/is aldim/gi, "")
-    .replace(/aldım/gi, "")
-    .replace(/aldim/gi, "")
+    .replace(/ile/gi, "")
     .replace(/aylık/gi, "")
     .replace(/aylik/gi, "")
     .replace(/sosyal medya yönetimi/gi, "")
     .replace(/sosyal medya yonetimi/gi, "")
-    .replace(/reels/gi, "")
-    .replace(/çekim/gi, "")
-    .replace(/cekim/gi, "")
+    .replace(/işi aldım/gi, "")
+    .replace(/iş aldım/gi, "")
+    .replace(/isi aldim/gi, "")
+    .replace(/is aldim/gi, "")
+    .replace(/iş aldık/gi, "")
+    .replace(/is aldik/gi, "")
+    .replace(/her ayın/gi, "")
+    .replace(/her ayin/gi, "")
+    .replace(/ödeme/gi, "")
+    .trim();
+}
+
+function cleanTitle(text: string) {
+  return text
+    .replace(/\d+/g, "")
+    .replace(/tl/gi, "")
+    .replace(/verdim/gi, "")
+    .replace(/harcadım/gi, "")
+    .replace(/harcadim/gi, "")
     .replace(/ödedi/gi, "")
     .replace(/odedi/gi, "")
-    .replace(/verdim/gi, "")
+    .replace(/geldi/gi, "")
     .trim();
 }
 
@@ -62,6 +68,31 @@ function nextPaymentDate(day: number) {
   return d.toISOString().slice(0, 10);
 }
 
+function detectPaymentDay(text: string) {
+  const lower = text.toLowerCase();
+  const match = lower.match(/her ay[ıi]n?\s*(\d{1,2})/);
+  return match ? Number(match[1]) : null;
+}
+
+function isJobCommand(lower: string) {
+  return (
+    lower.includes("iş aldım") ||
+    lower.includes("işi aldım") ||
+    lower.includes("is aldim") ||
+    lower.includes("isi aldim") ||
+    lower.includes("iş aldık") ||
+    lower.includes("işi aldık") ||
+    lower.includes("is aldik") ||
+    lower.includes("isi aldik") ||
+    lower.includes("anlaşma yaptık") ||
+    lower.includes("anlasma yaptik") ||
+    lower.includes("hizmet vereceğiz") ||
+    lower.includes("hizmet verecegiz") ||
+    lower.includes("müşteri aldım") ||
+    lower.includes("musteri aldim")
+  );
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -72,7 +103,10 @@ export async function POST(req: Request) {
     const user = userData.user;
 
     if (!user) {
-      return NextResponse.json({ ok: false, message: "Oturum bulunamadı. Tekrar giriş yap." }, { status: 401 });
+      return NextResponse.json(
+        { ok: false, message: "Oturum bulunamadı. Tekrar giriş yap." },
+        { status: 401 }
+      );
     }
 
     if (!text) {
@@ -93,50 +127,22 @@ export async function POST(req: Request) {
         .lte("followup_date", today())
         .order("followup_date", { ascending: true });
 
-      const { data: reminders } = await supabase
-        .from("reminders")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "bekliyor")
-        .lte("reminder_date", today())
-        .order("reminder_date", { ascending: true });
-
-      const items = [
-        ...(followups || []).map((x: any) => `• ${x.title}`),
-        ...(reminders || []).map((x: any) => `• ${x.title}`),
-      ];
+      const items = (followups || []).map((x: any) => `• ${x.title}`);
 
       return NextResponse.json({
         ok: true,
         type: "program",
         message: items.length
           ? `Bugün bunları yapıyoruz 👇\n\n${items.join("\n")}`
-          : "Bugün için kayıtlı takip görünmüyor. Yeni iş, ödeme ya da paylaşım planı ekleyebilirsin.",
+          : "Bugün için kayıtlı takip görünmüyor.",
       });
     }
 
-    if (
-      lower.includes("iş aldım") ||
-      lower.includes("işi aldım") ||
-      lower.includes("is aldim") ||
-      lower.includes("isi aldim") ||
-      lower.includes("iş aldık") ||
-      lower.includes("işi aldık") ||
-      lower.includes("is aldik") ||
-      lower.includes("isi aldik") ||
-      lower.includes("iş alındı") ||
-      lower.includes("is alindi") ||
-      lower.includes("anlaşma yaptık") ||
-      lower.includes("anlasma yaptik") ||
-      lower.includes("müşteri aldım") ||
-      lower.includes("musteri aldim") ||
-      lower.includes("hizmet vereceğiz") ||
-      lower.includes("hizmet verecegiz")
-    ) {
+    // EN ÖNEMLİ KURAL: İş alma komutu önce yakalanır.
+    if (isJobCommand(lower)) {
       const amount = extractAmount(text);
-      const customerName = cleanTitle(text) || "Yeni müşteri";
-      const paymentDayMatch = lower.match(/her ay[ıi]n? (\d{1,2})/);
-      const paymentDay = paymentDayMatch ? Number(paymentDayMatch[1]) : null;
+      const customerName = cleanJobName(text) || "Yeni müşteri";
+      const paymentDay = detectPaymentDay(text);
 
       const { data: customer, error: customerError } = await supabase
         .from("customers")
@@ -157,8 +163,12 @@ export async function POST(req: Request) {
         .from("client_services")
         .insert({
           customer_id: customer.id,
-          service_name: lower.includes("sosyal medya") ? "Aylık sosyal medya yönetimi" : "Yeni iş / hizmet",
-          service_type: lower.includes("sosyal medya") ? "sosyal medya yönetimi" : "genel hizmet",
+          service_name: lower.includes("sosyal medya")
+            ? "Aylık sosyal medya yönetimi"
+            : "Yeni iş / hizmet",
+          service_type: lower.includes("sosyal medya")
+            ? "sosyal medya yönetimi"
+            : "genel hizmet",
           monthly_fee: amount || 0,
           payment_day: paymentDay,
           next_payment_date: paymentDay ? nextPaymentDate(paymentDay) : null,
@@ -189,50 +199,26 @@ export async function POST(req: Request) {
           followup_date: nextPaymentDate(paymentDay),
           status: "bekliyor",
           priority: "önemli",
-          message_suggestion: `Merhaba, bu ayki hizmet bedelimiz için ödeme günümüz geldi. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.`,
+          message_suggestion:
+            "Merhaba, bu ayki hizmet bedelimiz için ödeme günümüz geldi. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.",
           user_id: user.id,
         });
       }
 
-      const missing = [];
-      if (!amount) missing.push("hizmet bedeli");
-      if (!paymentDay) missing.push("aylık ödeme günü");
-      missing.push("ayda kaç reels/post/story yapılacak?");
-      missing.push("ilk çekim tarihi ne zaman?");
-      missing.push("ilk paylaşım tarihi var mı?");
-
       return NextResponse.json({
         ok: true,
-        type: "müşteri",
+        type: "iş",
         message:
-          `✨ Yeni iş kaydı oluşturuldu\n\n${customerName}\n${amount ? `Bedel: ${amount} TL\n` : ""}${paymentDay ? `Ödeme günü: Her ayın ${paymentDay}'i\n` : ""}\nŞimdi eksik bilgileri tamamlayalım:\n\n${missing.map((m) => `• ${m}`).join("\n")}`,
+          `✨ Yeni iş kaydı oluşturuldu\n\n` +
+          `${customerName}\n` +
+          `${amount ? `Bedel: ${amount} TL\n` : ""}` +
+          `${paymentDay ? `Ödeme günü: Her ayın ${paymentDay}'i\n` : ""}` +
+          `\nŞimdi şunları tamamlamamız lazım:\n` +
+          `• Ayda kaç reels/post/story yapılacak?\n` +
+          `• İlk çekim tarihi ne zaman?\n` +
+          `• İlk paylaşım tarihi var mı?\n` +
+          `• Kapak/alt yazı/hashtag hizmete dahil mi?`,
         record: { ...customer, title: customerName, table: "customers" },
-      });
-    }
-
-    if (lower.includes("hatırlat") || lower.includes("hatirlat")) {
-      const title = cleanTitle(text) || "Hatırlatma";
-
-      const { data, error } = await supabase
-        .from("reminders")
-        .insert({
-          title,
-          description: text,
-          reminder_date: lower.includes("yarın") || lower.includes("yarin") ? addDays(1) : today(),
-          priority: lower.includes("acil") ? "acil" : "normal",
-          status: "bekliyor",
-          user_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return NextResponse.json({
-        ok: true,
-        type: "hatırlatma",
-        message: "✨ Hatırlatma oluşturuldu",
-        record: { ...data, title, table: "reminders" },
       });
     }
 
@@ -242,7 +228,7 @@ export async function POST(req: Request) {
       return NextResponse.json({
         ok: false,
         message:
-          "Anlamam için biraz daha detay lazım.\n\nİş aldıysan şöyle yaz:\n“Suite Halı ile aylık sosyal medya yönetimi işi aldım 20000 TL her ayın 4’ü ödeme”\n\nGider için:\n“Market 300 TL”\n\nProgram için:\n“Bugün ne yapıyoruz?”",
+          "Anlamam için biraz daha detay lazım.\n\nÖrn:\n“Suite Halı ile aylık sosyal medya yönetimi işi aldım 20000 TL her ayın 4 ödeme”",
       });
     }
 
@@ -304,6 +290,9 @@ export async function POST(req: Request) {
       record: { ...data, table: "expenses" },
     });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, message: "Hata: " + err.message }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, message: "Hata: " + err.message },
+      { status: 500 }
+    );
   }
 }
