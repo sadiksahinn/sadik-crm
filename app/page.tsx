@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -45,13 +46,14 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-5 pt-8 pb-28">
       <header className="flex items-center justify-between mb-7">
-        <div>
-          <div className="text-3xl font-black tracking-[0.35em] text-slate-900">
-            VALKEA
-          </div>
-          <div className="text-[10px] tracking-[0.55em] text-slate-500 mt-1">
-            ASSISTANT
-          </div>
+        <div className="relative h-14 w-44">
+          <Image
+            src="/valkea-logo.png"
+            alt="Valkea Assistant"
+            fill
+            priority
+            className="object-contain object-left"
+          />
         </div>
 
         <div className="flex gap-3">
