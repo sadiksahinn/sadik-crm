@@ -45,7 +45,8 @@ JSON:
   "reels": null,
   "story": null,
   "post": null,
-  "note": ""
+  "note": "",
+  "missing_questions": []
 }
 
 Kurallar:
@@ -129,6 +130,12 @@ export async function POST(req: Request) {
           amount: ai.amount || 0,
           payment_day: ai.payment_day || null,
           note: text,
+          missing_questions: ai.missing_questions || [
+            "Ödeme alındı mı?",
+            "Ayda kaç reels/post/story yapılacak?",
+            "İlk çekim tarihi ne zaman?",
+            "İlk paylaşım tarihi var mı?"
+          ],
         },
       });
     }
@@ -151,6 +158,12 @@ export async function POST(req: Request) {
           story: ai.story,
           post: ai.post,
           note: text,
+          missing_questions: ai.missing_questions || [
+            "Ödeme alındı mı?",
+            "Ayda kaç reels/post/story yapılacak?",
+            "İlk çekim tarihi ne zaman?",
+            "İlk paylaşım tarihi var mı?"
+          ],
         },
       });
     }
