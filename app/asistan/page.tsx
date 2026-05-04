@@ -36,6 +36,7 @@ export default function AsistanPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [command, setCommand] = useState("");
   const [loading, setLoading] = useState(false);
+  const [autoMessageLoaded, setAutoMessageLoaded] = useState(false);
 
   useEffect(() => {
 
