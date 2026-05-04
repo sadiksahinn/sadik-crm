@@ -37,7 +37,7 @@ Kullanıcı mesajını analiz et ve sadece JSON döndür.
 
 JSON:
 {
-  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "collection_paid" | "unknown",
+  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "collection_paid" | "task_completed" | "unknown",
   "customer_name": "",
   "title": "",
   "amount": 0,
@@ -57,6 +57,7 @@ Kurallar:
 - "bugün ne yapıyoruz" => daily_plan
 - "bugün kimden para alacağım", "tahsilat var mı", "kimden ödeme alacağım" => collection_query
 - "tahsilat tamamlandı", "ödeme alındı", "parasını aldım" => collection_paid
+- "tamamlandı", "bitti", "yapıldı", "paylaşıldı" => task_completed
 - emin değilsen unknown
         `,
       },
@@ -134,6 +135,79 @@ export async function POST(req: Request) {
         type: "gelir",
         message: `✅ Tahsilat tamamlandı ve gelire işlendi.\n\n${payment.title}`,
         record: { ...income, type: "gelir", table: "income" },
+      });
+    }
+
+    if (ai.type === "task_completed") {
+      const searchName = ai.customer_name || ai.title || text;
+
+      const { data: contents } = await supabase
+        .from("content_calendar")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "planlandı")
+        .ilike("content_title", `%${searchName}%`)
+        .limit(1);
+
+      const content = contents?.[0];
+
+      if (content) {
+        await supabase
+          .from("content_calendar")
+          .update({ status: "tamamlandı" })
+          .eq("id", content.id);
+
+        await supabase.from("activity_logs").insert({
+          user_id: user.id,
+          customer_id: content.customer_id,
+          service_id: content.service_id || null,
+          action_title: "İçerik tamamlandı",
+          action_detail: `${content.content_title} tamamlandı.`,
+          action_type: "tamamlandı",
+        });
+
+        return NextResponse.json({
+          ok: true,
+          type: "tamamlandı",
+          message: `✅ İçerik tamamlandı olarak işaretlendi.\n\n${content.content_title}`,
+        });
+      }
+
+      const { data: followups } = await supabase
+        .from("followups")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .ilike("title", `%${searchName}%`)
+        .limit(1);
+
+      const followup = followups?.[0];
+
+      if (followup) {
+        await supabase
+          .from("followups")
+          .update({ status: "tamamlandı" })
+          .eq("id", followup.id);
+
+        await supabase.from("activity_logs").insert({
+          user_id: user.id,
+          customer_id: followup.customer_id,
+          service_id: followup.service_id || null,
+          action_title: "Takip tamamlandı",
+          action_detail: `${followup.title} tamamlandı.`,
+          action_type: "tamamlandı",
+        });
+
+        return NextResponse.json({
+          ok: true,
+          type: "tamamlandı",
+          message: `✅ Takip tamamlandı olarak işaretlendi.\n\n${followup.title}`,
+        });
+      }
+
+      return NextResponse.json({
+        ok: false,
+        message: "Tamamlanacak kayıt bulamadım. Daha net yazabilir misin? Örn: “Suite Halı reels tamamlandı”.",
       });
     }
 
