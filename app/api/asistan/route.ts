@@ -74,6 +74,31 @@ function detectPaymentDay(text: string) {
   return match ? Number(match[1]) : null;
 }
 
+
+function extractPlanProposal(text: string) {
+  const lower = text.toLowerCase();
+
+  if (!lower.includes("için") && !lower.includes("icin")) return null;
+  if (!lower.includes("reels") && !lower.includes("story") && !lower.includes("post")) return null;
+
+  const customerName = text.split(/için|icin/i)[0].trim();
+  const reels = lower.match(/(\d+)\s*reels/);
+  const story = lower.match(/(\d+)\s*story/);
+  const post = lower.match(/(\d+)\s*post/);
+
+  return {
+    type: "service_plan",
+    customer_name: customerName,
+    reels: reels ? Number(reels[1]) : null,
+    story: story ? Number(story[1]) : null,
+    post: post ? Number(post[1]) : null,
+    shoot_date: null,
+    publish_date: null,
+    original_text: text
+  };
+}
+
+
 function isJobCommand(lower: string) {
   return (
     lower.includes("iş aldım") ||
@@ -111,6 +136,23 @@ export async function POST(req: Request) {
 
     if (!text) {
       return NextResponse.json({ ok: false, message: "Komut boş." });
+    }
+
+    const proposal = extractPlanProposal(text);
+
+    if (proposal) {
+      return NextResponse.json({
+        ok: true,
+        type: "öneri",
+        message:
+          `Şunu kaydetmemi öneriyorum 👇\n\n` +
+          `${proposal.customer_name}\n` +
+          `${proposal.reels ? `Ayda ${proposal.reels} reels\n` : ""}` +
+          `${proposal.story ? `Ayda ${proposal.story} story\n` : ""}` +
+          `${proposal.post ? `Ayda ${proposal.post} post\n` : ""}` +
+          `\nOnaylarsan müşteri hizmet planına işleyeceğim.`,
+        proposal
+      });
     }
 
     if (

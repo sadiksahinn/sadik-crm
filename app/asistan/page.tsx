@@ -22,11 +22,12 @@ type ChatMessage = {
   text: string;
   record?: {
     id: string;
-    type: "gelir" | "gider" | "hatırlatma" | "müşteri";
+    type: "gelir" | "gider" | "hatırlatma" | "müşteri" | "iş";
     title: string;
     amount?: number;
     table?: string;
   };
+  proposal?: any;
 };
 
 export default function AsistanPage() {
@@ -80,6 +81,7 @@ export default function AsistanPage() {
           role: "assistant",
           text: data.message || "İşlem tamamlandı.",
           record,
+          proposal: data.proposal,
         },
       ]);
     } catch (err: any) {
@@ -88,6 +90,34 @@ export default function AsistanPage() {
         { role: "assistant", text: "Hata oluştu: " + err.message },
       ]);
     }
+
+    setLoading(false);
+  }
+
+
+  async function approveProposal(proposal: any) {
+    setLoading(true);
+
+    const { data: sessionData } = await supabase.auth.getSession();
+
+    const res = await fetch("/api/asistan/onay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        proposal,
+        access_token: sessionData.session?.access_token
+      }),
+    });
+
+    const data = await res.json();
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        text: data.message || "İşlem tamamlandı.",
+      },
+    ]);
 
     setLoading(false);
   }
@@ -169,6 +199,41 @@ export default function AsistanPage() {
             }`}
           >
             <p className="whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
+
+
+            {msg.proposal && (
+              <div className="mt-3 rounded-2xl bg-purple-50 border border-purple-100 p-3">
+                <p className="text-xs font-black text-purple-600 mb-2">✨ ÖNERİLEN PLAN</p>
+
+                <div className="text-sm text-slate-700 leading-relaxed">
+                  <p><b>Müşteri:</b> {msg.proposal.customer_name}</p>
+                  {msg.proposal.reels && <p><b>Reels:</b> Ayda {msg.proposal.reels}</p>}
+                  {msg.proposal.story && <p><b>Story:</b> Ayda {msg.proposal.story}</p>}
+                  {msg.proposal.post && <p><b>Post:</b> Ayda {msg.proposal.post}</p>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <button
+                    onClick={() => approveProposal(msg.proposal)}
+                    className="bg-slate-950 text-white rounded-xl p-3 text-sm font-black"
+                  >
+                    Onayla
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setMessages((prev) => [
+                        ...prev,
+                        { role: "assistant", text: "Tamam, kaydetmedim. Daha net bilgi verirsen yeniden önerebilirim." },
+                      ])
+                    }
+                    className="bg-white rounded-xl p-3 text-sm font-black shadow-sm"
+                  >
+                    Vazgeç
+                  </button>
+                </div>
+              </div>
+            )}
 
             {msg.record && (
               <div className={`mt-3 rounded-2xl border p-3 ${
