@@ -179,10 +179,10 @@ export default function HomePage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="h-14 w-14 rounded-2xl bg-white shadow-sm grid place-items-center text-2xl relative">
+          <Link href="/bildirimler" className="h-14 w-14 rounded-2xl bg-white shadow-sm grid place-items-center text-2xl relative">
             🔔
-            <span className="absolute top-3 right-3 h-2.5 w-2.5 rounded-full bg-fuchsia-500" />
-          </button>
+            <span className="absolute top-3 right-3 h-2.5 w-2.5 rounded-full bg-[#e5ab53]" />
+          </Link>
 
           <Link href="/profil" className="h-14 w-14 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] shadow-lg grid place-items-center text-slate-950 font-black text-xl">
             {avatar ? <img src={avatar} className="h-full w-full object-cover" alt="Profil" /> : firstName(fullName)[0]}
