@@ -112,11 +112,15 @@ export async function POST(req: Request) {
             currency: "TRY",
             maximumFractionDigits: 0,
           }).format(total)}\n\n` +
-          payments.map((p: any) => `• ${p.title} — ${new Intl.NumberFormat("tr-TR", {
-            style: "currency",
-            currency: "TRY",
-            maximumFractionDigits: 0,
-          }).format(Number(p.amount || 0))} — Son gün: ${p.due_date}`).join("\n"),
+          payments.map((p: any) => {
+            const amount = new Intl.NumberFormat("tr-TR", {
+              style: "currency",
+              currency: "TRY",
+              maximumFractionDigits: 0,
+            }).format(Number(p.amount || 0));
+
+            return `• ${p.title} — ${amount} — Son gün: ${p.due_date}\n  Mesaj: Merhaba, ${p.title} için ${amount} tutarındaki ödeme günümüz gelmiştir. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.`;
+          }).join("\n\n"),
       });
     }
 
