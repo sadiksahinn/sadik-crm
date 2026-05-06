@@ -9,124 +9,128 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
-type Reminder = {
-  id: string;
-  title: string;
-  description: string | null;
-  reminder_date: string;
-  reminder_time: string | null;
-  status: string | null;
-  priority: string | null;
-};
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default function HatirlatmalarPage() {
-  const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [loading, setLoading] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
+  const [items, setItems] = useState<any[]>([]);
+  const [title, setTitle] = useState("");
+  const [detail, setDetail] = useState("");
+  const [date, setDate] = useState(today());
+  const [priority, setPriority] = useState("normal");
 
-  async function loadReminders() {
+  async function load() {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
     const { data } = await supabase
-      .from("reminders")
+      .from("followups")
       .select("*")
-      .order("reminder_date", { ascending: true });
+      .eq("user_id", user.id)
+      .order("followup_date", { ascending: true });
 
-    setReminders(data || []);
+    setItems(data || []);
   }
 
   useEffect(() => {
-    loadReminders();
+    load();
   }, []);
 
-  async function addReminder(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLoading(true);
+  async function saveReminder() {
+    if (!title.trim()) {
+      alert("Başlık gir.");
+      return;
+    }
 
-    const form = new FormData(e.currentTarget);
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+    if (!user) return;
 
-    const { error } = await supabase.from("reminders").insert({
-      title: String(form.get("title") || ""),
-      description: String(form.get("description") || ""),
-      reminder_date: String(form.get("date") || today),
-      reminder_time: String(form.get("time") || ""),
-      priority: String(form.get("priority") || "normal"),
+    const { error } = await supabase.from("followups").insert({
+      user_id: user.id,
+      title,
+      description: detail,
+      followup_date: date,
       status: "bekliyor",
+      priority,
     });
-
-    setLoading(false);
 
     if (error) {
       alert("Hatırlatma hatası: " + error.message);
       return;
     }
 
-    e.currentTarget.reset();
-    loadReminders();
+    setTitle("");
+    setDetail("");
+    setDate(today());
+    setPriority("normal");
+    load();
   }
 
-  async function completeReminder(id: string) {
+  async function completeItem(item: any) {
     await supabase
-      .from("reminders")
+      .from("followups")
       .update({ status: "tamamlandı" })
-      .eq("id", id);
+      .eq("id", item.id);
 
-    loadReminders();
+    load();
   }
 
-  async function deleteReminder(id: string) {
-    const ok = confirm("Bu hatırlatmayı silmek istiyor musun?");
-    if (!ok) return;
+  async function deleteItem(item: any) {
+    if (!confirm("Bu hatırlatma silinsin mi?")) return;
 
-    await supabase.from("reminders").delete().eq("id", id);
-    loadReminders();
+    await supabase.from("followups").delete().eq("id", item.id);
+    load();
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-6 pb-28">
+    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
         <div>
+          <p className="text-[#61aebd] text-xs font-black tracking-wide">VALKEA TASKS</p>
           <h1 className="text-3xl font-black">Hatırlatmalar</h1>
-          <p className="text-slate-500 text-sm">Çekim, ödeme ve teslim planı</p>
+          <p className="text-slate-500">Çekim, ödeme ve teslim planı</p>
         </div>
 
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-bold">
+        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">
           Ana
         </Link>
       </header>
 
-      <section className="bg-white rounded-[26px] p-4 shadow-sm mb-5">
-        <h2 className="text-xl font-black mb-3">Yeni Hatırlatma</h2>
+      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
+        <h2 className="text-2xl font-black mb-4">Yeni Hatırlatma</h2>
 
-        <form onSubmit={addReminder} className="grid gap-3">
+        <div className="grid gap-3">
           <input
-            name="title"
-            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             placeholder="Başlık: Suite Halı ödeme iste"
             className="bg-slate-100 rounded-2xl p-4 outline-none"
           />
 
           <textarea
-            name="description"
+            value={detail}
+            onChange={(e) => setDetail(e.target.value)}
             placeholder="Açıklama / detay"
+            className="bg-slate-100 rounded-2xl p-4 outline-none min-h-[90px]"
+          />
+
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
             className="bg-slate-100 rounded-2xl p-4 outline-none"
           />
 
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              name="date"
-              type="date"
-              defaultValue={today}
-              className="bg-slate-100 rounded-2xl p-4 outline-none"
-            />
-
-            <input
-              name="time"
-              type="time"
-              className="bg-slate-100 rounded-2xl p-4 outline-none"
-            />
-          </div>
-
           <select
-            name="priority"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
             className="bg-slate-100 rounded-2xl p-4 outline-none"
           >
             <option value="normal">Normal</option>
@@ -135,56 +139,54 @@ export default function HatirlatmalarPage() {
           </select>
 
           <button
-            disabled={loading}
-            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 rounded-2xl p-4 font-black"
+            onClick={saveReminder}
+            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black"
           >
-            {loading ? "Kaydediliyor..." : "Hatırlatmayı Kaydet"}
+            Hatırlatmayı Kaydet
           </button>
-        </form>
+        </div>
       </section>
 
       <section>
-        <h2 className="font-black text-slate-700 text-sm tracking-wide mb-3">
+        <h2 className="text-sm font-black tracking-wide text-slate-700 mb-3">
           PLANLANANLAR
         </h2>
 
         <div className="grid gap-3">
-          {reminders.map((item) => (
-            <div
-              key={item.id}
-              className={`bg-white rounded-2xl p-4 shadow-sm border ${
-                item.status === "tamamlandı"
-                  ? "border-emerald-100 opacity-60"
-                  : "border-white"
-              }`}
-            >
+          {items.map((item) => (
+            <div key={item.id} className="bg-white rounded-[24px] p-4 shadow-sm">
               <div className="flex justify-between gap-3">
                 <div>
                   <p className="text-xs font-black text-[#61aebd]">
-                    {item.reminder_date} {item.reminder_time || ""}
+                    {item.followup_date} · {item.priority || "normal"}
                   </p>
-                  <h3 className="font-black text-lg mt-1">{item.title}</h3>
-                  <p className="text-slate-500 text-sm mt-1">
-                    {item.description || "Açıklama yok"}
+                  <h3 className="font-black">{item.title}</h3>
+                  {item.description && (
+                    <p className="text-slate-500 text-sm mt-1">{item.description}</p>
+                  )}
+                  <p className={item.status === "tamamlandı" ? "text-emerald-600 font-black mt-2" : "text-red-500 font-black mt-2"}>
+                    {item.status}
                   </p>
                 </div>
-
-                <span className="h-fit bg-slate-100 rounded-full px-3 py-1 text-xs font-bold">
-                  {item.priority}
-                </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                <button
-                  onClick={() => completeReminder(item.id)}
-                  className="bg-white text-slate-950 rounded-2xl p-3 font-bold"
-                >
-                  Tamamlandı
-                </button>
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                {item.status !== "tamamlandı" ? (
+                  <button
+                    onClick={() => completeItem(item)}
+                    className="bg-emerald-50 text-emerald-600 rounded-xl p-3 font-black"
+                  >
+                    Tamamlandı
+                  </button>
+                ) : (
+                  <div className="bg-slate-100 rounded-xl p-3 font-black text-center">
+                    Tamam
+                  </div>
+                )}
 
                 <button
-                  onClick={() => deleteReminder(item.id)}
-                  className="bg-red-50 text-red-600 rounded-2xl p-3 font-bold"
+                  onClick={() => deleteItem(item)}
+                  className="bg-red-50 text-red-600 rounded-xl p-3 font-black"
                 >
                   Sil
                 </button>
@@ -192,8 +194,8 @@ export default function HatirlatmalarPage() {
             </div>
           ))}
 
-          {reminders.length === 0 && (
-            <div className="bg-white rounded-2xl p-5 shadow-sm text-slate-500">
+          {items.length === 0 && (
+            <div className="bg-white rounded-[24px] p-5 shadow-sm text-slate-500">
               Henüz hatırlatma yok.
             </div>
           )}
