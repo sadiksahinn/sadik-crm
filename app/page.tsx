@@ -213,7 +213,7 @@ export default function HomePage() {
 
       <section className="relative overflow-hidden bg-white rounded-[30px] p-4 shadow-sm mb-5">
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#61aebd] to-[#e5ab53]" />
-        <div className="absolute right-0 top-12 h-44 w-44 rounded-full bg-gradient-to-br from-blue-100 via-fuchsia-100 to-orange-100 blur-xl opacity-80" />
+        <div className="absolute right-0 top-12 h-44 w-44 rounded-full bg-gradient-to-br from-[#61aebd]/10 via-white to-[#e5ab53]/10 blur-xl opacity-80" />
 
         <div className="relative z-10">
           <p className="text-[#61aebd] font-black text-sm mb-4">BUGÜN</p>

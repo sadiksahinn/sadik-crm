@@ -166,7 +166,7 @@ export default function GelirGiderPage() {
       </section>
 
       {editing && (
-        <section className="fixed inset-0 bg-black/30 z-[99999] grid place-items-end">
+        <section className="fixed inset-0 bg-slate-950/30 z-[99999] grid place-items-end">
           <div className="bg-white rounded-t-[32px] p-5 w-full shadow-2xl">
             <h2 className="text-2xl font-black mb-4">Kaydı Düzenle</h2>
             <div className="grid gap-3">
