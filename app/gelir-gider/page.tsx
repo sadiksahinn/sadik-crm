@@ -65,11 +65,19 @@ export default function GelirGiderPage() {
 
     if (tab === "gelir") {
       payload.income_date = String(form.get("date") || today());
-      await supabase.from("income").insert(payload);
+      const { error } = await supabase.from("income").insert(payload);
+      if (error) {
+        alert("Gelir ekleme hatası: " + error.message);
+        return;
+      }
     } else {
       payload.expense_date = String(form.get("date") || today());
       payload.category = String(form.get("category") || "Genel");
-      await supabase.from("expenses").insert(payload);
+      const { error } = await supabase.from("expenses").insert(payload);
+      if (error) {
+        alert("Gider ekleme hatası: " + error.message);
+        return;
+      }
     }
 
     e.currentTarget.reset();
@@ -89,7 +97,11 @@ export default function GelirGiderPage() {
 
     if (editing.type === "gider") payload.category = editing.category || "Genel";
 
-    await supabase.from(table).update(payload).eq("id", editing.id);
+    const { error } = await supabase.from(table).update(payload).eq("id", editing.id);
+    if (error) {
+      alert("Güncelleme hatası: " + error.message);
+      return;
+    }
     setEditing(null);
     load();
   }
@@ -97,7 +109,11 @@ export default function GelirGiderPage() {
   async function deleteRecord(item:any) {
     if (!confirm("Bu kaydı silmek istiyor musun?")) return;
     const table = item.type === "gelir" ? "income" : "expenses";
-    await supabase.from(table).delete().eq("id", item.id);
+    const { error } = await supabase.from(table).delete().eq("id", item.id);
+    if (error) {
+      alert("Silme hatası: " + error.message);
+      return;
+    }
     load();
   }
 

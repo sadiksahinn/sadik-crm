@@ -43,7 +43,7 @@ export async function POST(req: Request) {
           amount: Number(record.amount || 0),
           income_date: today(),
           payment_method: "asistan",
-          note: "İş kaydı sonrası ödeme alındı.",
+          note: "İş kaydı sonrası kullanıcı ödeme aldığını belirtti.",
           user_id: user.id,
         })
         .select()
