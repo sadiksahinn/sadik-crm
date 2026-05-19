@@ -141,7 +141,7 @@ export default function GelirGiderPage() {
             <option>Nakit</option><option>Havale/EFT</option><option>Kredi Kartı</option><option>Diğer</option>
           </select>
           <textarea name="note" placeholder="Not" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          <button className="bg-slate-950 text-white rounded-2xl p-4 font-black">{tab === "gelir" ? "Geliri Kaydet" : "Gideri Kaydet"}</button>
+          <button className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black">{tab === "gelir" ? "Geliri Kaydet" : "Gideri Kaydet"}</button>
         </form>
       </section>
 

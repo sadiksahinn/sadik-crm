@@ -174,7 +174,7 @@ export default function AsistanPage() {
             key={index}
             className={`max-w-[88%] rounded-[24px] p-4 shadow-sm ${
               msg.role === "user"
-                ? "ml-auto bg-slate-950 text-white"
+                ? "ml-auto bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-white"
                 : "mr-auto bg-white text-slate-950"
             }`}
           >
