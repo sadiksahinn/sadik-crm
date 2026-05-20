@@ -158,8 +158,9 @@ export default function AdminPage(){
 
           {users.map((user:any)=>(
 
-            <div
+            <Link
               key={user.id}
+              href={`/admin/users/${user.id}`}
               className="border border-slate-100 rounded-2xl p-4 flex items-center justify-between"
             >
 
@@ -201,7 +202,7 @@ export default function AdminPage(){
                 </p>
               </div>
 
-            </div>
+            </Link>
 
           ))}
 
