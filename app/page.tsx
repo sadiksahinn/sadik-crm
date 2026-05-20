@@ -259,7 +259,7 @@ export default function HomePage() {
             ["+", "Müşteri\nEkle", "/musteriler"],
             ["☏", "Mesaj\nGönder", "/asistan"],
             ["▣", "Takvim\nPlanla", "/takvim"],
-            ["◔", "Tahsilat\nTakip", "/tahsilatlar"],
+            ["◔", "Rapor\nAl", "/raporlar"],
             ["✧", "Asistan’a\nSor", "/asistan"],
           ].map(([icon, label, href]) => (
             <Link key={label} href={href} className="bg-white rounded-[22px] p-3 shadow-sm text-center min-h-[82px] flex flex-col items-center justify-center">
