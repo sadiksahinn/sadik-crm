@@ -9,225 +9,206 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
-function money(value: number) {
+function money(value:number){
   return new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-    maximumFractionDigits: 0,
+    style:"currency",
+    currency:"TRY",
+    maximumFractionDigits:0
   }).format(value || 0);
 }
 
-export default function AdminPage() {
+export default function AdminPage(){
+
   const [loading, setLoading] = useState(true);
-  const [allowed, setAllowed] = useState(false);
-  const [profiles, setProfiles] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [incomes, setIncomes] = useState<any[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [totals, setTotals] = useState({
+    users:0,
+    income:0,
+    expense:0,
+    payments:0
+  });
 
-  async function loadAdmin() {
-    const { data: userData } = await supabase.auth.getUser();
+  async function load(){
 
-
+    const { data:userData } = await supabase.auth.getUser();
     const user = userData.user;
 
-    if (!user) {
-      window.location.href = "/login";
+    if(!user){
+      window.location.href="/login";
       return;
     }
 
-    const { data: profile } = await supabase
+    const { data:profile } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .single();
 
-    if (profile?.role !== "superadmin") {
-      setAllowed(false);
-      setLoading(false);
+    if(profile?.role !== "superadmin"){
+      window.location.href="/";
       return;
     }
 
-    setAllowed(true);
-
-    const { data: profileData } = await supabase
+    const { data:profiles } = await supabase
       .from("profiles")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending:false });
 
-    const { data: customerData } = await supabase
-      .from("customers")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    const { data: incomeData } = await supabase
+    const { data:income } = await supabase
       .from("income")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("*");
 
-    const { data: expenseData } = await supabase
+    const { data:expenses } = await supabase
       .from("expenses")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("*");
 
-    setProfiles(profileData || []);
-    setCustomers(customerData || []);
-    setIncomes(incomeData || []);
-    setExpenses(expenseData || []);
+    const { data:payments } = await supabase
+      .from("payment_tracking")
+      .select("*")
+      .eq("status", "bekliyor");
+
+    setUsers(profiles || []);
+
+    setTotals({
+      users:(profiles || []).length,
+      income:(income || []).reduce((t:any,i:any)=>t+Number(i.amount||0),0),
+      expense:(expenses || []).reduce((t:any,i:any)=>t+Number(i.amount||0),0),
+      payments:(payments || []).reduce((t:any,i:any)=>t+Number(i.amount||0),0),
+    });
+
     setLoading(false);
   }
 
-  useEffect(() => {
-    loadAdmin();
-  }, []);
+  useEffect(()=>{
+    load();
+  },[]);
 
-  async function changeRole(id: string, role: string) {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ role })
-      .eq("id", id);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    loadAdmin();
-  }
-
-  if (loading) {
+  if(loading){
     return (
       <main className="min-h-screen bg-[#f7f8fc] grid place-items-center">
-        <p className="text-slate-500 font-bold">Admin panel açılıyor...</p>
+        <p className="font-black text-slate-500">Yükleniyor...</p>
       </main>
     );
   }
-
-  if (!allowed) {
-    return (
-      <main className="min-h-screen bg-[#f7f8fc] grid place-items-center px-5">
-        <div className="bg-white rounded-[28px] p-6 shadow-sm text-center">
-          <h1 className="text-3xl font-black mb-2">Yetkisiz Erişim</h1>
-          <p className="text-slate-500 mb-5">Bu alan sadece superadmin içindir.</p>
-          <Link href="/" className="bg-white text-slate-950 rounded-2xl px-5 py-3 font-bold">
-            Ana Sayfaya Dön
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  const totalIncome = incomes.reduce((t, i) => t + Number(i.amount), 0);
-  const totalExpense = expenses.reduce((t, i) => t + Number(i.amount), 0);
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-6 pb-28">
+    <main className="min-h-screen bg-[#f7f8fc] px-4 pt-5 pb-28">
+
       <header className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-3xl font-black">Super Admin</h1>
-          <p className="text-slate-500 text-sm">Kullanıcı ve sistem yönetimi</p>
+          <p className="text-[#61aebd] text-xs font-black tracking-wide">
+            VALKEA CONTROL
+          </p>
+          <h1 className="text-3xl font-black">
+            Superadmin
+          </h1>
         </div>
 
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-bold">
-          Ana
+        <Link
+          href="/"
+          className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black"
+        >
+          Ana Sayfa
         </Link>
       </header>
 
       <section className="grid grid-cols-2 gap-3 mb-5">
-        <div className="bg-white rounded-[22px] p-4 shadow-sm">
+
+        <div className="bg-white rounded-[28px] p-5 shadow-sm">
           <p className="text-slate-500 text-sm">Kullanıcı</p>
-          <h2 className="text-2xl font-black">{profiles.length}</h2>
+          <h2 className="text-3xl font-black">{totals.users}</h2>
         </div>
 
-        <div className="bg-white rounded-[22px] p-4 shadow-sm">
-          <p className="text-slate-500 text-sm">Müşteri</p>
-          <h2 className="text-2xl font-black">{customers.length}</h2>
+        <div className="bg-white rounded-[28px] p-5 shadow-sm">
+          <p className="text-slate-500 text-sm">Bekleyen Tahsilat</p>
+          <h2 className="text-2xl font-black text-[#e5ab53]">
+            {money(totals.payments)}
+          </h2>
         </div>
 
-        <div className="bg-white rounded-[22px] p-4 shadow-sm">
+        <div className="bg-white rounded-[28px] p-5 shadow-sm">
           <p className="text-slate-500 text-sm">Toplam Gelir</p>
-          <h2 className="text-xl font-black text-emerald-600">{money(totalIncome)}</h2>
+          <h2 className="text-2xl font-black text-emerald-600">
+            {money(totals.income)}
+          </h2>
         </div>
 
-        <div className="bg-white rounded-[22px] p-4 shadow-sm">
+        <div className="bg-white rounded-[28px] p-5 shadow-sm">
           <p className="text-slate-500 text-sm">Toplam Gider</p>
-          <h2 className="text-xl font-black text-red-500">{money(totalExpense)}</h2>
+          <h2 className="text-2xl font-black text-red-500">
+            {money(totals.expense)}
+          </h2>
         </div>
+
       </section>
 
-      <section className="mb-6">
-        <h2 className="font-black text-slate-700 text-sm tracking-wide mb-3">
-          KULLANICILAR
-        </h2>
+      <section className="bg-white rounded-[30px] p-5 shadow-sm">
 
-        <div className="grid gap-3">
-          {profiles.map((user) => (
-            <div key={user.id} className="bg-white rounded-2xl p-4 shadow-sm">
-              <h3 className="font-black">{user.email}</h3>
-              <p className="text-slate-500 text-sm mb-3">Rol: {user.role}</p>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-black">
+            Kullanıcılar
+          </h2>
 
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => changeRole(user.id, "user")}
-                  className="bg-slate-100 rounded-xl p-3 font-bold"
-                >
-                  User Yap
-                </button>
-
-                <button
-                  onClick={() => changeRole(user.id, "superadmin")}
-                  className="bg-white text-slate-950 rounded-xl p-3 font-bold"
-                >
-                  Superadmin Yap
-                </button>
-              </div>
-            </div>
-          ))}
+          <p className="text-sm text-slate-500">
+            {users.length} kayıt
+          </p>
         </div>
-      </section>
-
-      <section className="mb-6">
-        <h2 className="font-black text-slate-700 text-sm tracking-wide mb-3">
-          SON MÜŞTERİLER
-        </h2>
 
         <div className="grid gap-3">
-          {customers.slice(0, 8).map((customer) => (
-            <div key={customer.id} className="bg-white rounded-2xl p-4 shadow-sm">
-              <h3 className="font-black">{customer.brand_name || customer.name}</h3>
-              <p className="text-slate-500 text-sm">{customer.phone || "Telefon yok"}</p>
-              <p className="text-slate-400 text-xs mt-1">{customer.status}</p>
-            </div>
-          ))}
-        </div>
-      </section>
 
-      <section>
-        <h2 className="font-black text-slate-700 text-sm tracking-wide mb-3">
-          SON FİNANS KAYITLARI
-        </h2>
+          {users.map((user:any)=>(
 
-        <div className="grid gap-3">
-          {[
-            ...incomes.map((i) => ({ ...i, type: "gelir" })),
-            ...expenses.map((e) => ({ ...e, type: "gider" })),
-          ]
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 10)
-            .map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm flex justify-between">
-                <div>
-                  <h3 className="font-black">{item.title}</h3>
-                  <p className="text-slate-500 text-sm">{item.type}</p>
+            <div
+              key={user.id}
+              className="border border-slate-100 rounded-2xl p-4 flex items-center justify-between"
+            >
+
+              <div>
+                <p className="font-black">
+                  {user.full_name || "İsimsiz Kullanıcı"}
+                </p>
+
+                <p className="text-sm text-slate-500">
+                  {user.email}
+                </p>
+
+                <div className="flex items-center gap-2 mt-2">
+
+                  <span className={`text-xs px-2 py-1 rounded-full font-black ${
+                    user.role === "superadmin"
+                    ? "bg-[#61aebd]/10 text-[#61aebd]"
+                    : "bg-slate-100 text-slate-600"
+                  }`}>
+                    {user.role || "user"}
+                  </span>
+
+                  {user.verified && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-black">
+                      doğrulandı
+                    </span>
+                  )}
+
                 </div>
+              </div>
 
-                <p className={item.type === "gelir" ? "font-black text-emerald-600" : "font-black text-red-500"}>
-                  {item.type === "gelir" ? "+" : "-"}{money(Number(item.amount))}
+              <div className="text-right">
+                <p className="text-xs text-slate-400">
+                  kayıt tarihi
+                </p>
+
+                <p className="text-sm font-black">
+                  {String(user.created_at || "").slice(0,10)}
                 </p>
               </div>
-            ))}
+
+            </div>
+
+          ))}
+
         </div>
+
       </section>
+
     </main>
   );
 }
