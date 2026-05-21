@@ -102,11 +102,31 @@ export default function AsistanPage() {
 
     const { data: sessionData } = await supabase.auth.getSession();
 
-    const res = await fetch("/api/asistan", {
+    const analysisWords = [
+      "durumum ne",
+      "analiz",
+      "tasarruf",
+      "ne kazandım",
+      "ne harcadım",
+      "kar",
+      "kâr",
+      "zarar",
+      "rapor",
+      "özet",
+      "nasıl gidiyor",
+      "ne yapmalıyım"
+    ];
+
+    const shouldUseCoreAI = analysisWords.some((word) =>
+      text.toLowerCase().includes(word)
+    );
+
+    const res = await fetch(shouldUseCoreAI ? "/api/core-ai" : "/api/asistan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         command: text,
+        question: text,
         access_token: sessionData.session?.access_token,
       }),
     });
