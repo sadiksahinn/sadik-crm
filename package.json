@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "valkea:check": "node scripts/valkea-check.js",
+    "valkea:deploy": "node scripts/valkea-deploy.js",
+    "valkea:stabilize": "node scripts/valkea-stabilize.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
