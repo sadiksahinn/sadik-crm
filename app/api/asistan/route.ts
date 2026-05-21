@@ -4,7 +4,16 @@ import OpenAI from "openai";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+  access_token
+    ? {
+        global: {
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+          },
+        },
+      }
+    : undefined
 );
 
 const openai = new OpenAI({
