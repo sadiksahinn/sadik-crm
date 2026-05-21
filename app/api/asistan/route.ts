@@ -4,16 +4,7 @@ import OpenAI from "openai";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-  access_token
-    ? {
-        global: {
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-          },
-        },
-      }
-    : undefined
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
 const openai = new OpenAI({
@@ -124,7 +115,7 @@ export async function POST(req: Request) {
     if (ai.type === "collection_paid") {
       const searchName = ai.customer_name || ai.title || "";
 
-      const { data: payments } = await supabase
+      const { data: payments } = await userSupabase
         .from("payment_tracking")
         .select("*")
         .eq("user_id", user.id)
@@ -161,7 +152,7 @@ export async function POST(req: Request) {
 
       const payment = matches[0];
 
-      await supabase
+      await userSupabase
         .from("payment_tracking")
         .update({
           status: "ödendi",
@@ -178,7 +169,7 @@ export async function POST(req: Request) {
         });
       }
 
-      const { data: income, error: incomeError } = await supabase
+      const { data: income, error: incomeError } = await userSupabase
         .from("income")
         .insert({
           user_id: user.id,
@@ -193,7 +184,7 @@ export async function POST(req: Request) {
 
       if (incomeError) throw incomeError;
 
-      await supabase
+      await userSupabase
         .from("payment_tracking")
         .update({ income_id: income?.id, income_created: true })
         .eq("id", payment.id);
@@ -209,7 +200,7 @@ export async function POST(req: Request) {
     if (ai.type === "task_completed") {
       const searchName = ai.customer_name || ai.title || text;
 
-      const { data: contents } = await supabase
+      const { data: contents } = await userSupabase
         .from("content_calendar")
         .select("*")
         .eq("user_id", user.id)
@@ -225,7 +216,7 @@ export async function POST(req: Request) {
           .update({ status: "tamamlandı" })
           .eq("id", content.id);
 
-        await supabase.from("activity_logs").insert({
+        await userSupabase.from("activity_logs").insert({
           user_id: user.id,
           customer_id: content.customer_id,
           service_id: content.service_id || null,
@@ -241,7 +232,7 @@ export async function POST(req: Request) {
         });
       }
 
-      const { data: followups } = await supabase
+      const { data: followups } = await userSupabase
         .from("followups")
         .select("*")
         .eq("user_id", user.id)
@@ -257,7 +248,7 @@ export async function POST(req: Request) {
           .update({ status: "tamamlandı" })
           .eq("id", followup.id);
 
-        await supabase.from("activity_logs").insert({
+        await userSupabase.from("activity_logs").insert({
           user_id: user.id,
           customer_id: followup.customer_id,
           service_id: followup.service_id || null,
@@ -282,26 +273,26 @@ export async function POST(req: Request) {
     if (ai.type === "daily_summary") {
       const todayDate = today();
 
-      const { data: incomes } = await supabase
+      const { data: incomes } = await userSupabase
         .from("income")
         .select("*")
         .eq("user_id", user.id)
         .eq("income_date", todayDate);
 
-      const { data: expenses } = await supabase
+      const { data: expenses } = await userSupabase
         .from("expenses")
         .select("*")
         .eq("user_id", user.id)
         .eq("expense_date", todayDate);
 
-      const { data: payments } = await supabase
+      const { data: payments } = await userSupabase
         .from("payment_tracking")
         .select("*")
         .eq("user_id", user.id)
         .eq("status", "bekliyor")
         .lte("due_date", todayDate);
 
-      const { data: contents } = await supabase
+      const { data: contents } = await userSupabase
         .from("content_calendar")
         .select("*")
         .eq("user_id", user.id)
@@ -334,7 +325,7 @@ export async function POST(req: Request) {
     }
 
     if (ai.type === "collection_query") {
-      const { data: payments } = await supabase
+      const { data: payments } = await userSupabase
         .from("payment_tracking")
         .select("*")
         .eq("user_id", user.id)
@@ -374,7 +365,7 @@ export async function POST(req: Request) {
     }
 
     if (ai.type === "daily_plan") {
-      const { data: followups } = await supabase
+      const { data: followups } = await userSupabase
         .from("followups")
         .select("*")
         .eq("user_id", user.id)
@@ -382,7 +373,7 @@ export async function POST(req: Request) {
         .lte("followup_date", today())
         .order("followup_date", { ascending: true });
 
-      const { data: reminders } = await supabase
+      const { data: reminders } = await userSupabase
         .from("reminders")
         .select("*")
         .eq("user_id", user.id)
@@ -390,7 +381,7 @@ export async function POST(req: Request) {
         .lte("reminder_date", today())
         .order("reminder_date", { ascending: true });
 
-      const { data: contents } = await supabase
+      const { data: contents } = await userSupabase
         .from("content_calendar")
         .select("*")
         .eq("user_id", user.id)
@@ -468,7 +459,7 @@ export async function POST(req: Request) {
     }
 
     if (ai.type === "income") {
-      const { data, error } = await supabase
+      const { data, error } = await userSupabase
         .from("income")
         .insert({
           title: ai.customer_name || ai.title || "Gelir",
@@ -492,7 +483,7 @@ export async function POST(req: Request) {
     }
 
     if (ai.type === "expense") {
-      const { data, error } = await supabase
+      const { data, error } = await userSupabase
         .from("expenses")
         .insert({
           title: ai.title || ai.customer_name || "Gider",
