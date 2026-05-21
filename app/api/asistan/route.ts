@@ -72,6 +72,31 @@ Kurallar:
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+
+    // VALKEA_FORCE_CHAT_MODE
+    const rawText = String(body.command || body.message || body.text || "").trim();
+    const casualText = rawText.toLowerCase();
+
+    const casualMessages = [
+      "selam",
+      "merhaba",
+      "naber",
+      "nasılsın",
+      "nasilsin",
+      "iyi geceler",
+      "günaydın",
+      "gunaydin",
+      "iyi akşamlar",
+      "iyi aksamlar"
+    ];
+
+    if (casualMessages.includes(casualText)) {
+      return NextResponse.json({
+        ok: true,
+        type: "chat",
+        message: "Merhaba 👋 Ben buradayım. Finans, tahsilat, iş takibi, müşteri, takvim ve günlük planlama konusunda sana yardımcı olabilirim."
+      });
+    }
     const text = String(body.command || "").trim();
 
     const { data: userData } = await supabase.auth.getUser(body.access_token);
