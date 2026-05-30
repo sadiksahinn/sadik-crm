@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-);
+const supabase = createClient();
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -15,6 +12,14 @@ type ChatMessage = {
   record?: any;
   proposal?: any;
 };
+
+const QUICK_ACTIONS = [
+  "Bugün ne yapıyoruz?",
+  "Tahsilat durumu?",
+  "Günlük özet",
+  "Nasıl gidiyor?",
+  "Tasarruf önerisi",
+];
 
 function money(value: number) {
   return new Intl.NumberFormat("tr-TR", {
@@ -28,6 +33,7 @@ function recordStyle(type: string) {
   if (type === "gelir") return "bg-emerald-50 border-emerald-200 text-emerald-900";
   if (type === "gider") return "bg-red-50 border-red-200 text-red-900";
   if (type === "iş") return "bg-[#61aebd]/10 border-[#61aebd]/20 text-slate-950";
+  if (type === "hatırlatma") return "bg-amber-50 border-amber-200 text-amber-900";
   return "bg-slate-50 border-slate-200 text-slate-950";
 }
 
@@ -35,6 +41,12 @@ export default function AsistanPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [command, setCommand] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showQuick, setShowQuick] = useState(true);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   useEffect(() => {
     async function loadIntro() {
@@ -55,26 +67,27 @@ export default function AsistanPage() {
       const firstName = (profile?.full_name || "Kullanıcı").trim().split(" ")[0];
       const today = new Date().toISOString().slice(0, 10);
 
-      const { data: payments } = await supabase
-        .from("payment_tracking")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "bekliyor")
-        .lte("due_date", today);
-
-      const { data: contents } = await supabase
-        .from("content_calendar")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "planlandı")
-        .lte("publish_date", today);
-
-      const { data: followups } = await supabase
-        .from("followups")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "bekliyor")
-        .lte("followup_date", today);
+      const [{ data: payments }, { data: contents }, { data: followups }] =
+        await Promise.all([
+          supabase
+            .from("payment_tracking")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("status", "bekliyor")
+            .lte("due_date", today),
+          supabase
+            .from("content_calendar")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("status", "planlandı")
+            .lte("publish_date", today),
+          supabase
+            .from("followups")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("status", "bekliyor")
+            .lte("followup_date", today),
+        ]);
 
       const paymentTotal = (payments || []).reduce(
         (t: number, i: any) => t + Number(i.amount || 0),
@@ -82,9 +95,9 @@ export default function AsistanPage() {
       );
 
       const intro =
-        (payments?.length || contents?.length || followups?.length)
-          ? `Merhaba ${firstName} 👋 Bugün ${payments?.length || 0} tahsilat, ${contents?.length || 0} içerik ve ${followups?.length || 0} takip kontrolün var. Bekleyen tahsilat toplamı: ${money(paymentTotal)}.`
-          : `Merhaba ${firstName} 👋 Bugün kritik bir takip görünmüyor. Yeni iş, tahsilat veya içerik planı ekleyebilirsin.`;
+        payments?.length || contents?.length || followups?.length
+          ? `Merhaba ${firstName} 👋\n\nBugün takip listende:\n💰 ${payments?.length || 0} tahsilat (${money(paymentTotal)})\n📲 ${contents?.length || 0} içerik kontrolü\n✅ ${followups?.length || 0} görev bekliyor\n\nNe ile başlamak istersin?`
+          : `Merhaba ${firstName} 👋\n\nBugün kritik bir takip görünmüyor. Yeni iş, tahsilat veya içerik planı ekleyebilirsin.`;
 
       setMessages([{ role: "assistant", text: intro }]);
     }
@@ -92,41 +105,22 @@ export default function AsistanPage() {
     loadIntro();
   }, []);
 
-  async function sendMessage() {
-    const text = command.trim();
-    if (!text) return;
+  async function sendMessage(textOverride?: string) {
+    const text = (textOverride ?? command).trim();
+    if (!text || loading) return;
 
+    setShowQuick(false);
     setMessages((prev) => [...prev, { role: "user", text }]);
     setCommand("");
     setLoading(true);
 
     const { data: sessionData } = await supabase.auth.getSession();
 
-    const analysisWords = [
-      "durumum ne",
-      "analiz",
-      "tasarruf",
-      "ne kazandım",
-      "ne harcadım",
-      "kar",
-      "kâr",
-      "zarar",
-      "rapor",
-      "özet",
-      "nasıl gidiyor",
-      "ne yapmalıyım"
-    ];
-
-    const shouldUseCoreAI = analysisWords.some((word) =>
-      text.toLowerCase().includes(word)
-    );
-
-    const res = await fetch(shouldUseCoreAI ? "/api/core-ai" : "/api/asistan", {
+    const res = await fetch("/api/asistan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         command: text,
-        question: text,
         access_token: sessionData.session?.access_token,
       }),
     });
@@ -175,7 +169,7 @@ export default function AsistanPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-28">
+    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-36">
       <header className="flex items-center justify-between mb-5">
         <div>
           <p className="text-[#61aebd] text-xs font-black tracking-wide">VALKEA AI</p>
@@ -183,12 +177,30 @@ export default function AsistanPage() {
           <p className="text-slate-500">Konuşarak işlerini yönet.</p>
         </div>
 
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">
+        <Link
+          href="/"
+          className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black"
+        >
           Ana
         </Link>
       </header>
 
-      <section className="grid gap-3 mb-28">
+      {/* Quick actions */}
+      {showQuick && messages.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+          {QUICK_ACTIONS.map((action) => (
+            <button
+              key={action}
+              onClick={() => sendMessage(action)}
+              className="whitespace-nowrap rounded-2xl bg-white border border-[#61aebd]/20 px-4 py-2 text-sm font-black text-[#61aebd] shadow-sm flex-shrink-0"
+            >
+              {action}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <section className="grid gap-3">
         {messages.map((msg, index) => (
           <div
             key={index}
@@ -201,24 +213,34 @@ export default function AsistanPage() {
             <p className="whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
 
             {msg.proposal && (
-              <div className="mt-3 rounded-2xl bg-white border border-[#61aebd]/20 p-3">
-                <p className="text-xs font-black text-[#61aebd] mb-2">
-                  ✨ ONAY BEKLEYEN ÖNERİ
-                </p>
+              <div className="mt-3 rounded-2xl bg-slate-50 border border-[#61aebd]/20 p-3">
+                <p className="text-xs font-black text-[#61aebd] mb-1">ONAY BEKLİYOR</p>
+
+                {msg.proposal.missing_questions?.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs text-slate-500 mb-1">Açık sorular:</p>
+                    {msg.proposal.missing_questions.map((q: string, i: number) => (
+                      <p key={i} className="text-xs text-slate-600">• {q}</p>
+                    ))}
+                  </div>
+                )}
 
                 <button
                   onClick={() => approveProposal(msg.proposal)}
-                  className="w-full bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-xl p-3 text-sm font-black"
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-xl p-3 text-sm font-black disabled:opacity-50"
                 >
-                  Onayla
+                  ✅ Onayla ve Kaydet
                 </button>
               </div>
             )}
 
             {msg.record && (
-              <div className={`mt-3 rounded-2xl border p-3 ${recordStyle(msg.record.type)}`}>
+              <div
+                className={`mt-3 rounded-2xl border p-3 ${recordStyle(msg.record.type)}`}
+              >
                 <p className="text-xs font-black mb-1">
-                  ✨ {String(msg.record.type || "KAYIT").toUpperCase()} KAYDI
+                  {String(msg.record.type || "KAYIT").toUpperCase()} KAYDI
                 </p>
                 <h3 className="font-black">{msg.record.title}</h3>
                 {typeof msg.record.amount === "number" && (
@@ -230,10 +252,19 @@ export default function AsistanPage() {
         ))}
 
         {loading && (
-          <div className="mr-auto bg-white rounded-[24px] p-4 shadow-sm text-slate-500">
-            İşleniyor...
+          <div className="mr-auto bg-white rounded-[24px] p-4 shadow-sm">
+            <div className="flex items-center gap-2 text-slate-400">
+              <span className="inline-flex gap-1">
+                <span className="w-2 h-2 bg-[#61aebd] rounded-full animate-bounce [animation-delay:0ms]" />
+                <span className="w-2 h-2 bg-[#61aebd] rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-2 h-2 bg-[#61aebd] rounded-full animate-bounce [animation-delay:300ms]" />
+              </span>
+              <span className="text-sm">Düşünüyor...</span>
+            </div>
           </div>
         )}
+
+        <div ref={bottomRef} />
       </section>
 
       <section className="fixed bottom-4 left-4 right-4 bg-white rounded-[28px] p-3 shadow-[0_18px_60px_rgba(15,23,42,0.18)] z-[9999]">
@@ -242,16 +273,19 @@ export default function AsistanPage() {
             value={command}
             onChange={(e) => setCommand(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") sendMessage();
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
             }}
-            placeholder="Örn: Bugün kimden para alacağım?"
-            className="flex-1 bg-slate-100 rounded-2xl px-4 outline-none"
+            placeholder="Örn: Suite Halı 20.000₺ ödedi"
+            className="flex-1 bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm"
           />
 
           <button
-            onClick={sendMessage}
-            disabled={loading}
-            className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-white font-black"
+            onClick={() => sendMessage()}
+            disabled={loading || !command.trim()}
+            className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-white font-black text-xl disabled:opacity-40 flex items-center justify-center"
           >
             →
           </button>

@@ -7,12 +7,15 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 function today() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function monthStart() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
 function nextPaymentDate(day: number) {
@@ -23,6 +26,14 @@ function nextPaymentDate(day: number) {
   return d.toISOString().slice(0, 10);
 }
 
+function money(v: number) {
+  return new Intl.NumberFormat("tr-TR", {
+    style: "currency",
+    currency: "TRY",
+    maximumFractionDigits: 0,
+  }).format(v || 0);
+}
+
 async function analyzeMessage(message: string) {
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -31,13 +42,11 @@ async function analyzeMessage(message: string) {
     messages: [
       {
         role: "system",
-        content: `
-Sen Türkçe çalışan bir CRM operasyon asistanısın.
-Kullanıcı mesajını analiz et ve sadece JSON döndür.
+        content: `Sen Türkçe çalışan bir CRM operasyon asistanısın. Kullanıcı mesajını analiz et ve sadece JSON döndür.
 
 JSON:
 {
-  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "collection_paid" | "task_completed" | "daily_summary" | "unknown",
+  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "collection_paid" | "task_completed" | "daily_summary" | "analysis" | "chat" | "unknown",
   "customer_name": "",
   "title": "",
   "amount": 0,
@@ -45,22 +54,25 @@ JSON:
   "reels": null,
   "story": null,
   "post": null,
+  "reminder_date": null,
   "note": "",
   "missing_questions": []
 }
 
 Kurallar:
-- "iş aldım", "anlaştık", "hizmet vereceğim" => job
-- "ödeme aldım", "ödedi", "para geldi", "tahsil ettim" => income
-- "verdim", "harcadım", market, yakıt, yemek vb. => expense
-- "ayda 8 reels 12 story olacak" => service_plan
-- "bugün ne yapıyoruz" => daily_plan
-- "bugün kimden para alacağım", "tahsilat var mı", "kimden ödeme alacağım" => collection_query
-- "tahsilat tamamlandı", "ödeme alındı", "parasını aldım" => collection_paid
-- "tamamlandı", "bitti", "yapıldı", "paylaşıldı" => task_completed
-- "günlük özet", "bugünün özeti", "rapor ver", "bugün durum ne" => daily_summary
-- emin değilsen unknown
-        `,
+- "iş aldım", "anlaştık", "hizmet vereceğim", "müşteri aldım" => job
+- "ödeme aldım", "ödedi", "para geldi", "tahsil ettim", "[müşteri] [tutar] ödedi" => income
+- "verdim", "harcadım", market, yakıt, yemek, fatura, kira, aidat vb. => expense
+- "ayda X reels Y story", "içerik planı" => service_plan
+- "hatırlat", "yarın ara", "not al", "randevu koy", "takvime ekle" => reminder, reminder_date tahmin et
+- "bugün ne yapıyoruz", "günlük plan", "ajanda" => daily_plan
+- "kimden para alacağım", "tahsilat var mı", "bugün ödeme", "bekleyen tahsilat" => collection_query
+- "tahsilat tamamlandı", "ödeme alındı", "parasını aldım", "[müşteri] ödedi" => collection_paid
+- "tamamlandı", "bitti", "yapıldı", "paylaşıldı", "hallettim" => task_completed
+- "günlük özet", "bugünün özeti", "bugün durum ne", "özet ver" => daily_summary
+- "analiz", "durumum ne", "nasıl gidiyor", "kar", "kâr", "zarar", "tasarruf", "ne yapmalıyım", "öneri ver", "tavsiye", "ne kazandım", "ne harcadım", "rapor", "büyüme", "gelir analizi", "gider analizi" => analysis
+- "selam", "merhaba", "naber", "nasılsın", "iyi günler", "günaydın", "iyi akşamlar", "teşekkür", "tamam" => chat
+- emin değilsen => chat`,
       },
       { role: "user", content: message },
     ],
@@ -72,38 +84,16 @@ Kurallar:
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-
-    // VALKEA_FORCE_CHAT_MODE
-    const rawText = String(body.command || body.message || body.text || "").trim();
-    const casualText = rawText.toLowerCase();
-
-    const casualMessages = [
-      "selam",
-      "merhaba",
-      "naber",
-      "nasılsın",
-      "nasilsin",
-      "iyi geceler",
-      "günaydın",
-      "gunaydin",
-      "iyi akşamlar",
-      "iyi aksamlar"
-    ];
-
-    if (casualMessages.includes(casualText)) {
-      return NextResponse.json({
-        ok: true,
-        type: "chat",
-        message: "Merhaba 👋 Ben buradayım. Finans, tahsilat, iş takibi, müşteri, takvim ve günlük planlama konusunda sana yardımcı olabilirim."
-      });
-    }
-    const text = String(body.command || "").trim();
+    const text = String(body.command || body.message || body.text || "").trim();
 
     const { data: userData } = await supabase.auth.getUser(body.access_token);
     const user = userData.user;
 
     if (!user) {
-      return NextResponse.json({ ok: false, message: "Oturum bulunamadı. Tekrar giriş yap." }, { status: 401 });
+      return NextResponse.json(
+        { ok: false, message: "Oturum bulunamadı. Tekrar giriş yap." },
+        { status: 401 }
+      );
     }
 
     if (!text) {
@@ -112,64 +102,128 @@ export async function POST(req: Request) {
 
     const ai = await analyzeMessage(text);
 
+    // ── CHAT ──────────────────────────────────────────────────────────────
+    if (ai.type === "chat") {
+      const reply = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.4,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Sen Valkea, Türkçe çalışan kişisel bir iş asistanısın. Kısa, samimi ve yardımsever cevap ver. İş, finans, tahsilat, müşteri, takvim ve planlama konularında yardım edebilirsin.",
+          },
+          { role: "user", content: text },
+        ],
+      });
+
+      return NextResponse.json({
+        ok: true,
+        type: "chat",
+        message:
+          reply.choices[0]?.message?.content ||
+          "Merhaba 👋 Nasıl yardımcı olabilirim?",
+      });
+    }
+
+    // ── COLLECTION QUERY ──────────────────────────────────────────────────
+    if (ai.type === "collection_query") {
+      const { data: payments } = await supabase
+        .from("payment_tracking")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "bekliyor")
+        .lte("due_date", today())
+        .order("due_date", { ascending: true });
+
+      const total = (payments || []).reduce(
+        (t: number, p: any) => t + Number(p.amount || 0),
+        0
+      );
+
+      if (!payments || payments.length === 0) {
+        return NextResponse.json({
+          ok: true,
+          type: "tahsilat",
+          message:
+            "Bugün için bekleyen tahsilat görünmüyor. İstersen yeni tahsilat kaydı oluşturabilirsin.",
+        });
+      }
+
+      return NextResponse.json({
+        ok: true,
+        type: "tahsilat",
+        message:
+          `Bugün tahsil edilecek toplam: ${money(total)}\n\n` +
+          (payments || [])
+            .map(
+              (p: any) =>
+                `• ${p.title} — ${money(Number(p.amount || 0))} — Son gün: ${p.due_date}\n  Mesaj: Merhaba, ${p.title} için ${money(Number(p.amount || 0))} tutarındaki ödeme günümüz gelmiştir. Müsait olduğunuzda ödemenizi rica ederim.`
+            )
+            .join("\n\n"),
+      });
+    }
+
+    // ── COLLECTION PAID ───────────────────────────────────────────────────
     if (ai.type === "collection_paid") {
       const searchName = ai.customer_name || ai.title || "";
 
-      const { data: payments } = await userSupabase
+      const { data: payments } = await supabase
         .from("payment_tracking")
         .select("*")
         .eq("user_id", user.id)
         .eq("status", "bekliyor")
         .order("due_date", { ascending: true });
 
-      const normalizedSearch = String(searchName || "")
+      const normalizedSearch = String(searchName)
         .toLowerCase()
-        .replace("tahsilat", "")
-        .replace("tamamlandı", "")
-        .replace("odeme", "")
-        .replace("ödeme", "")
+        .replace(/tahsilat|tamamlandı|odeme|ödeme/g, "")
         .trim();
 
       const matches = (payments || []).filter((p: any) =>
+        !normalizedSearch ||
         String(p.title || "").toLowerCase().includes(normalizedSearch)
       );
 
       if (matches.length === 0) {
         return NextResponse.json({
           ok: false,
-          message: "Bu müşteri için bekleyen tahsilat bulamadım. Tahsilat ekranından kontrol edebilirsin.",
+          message:
+            "Bu müşteri için bekleyen tahsilat bulamadım. Tahsilat ekranından kontrol edebilirsin.",
         });
       }
 
-      if (matches.length > 1) {
+      if (matches.length > 1 && normalizedSearch) {
         return NextResponse.json({
           ok: false,
           message:
             "Birden fazla benzer tahsilat buldum. Yanlış kayıt kapatmamak için tahsilat ekranından seçmeni istiyorum.\n\n" +
-            matches.map((p: any) => `• ${p.title} - ${p.amount} TL - ${p.due_date}`).join("\n"),
+            matches
+              .map(
+                (p: any) =>
+                  `• ${p.title} - ${money(Number(p.amount || 0))} - ${p.due_date}`
+              )
+              .join("\n"),
         });
       }
 
       const payment = matches[0];
 
-      await userSupabase
-        .from("payment_tracking")
-        .update({
-          status: "ödendi",
-          paid_date: today(),
-          income_created: true,
-        })
-        .eq("id", payment.id);
-
+      // Önce income_created kontrolü, sonra güncelle
       if (payment.income_created) {
         return NextResponse.json({
           ok: true,
           type: "gelir",
-          message: `✅ Bu tahsilat zaten gelire işlenmiş.\n\n${payment.title}`,
+          message: `Bu tahsilat zaten gelire işlenmiş.\n\n${payment.title}`,
         });
       }
 
-      const { data: income, error: incomeError } = await userSupabase
+      await supabase
+        .from("payment_tracking")
+        .update({ status: "ödendi", paid_date: today(), income_created: true })
+        .eq("id", payment.id);
+
+      const { data: income, error: incomeError } = await supabase
         .from("income")
         .insert({
           user_id: user.id,
@@ -184,23 +238,24 @@ export async function POST(req: Request) {
 
       if (incomeError) throw incomeError;
 
-      await userSupabase
+      await supabase
         .from("payment_tracking")
-        .update({ income_id: income?.id, income_created: true })
+        .update({ income_id: income?.id })
         .eq("id", payment.id);
 
       return NextResponse.json({
         ok: true,
         type: "gelir",
-        message: `✅ Tahsilat tamamlandı ve gelire işlendi.\n\n${payment.title}`,
+        message: `✅ Tahsilat tamamlandı ve gelire işlendi.\n\n${payment.title} · ${money(Number(payment.amount || 0))}`,
         record: { ...income, type: "gelir", table: "income" },
       });
     }
 
+    // ── TASK COMPLETED ────────────────────────────────────────────────────
     if (ai.type === "task_completed") {
       const searchName = ai.customer_name || ai.title || text;
 
-      const { data: contents } = await userSupabase
+      const { data: contents } = await supabase
         .from("content_calendar")
         .select("*")
         .eq("user_id", user.id)
@@ -216,7 +271,7 @@ export async function POST(req: Request) {
           .update({ status: "tamamlandı" })
           .eq("id", content.id);
 
-        await userSupabase.from("activity_logs").insert({
+        await supabase.from("activity_logs").insert({
           user_id: user.id,
           customer_id: content.customer_id,
           service_id: content.service_id || null,
@@ -232,7 +287,7 @@ export async function POST(req: Request) {
         });
       }
 
-      const { data: followups } = await userSupabase
+      const { data: followups } = await supabase
         .from("followups")
         .select("*")
         .eq("user_id", user.id)
@@ -248,7 +303,7 @@ export async function POST(req: Request) {
           .update({ status: "tamamlandı" })
           .eq("id", followup.id);
 
-        await userSupabase.from("activity_logs").insert({
+        await supabase.from("activity_logs").insert({
           user_id: user.id,
           customer_id: followup.customer_id,
           service_id: followup.service_id || null,
@@ -266,128 +321,48 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         ok: false,
-        message: "Tamamlanacak kayıt bulamadım. Daha net yazabilir misin? Örn: “Suite Halı reels tamamlandı”.",
+        message:
+          'Tamamlanacak kayıt bulamadım. Daha net yazabilir misin?\nÖrn: "Suite Halı reels tamamlandı"',
       });
     }
 
+    // ── DAILY SUMMARY ─────────────────────────────────────────────────────
     if (ai.type === "daily_summary") {
       const todayDate = today();
 
-      const { data: incomes } = await userSupabase
-        .from("income")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("income_date", todayDate);
-
-      const { data: expenses } = await userSupabase
-        .from("expenses")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("expense_date", todayDate);
-
-      const { data: payments } = await userSupabase
-        .from("payment_tracking")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "bekliyor")
-        .lte("due_date", todayDate);
-
-      const { data: contents } = await userSupabase
-        .from("content_calendar")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "tamamlandı")
-        .eq("publish_date", todayDate);
+      const [{ data: incomes }, { data: expenses }, { data: payments }, { data: contents }] =
+        await Promise.all([
+          supabase.from("income").select("*").eq("user_id", user.id).eq("income_date", todayDate),
+          supabase.from("expenses").select("*").eq("user_id", user.id).eq("expense_date", todayDate),
+          supabase.from("payment_tracking").select("*").eq("user_id", user.id).eq("status", "bekliyor").lte("due_date", todayDate),
+          supabase.from("content_calendar").select("*").eq("user_id", user.id).eq("status", "tamamlandı").eq("publish_date", todayDate),
+        ]);
 
       const incomeTotal = (incomes || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
       const expenseTotal = (expenses || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
       const paymentTotal = (payments || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
-
-      const fmt = (n: number) =>
-        new Intl.NumberFormat("tr-TR", {
-          style: "currency",
-          currency: "TRY",
-          maximumFractionDigits: 0,
-        }).format(n);
 
       return NextResponse.json({
         ok: true,
         type: "özet",
         message:
           `📌 Günlük özet\n\n` +
-          `💚 Bugünkü gelir: ${fmt(incomeTotal)}\n` +
-          `❤️ Bugünkü gider: ${fmt(expenseTotal)}\n` +
-          `💰 Bekleyen tahsilat: ${fmt(paymentTotal)}\n` +
-          `🎬 Tamamlanan içerik: ${(contents || []).length}\n` +
-          `🔔 Bekleyen ödeme sayısı: ${(payments || []).length}\n\n` +
-          `Net durum: ${fmt(incomeTotal - expenseTotal)}`,
+          `💚 Bugünkü gelir: ${money(incomeTotal)}\n` +
+          `❤️ Bugünkü gider: ${money(expenseTotal)}\n` +
+          `💰 Bekleyen tahsilat: ${money(paymentTotal)} (${(payments || []).length} kayıt)\n` +
+          `🎬 Tamamlanan içerik: ${(contents || []).length}\n\n` +
+          `Net durum: ${money(incomeTotal - expenseTotal)}`,
       });
     }
 
-    if (ai.type === "collection_query") {
-      const { data: payments } = await userSupabase
-        .from("payment_tracking")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "bekliyor")
-        .lte("due_date", today())
-        .order("due_date", { ascending: true });
-
-      const total = (payments || []).reduce((t: number, p: any) => t + Number(p.amount || 0), 0);
-
-      if (!payments || payments.length === 0) {
-        return NextResponse.json({
-          ok: true,
-          type: "tahsilat",
-          message: "Bugün için bekleyen tahsilat görünmüyor. İstersen yeni tahsilat kaydı oluşturabilirsin.",
-        });
-      }
-
-      return NextResponse.json({
-        ok: true,
-        type: "tahsilat",
-        message:
-          `Bugün tahsil edilecek toplam: ${new Intl.NumberFormat("tr-TR", {
-            style: "currency",
-            currency: "TRY",
-            maximumFractionDigits: 0,
-          }).format(total)}\n\n` +
-          payments.map((p: any) => {
-            const amount = new Intl.NumberFormat("tr-TR", {
-              style: "currency",
-              currency: "TRY",
-              maximumFractionDigits: 0,
-            }).format(Number(p.amount || 0));
-
-            return `• ${p.title} — ${amount} — Son gün: ${p.due_date}\n  Mesaj: Merhaba, ${p.title} için ${amount} tutarındaki ödeme günümüz gelmiştir. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.`;
-          }).join("\n\n"),
-      });
-    }
-
+    // ── DAILY PLAN ────────────────────────────────────────────────────────
     if (ai.type === "daily_plan") {
-      const { data: followups } = await userSupabase
-        .from("followups")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "bekliyor")
-        .lte("followup_date", today())
-        .order("followup_date", { ascending: true });
-
-      const { data: reminders } = await userSupabase
-        .from("reminders")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "bekliyor")
-        .lte("reminder_date", today())
-        .order("reminder_date", { ascending: true });
-
-      const { data: contents } = await userSupabase
-        .from("content_calendar")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "planlandı")
-        .lte("publish_date", today())
-        .order("publish_date", { ascending: true });
+      const [{ data: followups }, { data: reminders }, { data: contents }] =
+        await Promise.all([
+          supabase.from("followups").select("*").eq("user_id", user.id).eq("status", "bekliyor").lte("followup_date", today()).order("followup_date", { ascending: true }),
+          supabase.from("reminders").select("*").eq("user_id", user.id).eq("status", "bekliyor").lte("reminder_date", today()).order("reminder_date", { ascending: true }),
+          supabase.from("content_calendar").select("*").eq("user_id", user.id).eq("status", "planlandı").lte("publish_date", today()).order("publish_date", { ascending: true }),
+        ]);
 
       const items = [
         ...(followups || []).map((x: any) => `💸 ${x.title}`),
@@ -399,11 +374,39 @@ export async function POST(req: Request) {
         ok: true,
         type: "program",
         message: items.length
-          ? `Bugün bunları yapıyoruz 👇\n\n${items.join("\n")}\n\nBunları bitirdikçe bana “tamamlandı” diye yazabilirsin.`
+          ? `Bugün bunları yapıyoruz 👇\n\n${items.join("\n")}\n\nBunları bitirdikçe bana "tamamlandı" diye yazabilirsin.`
           : "Bugün için bekleyen takip görünmüyor. İstersen yeni iş, ödeme veya paylaşım planı ekleyelim.",
       });
     }
 
+    // ── REMINDER ──────────────────────────────────────────────────────────
+    if (ai.type === "reminder") {
+      const reminderDate = ai.reminder_date || today();
+      const title = ai.title || ai.note || text;
+
+      const { data, error } = await supabase
+        .from("reminders")
+        .insert({
+          user_id: user.id,
+          title,
+          reminder_date: reminderDate,
+          status: "bekliyor",
+          note: text,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return NextResponse.json({
+        ok: true,
+        type: "hatırlatma",
+        message: `⏰ Hatırlatma kaydedildi.\n\n${data.title}\nTarih: ${data.reminder_date}`,
+        record: { ...data, type: "hatırlatma" },
+      });
+    }
+
+    // ── JOB ───────────────────────────────────────────────────────────────
     if (ai.type === "job") {
       return NextResponse.json({
         ok: true,
@@ -411,8 +414,8 @@ export async function POST(req: Request) {
         message:
           `Şunu iş kaydı olarak algıladım 👇\n\n` +
           `Müşteri: ${ai.customer_name || "Belirsiz"}\n` +
-          `${ai.amount ? `Bedel: ${ai.amount} TL\n` : ""}` +
-          `${ai.payment_day ? `Ödeme günü: Her ayın ${ai.payment_day}'i\n` : ""}` +
+          `${ai.amount ? `Bedel: ${money(Number(ai.amount))} /ay\n` : ""}` +
+          `${ai.payment_day ? `Ödeme günü: Her ayın ${ai.payment_day}. günü\n` : ""}` +
           `\nOnaylarsan müşteri + hizmet + takip kaydı oluşturacağım.`,
         proposal: {
           type: "job",
@@ -420,16 +423,18 @@ export async function POST(req: Request) {
           amount: ai.amount || 0,
           payment_day: ai.payment_day || null,
           note: text,
-          missing_questions: ai.missing_questions || [
-            "Ödeme alındı mı?",
-            "Ayda kaç reels/post/story yapılacak?",
-            "İlk çekim tarihi ne zaman?",
-            "İlk paylaşım tarihi var mı?"
-          ],
+          missing_questions: ai.missing_questions?.length
+            ? ai.missing_questions
+            : [
+                "Ödeme peşin mi alındı?",
+                "Ayda kaç reels/post/story yapılacak?",
+                "İlk çekim tarihi ne zaman?",
+              ],
         },
       });
     }
 
+    // ── SERVICE PLAN ──────────────────────────────────────────────────────
     if (ai.type === "service_plan") {
       return NextResponse.json({
         ok: true,
@@ -437,9 +442,9 @@ export async function POST(req: Request) {
         message:
           `Şunu hizmet planı olarak algıladım 👇\n\n` +
           `Müşteri: ${ai.customer_name || "Belirsiz"}\n` +
-          `${ai.reels ? `Ayda ${ai.reels} reels\n` : ""}` +
-          `${ai.story ? `Ayda ${ai.story} story\n` : ""}` +
-          `${ai.post ? `Ayda ${ai.post} post\n` : ""}` +
+          `${ai.reels ? `Reels: ${ai.reels}/ay\n` : ""}` +
+          `${ai.story ? `Story: ${ai.story}/ay\n` : ""}` +
+          `${ai.post ? `Post: ${ai.post}/ay\n` : ""}` +
           `\nOnaylarsan müşteri hizmet planına işleyeceğim.`,
         proposal: {
           type: "service_plan",
@@ -448,18 +453,13 @@ export async function POST(req: Request) {
           story: ai.story,
           post: ai.post,
           note: text,
-          missing_questions: ai.missing_questions || [
-            "Ödeme alındı mı?",
-            "Ayda kaç reels/post/story yapılacak?",
-            "İlk çekim tarihi ne zaman?",
-            "İlk paylaşım tarihi var mı?"
-          ],
         },
       });
     }
 
+    // ── INCOME ────────────────────────────────────────────────────────────
     if (ai.type === "income") {
-      const { data, error } = await userSupabase
+      const { data, error } = await supabase
         .from("income")
         .insert({
           title: ai.customer_name || ai.title || "Gelir",
@@ -477,19 +477,20 @@ export async function POST(req: Request) {
       return NextResponse.json({
         ok: true,
         type: "gelir",
-        message: "✨ Gelir kaydedildi",
-        record: { ...data, table: "income" },
+        message: `✨ Gelir kaydedildi.\n\n${data.title} · ${money(Number(data.amount))}`,
+        record: { ...data, type: "gelir", table: "income" },
       });
     }
 
+    // ── EXPENSE ───────────────────────────────────────────────────────────
     if (ai.type === "expense") {
-      const { data, error } = await userSupabase
+      const { data, error } = await supabase
         .from("expenses")
         .insert({
           title: ai.title || ai.customer_name || "Gider",
           amount: Number(ai.amount || 0),
           expense_date: today(),
-          category: "AI",
+          category: "Genel",
           payment_method: "asistan-ai",
           note: text,
           user_id: user.id,
@@ -502,17 +503,101 @@ export async function POST(req: Request) {
       return NextResponse.json({
         ok: true,
         type: "gider",
-        message: "✨ Gider kaydedildi",
-        record: { ...data, table: "expenses" },
+        message: `✨ Gider kaydedildi.\n\n${data.title} · ${money(Number(data.amount))}`,
+        record: { ...data, type: "gider", table: "expenses" },
+      });
+    }
+
+    // ── ANALYSIS ──────────────────────────────────────────────────────────
+    if (ai.type === "analysis" || ai.type === "unknown") {
+      const startMonth = monthStart();
+      const todayDate = today();
+
+      const [
+        { data: profile },
+        { data: incomes },
+        { data: expenses },
+        { data: payments },
+        { data: customers },
+        { data: followups },
+        { data: contents },
+      ] = await Promise.all([
+        supabase.from("profiles").select("full_name, company_name, profession").eq("id", user.id).single(),
+        supabase.from("income").select("*").eq("user_id", user.id).gte("income_date", startMonth).order("income_date", { ascending: false }),
+        supabase.from("expenses").select("*").eq("user_id", user.id).gte("expense_date", startMonth).order("expense_date", { ascending: false }),
+        supabase.from("payment_tracking").select("*").eq("user_id", user.id).eq("status", "bekliyor").order("due_date", { ascending: true }),
+        supabase.from("customers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
+        supabase.from("followups").select("*").eq("user_id", user.id).eq("status", "bekliyor").order("followup_date", { ascending: true }).limit(20),
+        supabase.from("content_calendar").select("*").eq("user_id", user.id).order("publish_date", { ascending: true }).limit(20),
+      ]);
+
+      const totalIncome = (incomes || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
+      const totalExpense = (expenses || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
+      const totalPayment = (payments || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
+
+      const context = {
+        user: {
+          name: profile?.full_name || "Kullanıcı",
+          company: profile?.company_name || "",
+          profession: profile?.profession || "",
+        },
+        date: { today: todayDate, month_start: startMonth },
+        finance: {
+          monthly_income: money(totalIncome),
+          monthly_expense: money(totalExpense),
+          monthly_net: money(totalIncome - totalExpense),
+          pending_collection: money(totalPayment),
+        },
+        counts: {
+          customers: customers?.length || 0,
+          pending_followups: followups?.length || 0,
+          calendar_items: contents?.length || 0,
+          pending_collections: payments?.length || 0,
+        },
+        recent_income: (incomes || []).slice(0, 6),
+        recent_expenses: (expenses || []).slice(0, 6),
+        pending_collections: (payments || []).slice(0, 6),
+        upcoming_tasks: (followups || []).slice(0, 6),
+        customers: (customers || []).slice(0, 6),
+      };
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.25,
+        messages: [
+          {
+            role: "system",
+            content: `Sen Valkea, Türkçe çalışan kişisel bir iş ve finans asistanısın.
+Görevin: kullanıcının gelir/gider durumunu analiz etmek, tahsilatları yorumlamak, günlük plan çıkarmak, tasarruf ve büyüme önerisi vermek.
+Kurallar: Türkçe yaz. Kısa ve net ol. Rakamları açıkça söyle. Risk varsa belirt. Bilmediğini uydurma.`,
+          },
+          {
+            role: "user",
+            content: `Mevcut veri:\n${JSON.stringify(context, null, 2)}\n\nSoru: ${text}`,
+          },
+        ],
+      });
+
+      return NextResponse.json({
+        ok: true,
+        type: "analiz",
+        message: response.choices[0]?.message?.content || "Analiz üretilemedi.",
       });
     }
 
     return NextResponse.json({
       ok: false,
       message:
-        "Bunu nasıl kaydedeceğimi net anlayamadım. Şöyle yazabilirsin:\n\n“Suite Halı ile aylık 20000 TL iş aldım”\n“Market 300 TL”\n“Suite Halı 20000 TL ödeme yaptı”\n“Suite Halı için ayda 8 reels 12 story olacak”",
+        "Bunu nasıl kaydedeceğimi net anlayamadım. Şöyle yazabilirsin:\n\n" +
+        "- Suite Halı ile aylık 20.000 TL iş aldım\n" +
+        "- Market 300 TL\n" +
+        "- Suite Halı 20.000 TL ödeme yaptı\n" +
+        "- Bugün ne yapıyoruz?",
     });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, message: "Hata: " + err.message }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, message: "Hata: " + err.message },
+      { status: 500 }
+    );
   }
 }
