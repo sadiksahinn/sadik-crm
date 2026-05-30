@@ -17,7 +17,7 @@ function turkishError(msg: string): string {
     return "Bu e-posta zaten kayıtlı. Giriş yapmayı dene.";
   if (msg.includes("Password should be at least"))
     return "Şifre en az 6 karakter olmalı.";
-  if (msg.includes("invalid format") || msg.includes("valid email"))
+  if (msg.includes("invalid format") || msg.includes("valid email") || msg.includes("is invalid"))
     return "Geçerli bir e-posta adresi gir.";
   if (msg.includes("Too many requests"))
     return "Çok fazla deneme yaptın. Biraz bekle.";
