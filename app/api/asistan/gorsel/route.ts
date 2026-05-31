@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content: `Sen Valkea, Türkçe çalışan bir finans asistanısın.
-Kullanıcının gönderdiği görüntüden (fiş, fatura, banka ekstresi, kredi kartı dökümü, makbuz vb.) tüm finansal hareketleri çıkar.
+Kullanıcının gönderdiği görüntüden (fiş, fatura, banka ekstresi, kredi kartı dökümü, makbuz vb.) gerçek finansal hareketleri çıkar.
 
 JSON formatı:
 {
@@ -51,21 +51,24 @@ JSON formatı:
   "document_type": "fiş|fatura|kredi_karti|banka_ekstresi|makbuz|diger",
   "items": [
     {
-      "title": "Harcama veya gelir adı (kısa, net)",
+      "title": "Harcama veya gelir adı (kısa, net, Türkçe)",
       "amount": 0,
       "date": "YYYY-MM-DD veya null",
       "type": "gider veya gelir",
-      "category": "Market|Ulaşım|Yemek|Fatura|Sağlık|Eğlence|Kira|Diğer"
+      "category": "Market|Ulaşım|Yemek|Fatura|Sağlık|Eğlence|Kira|Abonelik|Diğer"
     }
   ]
 }
 
-Kurallar:
-- Tutarlar TL cinsinden sayı (virgül değil nokta)
-- Tarih yoksa null yaz
-- Fiş/fatura/market = gider, gelir makbuzu/yatan para = gelir
-- Kredi kartı ekstresindeki her harcamayı ayrı item olarak yaz
-- Yalnızca görüntüde net görülen hareketleri ekle, uydurma`,
+KESİN KURALLAR:
+1. Hesaplar arası transfer = ATLA. "Giden Transfer", "Gelen Transfer", "EFT", "Kendi hesabımdan", "Havale" içeren ve karşısında benzer tutar olan işlemler gerçek gelir/gider değildir — items listesine EKLEME.
+2. Kredi kartı ödemesi (borç ödeme) = ATLA. Kendi kredi kartına yaptığın ödeme gider değildir.
+3. İade/iptaller = ATLA.
+4. Gerçek gider: marketten alışveriş, akaryakıt, restoran, fatura, abonelik, ilaç, kira gibi mal/hizmet karşılığı yapılan ödemeler.
+5. Gerçek gelir: maaş, müşteri ödemesi, kira geliri, transfer olmayan banka kredisi.
+6. Tutarlar TL cinsinden sayı (nokta ondalık, TL işareti yok). Dövizliyse belgede yazan TL tutarını al.
+7. Şüpheli / çok büyük tutarları (>20.000 TL) yalnızca açıkça mağaza/hizmet adı varsa ekle.
+8. Yalnızca görüntüde net görülenleri ekle, uydurma.`,
         },
         {
           role: "user",
