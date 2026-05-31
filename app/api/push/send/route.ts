@@ -7,11 +7,15 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+function initVapid() {
+  if (process.env.VAPID_SUBJECT && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT,
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+  }
+}
 
 function money(v: number) {
   return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(v || 0);
@@ -19,6 +23,7 @@ function money(v: number) {
 
 export async function POST(req: Request) {
   try {
+    initVapid();
     const body = await req.json();
     const { access_token, title, body: msgBody, url, urgent } = body;
 
@@ -62,6 +67,7 @@ export async function POST(req: Request) {
 // GET: gecikmiş tahsilat varsa push gönder (daily brief tetikleyici)
 export async function GET(req: Request) {
   try {
+    initVapid();
     const url = new URL(req.url);
     const token = url.searchParams.get("token");
     if (!token) return NextResponse.json({ ok: false }, { status: 401 });
