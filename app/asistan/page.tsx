@@ -42,7 +42,11 @@ export default function AsistanPage() {
   const [command, setCommand] = useState("");
   const [loading, setLoading] = useState(false);
   const [showQuick, setShowQuick] = useState(true);
+  const [recording, setRecording] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -52,11 +56,7 @@ export default function AsistanPage() {
     async function loadIntro() {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
-
-      if (!user) {
-        window.location.href = "/login";
-        return;
-      }
+      if (!user) { window.location.href = "/login"; return; }
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -69,30 +69,12 @@ export default function AsistanPage() {
 
       const [{ data: payments }, { data: contents }, { data: followups }] =
         await Promise.all([
-          supabase
-            .from("payment_tracking")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("status", "bekliyor")
-            .lte("due_date", today),
-          supabase
-            .from("content_calendar")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("status", "planlandı")
-            .lte("publish_date", today),
-          supabase
-            .from("followups")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("status", "bekliyor")
-            .lte("followup_date", today),
+          supabase.from("payment_tracking").select("*").eq("user_id", user.id).eq("status", "bekliyor").lte("due_date", today),
+          supabase.from("content_calendar").select("*").eq("user_id", user.id).eq("status", "planlandı").lte("publish_date", today),
+          supabase.from("followups").select("*").eq("user_id", user.id).eq("status", "bekliyor").lte("followup_date", today),
         ]);
 
-      const paymentTotal = (payments || []).reduce(
-        (t: number, i: any) => t + Number(i.amount || 0),
-        0
-      );
+      const paymentTotal = (payments || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
 
       const intro =
         payments?.length || contents?.length || followups?.length
@@ -101,7 +83,6 @@ export default function AsistanPage() {
 
       setMessages([{ role: "assistant", text: intro }]);
     }
-
     loadIntro();
   }, []);
 
@@ -119,53 +100,144 @@ export default function AsistanPage() {
     const res = await fetch("/api/asistan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        command: text,
-        access_token: sessionData.session?.access_token,
-      }),
+      body: JSON.stringify({ command: text, access_token: sessionData.session?.access_token }),
     });
 
     const data = await res.json();
 
     setMessages((prev) => [
       ...prev,
-      {
-        role: "assistant",
-        text: data.message || "İşlem tamamlandı.",
-        record: data.record,
-        proposal: data.proposal,
-      },
+      { role: "assistant", text: data.message || "İşlem tamamlandı.", record: data.record, proposal: data.proposal },
     ]);
-
     setLoading(false);
   }
 
   async function approveProposal(proposal: any) {
     setLoading(true);
-
     const { data: sessionData } = await supabase.auth.getSession();
 
     const res = await fetch("/api/asistan/onay", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        proposal,
-        access_token: sessionData.session?.access_token,
-      }),
+      body: JSON.stringify({ proposal, access_token: sessionData.session?.access_token }),
     });
 
     const data = await res.json();
-
     setMessages((prev) => [
       ...prev,
-      {
-        role: "assistant",
-        text: data.message || "Kaydedildi.",
-        record: data.record,
-      },
+      { role: "assistant", text: data.message || "Kaydedildi.", record: data.record },
     ]);
-
     setLoading(false);
+  }
+
+  async function handleImageUpload(file: File) {
+    if (!file || loading) return;
+
+    setShowQuick(false);
+    setMessages((prev) => [...prev, { role: "user", text: `📷 ${file.name}` }]);
+    setLoading(true);
+
+    const { data: sessionData } = await supabase.auth.getSession();
+
+    // 1. Analiz
+    const form = new FormData();
+    form.append("image", file);
+    form.append("access_token", sessionData.session?.access_token || "");
+
+    const analysisRes = await fetch("/api/asistan/gorsel", { method: "POST", body: form });
+    const analysis = await analysisRes.json();
+
+    if (!analysis.ok || !analysis.items?.length) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: analysis.message || "Belgeden finansal hareket çıkarılamadı." },
+      ]);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Otomatik kaydet
+    const saveRes = await fetch("/api/asistan/gorsel-kaydet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: analysis.items, access_token: sessionData.session?.access_token }),
+    });
+    const save = await saveRes.json();
+
+    const giderler = analysis.items.filter((i: any) => i.type === "gider");
+    const gelirler = analysis.items.filter((i: any) => i.type === "gelir");
+    const total = analysis.items.reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
+
+    const summary = save.ok
+      ? `🧾 Belge kaydedildi · ${analysis.items.length} kalem\n` +
+        (giderler.length ? `❤️ ${giderler.length} gider` : "") +
+        (giderler.length && gelirler.length ? " · " : "") +
+        (gelirler.length ? `💚 ${gelirler.length} gelir` : "") +
+        `\nToplam: ${money(total)}`
+      : save.message || "Kayıt sırasında hata oluştu.";
+
+    setMessages((prev) => [...prev, { role: "assistant", text: summary }]);
+    setLoading(false);
+  }
+
+  async function toggleRecording() {
+    if (recording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+
+      const recorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setRecording(false);
+
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (blob.size < 1000) return;
+
+        setLoading(true);
+        const { data: sessionData } = await supabase.auth.getSession();
+
+        const form = new FormData();
+        form.append("audio", blob, "kayit.webm");
+        form.append("access_token", sessionData.session?.access_token || "");
+
+        const res = await fetch("/api/asistan/ses", { method: "POST", body: form });
+        const data = await res.json();
+        setLoading(false);
+
+        if (data.ok && data.text) {
+          // Transkripti direkt asistana gönder
+          sendMessage(data.text);
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", text: data.message || "Ses anlaşılamadı." },
+          ]);
+        }
+      };
+
+      recorder.start();
+      setRecording(true);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: "Mikrofon erişimi sağlanamadı. Tarayıcı iznini kontrol et." },
+      ]);
+    }
   }
 
   return (
@@ -176,16 +248,9 @@ export default function AsistanPage() {
           <h1 className="text-3xl font-black">Asistan</h1>
           <p className="text-slate-500">Konuşarak işlerini yönet.</p>
         </div>
-
-        <Link
-          href="/"
-          className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black"
-        >
-          Ana
-        </Link>
+        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
       </header>
 
-      {/* Quick actions */}
       {showQuick && messages.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
           {QUICK_ACTIONS.map((action) => (
@@ -212,33 +277,33 @@ export default function AsistanPage() {
           >
             <p className="whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
 
+            {/* Kısa onay kartı — sadece iki buton */}
             {msg.proposal && (
-              <div className="mt-3 rounded-2xl bg-slate-50 border border-[#61aebd]/20 p-3">
-                <p className="text-xs font-black text-[#61aebd] mb-1">ONAY BEKLİYOR</p>
-
-                {msg.proposal.missing_questions?.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-xs text-slate-500 mb-1">Açık sorular:</p>
-                    {msg.proposal.missing_questions.map((q: string, i: number) => (
-                      <p key={i} className="text-xs text-slate-600">• {q}</p>
-                    ))}
-                  </div>
-                )}
-
+              <div className="mt-3 flex gap-2">
                 <button
                   onClick={() => approveProposal(msg.proposal)}
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-xl p-3 text-sm font-black disabled:opacity-50"
+                  className="flex-1 bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl py-3 text-sm font-black disabled:opacity-50"
                 >
-                  ✅ Onayla ve Kaydet
+                  ✅ Evet, kaydet
+                </button>
+                <button
+                  onClick={() =>
+                    setMessages((prev) => [
+                      ...prev,
+                      { role: "assistant", text: "Tamam, kaydedmedim. Başka bir şey var mı?" },
+                    ])
+                  }
+                  disabled={loading}
+                  className="flex-1 bg-slate-100 text-slate-600 rounded-2xl py-3 text-sm font-black disabled:opacity-50"
+                >
+                  ❌ Hayır
                 </button>
               </div>
             )}
 
             {msg.record && (
-              <div
-                className={`mt-3 rounded-2xl border p-3 ${recordStyle(msg.record.type)}`}
-              >
+              <div className={`mt-3 rounded-2xl border p-3 ${recordStyle(msg.record.type)}`}>
                 <p className="text-xs font-black mb-1">
                   {String(msg.record.type || "KAYIT").toUpperCase()} KAYDI
                 </p>
@@ -259,7 +324,7 @@ export default function AsistanPage() {
                 <span className="w-2 h-2 bg-[#61aebd] rounded-full animate-bounce [animation-delay:150ms]" />
                 <span className="w-2 h-2 bg-[#61aebd] rounded-full animate-bounce [animation-delay:300ms]" />
               </span>
-              <span className="text-sm">Düşünüyor...</span>
+              <span className="text-sm">{recording ? "Dinliyor..." : "Düşünüyor..."}</span>
             </div>
           </div>
         )}
@@ -267,25 +332,66 @@ export default function AsistanPage() {
         <div ref={bottomRef} />
       </section>
 
+      {/* Hidden image input */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleImageUpload(file);
+          e.target.value = "";
+        }}
+      />
+
       <section className="fixed bottom-4 left-4 right-4 bg-white rounded-[28px] p-3 shadow-[0_18px_60px_rgba(15,23,42,0.18)] z-[9999]">
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Kamera */}
+          <button
+            onClick={() => imageInputRef.current?.click()}
+            disabled={loading || recording}
+            className="h-12 w-12 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center flex-shrink-0 disabled:opacity-40 active:scale-95 transition-transform"
+            title="Fiş veya belge fotoğrafı"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+
+          {/* Metin */}
           <input
             value={command}
             onChange={(e) => setCommand(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
             }}
-            placeholder="Örn: Suite Halı 20.000₺ ödedi"
-            className="flex-1 bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm"
+            placeholder={recording ? "Dinliyor..." : "Örn: Suite Halı 20.000₺ ödedi"}
+            disabled={recording}
+            className="flex-1 bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm disabled:opacity-50"
           />
 
+          {/* Mikrofon */}
+          <button
+            onClick={toggleRecording}
+            disabled={loading && !recording}
+            className={`h-12 w-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all active:scale-95 ${
+              recording ? "bg-red-500 text-white animate-pulse" : "bg-slate-100 text-slate-500 disabled:opacity-40"
+            }`}
+            title={recording ? "Kaydı durdur" : "Sesli komut"}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+          </button>
+
+          {/* Gönder */}
           <button
             onClick={() => sendMessage()}
-            disabled={loading || !command.trim()}
-            className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-white font-black text-xl disabled:opacity-40 flex items-center justify-center"
+            disabled={loading || !command.trim() || recording}
+            className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-white font-black text-xl disabled:opacity-40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
           >
             →
           </button>
