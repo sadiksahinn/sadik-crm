@@ -84,20 +84,51 @@ export default function AsistanPage() {
 
       const firstName = (profile?.full_name || "Kullanıcı").trim().split(" ")[0];
       const today = new Date().toISOString().slice(0, 10);
+      const hour = new Date().getHours();
+      const greeting = hour < 12 ? "Günaydın" : hour < 18 ? "İyi günler" : "İyi akşamlar";
 
-      const [{ data: payments }, { data: contents }, { data: followups }] =
-        await Promise.all([
-          supabase.from("payment_tracking").select("*").eq("user_id", user.id).eq("status", "bekliyor").lte("due_date", today),
-          supabase.from("content_calendar").select("*").eq("user_id", user.id).eq("status", "planlandı").lte("publish_date", today),
-          supabase.from("followups").select("*").eq("user_id", user.id).eq("status", "bekliyor").lte("followup_date", today),
-        ]);
+      const [
+        { data: payments },
+        { data: contents },
+        { data: followups },
+        { data: todayIncome },
+        { data: weekPayments },
+      ] = await Promise.all([
+        supabase.from("payment_tracking").select("*").eq("user_id", user.id).eq("status", "bekliyor").lte("due_date", today),
+        supabase.from("content_calendar").select("*").eq("user_id", user.id).eq("status", "planlandı").lte("publish_date", today),
+        supabase.from("followups").select("*").eq("user_id", user.id).eq("status", "bekliyor").lte("followup_date", today),
+        supabase.from("income").select("amount").eq("user_id", user.id).eq("income_date", today),
+        supabase.from("payment_tracking").select("amount,due_date,title").eq("user_id", user.id).eq("status", "bekliyor")
+          .gt("due_date", today)
+          .lte("due_date", new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10))
+          .order("due_date", { ascending: true }).limit(3),
+      ]);
 
       const paymentTotal = (payments || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
+      const todayTotal = (todayIncome || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
 
-      const intro =
-        payments?.length || contents?.length || followups?.length
-          ? `Merhaba ${firstName} 👋\n\nBugün takip listende:\n💰 ${payments?.length || 0} tahsilat (${money(paymentTotal)})\n📲 ${contents?.length || 0} içerik kontrolü\n✅ ${followups?.length || 0} görev bekliyor\n\nNe ile başlamak istersin?`
-          : `Merhaba ${firstName} 👋\n\nBugün kritik bir takip görünmüyor. Yeni iş, tahsilat veya içerik planı ekleyebilirsin.`;
+      const urgentLines: string[] = [];
+      if ((payments || []).length > 0) urgentLines.push(`💰 ${payments!.length} gecikmiş tahsilat — ${money(paymentTotal)}`);
+      if ((contents || []).length > 0) urgentLines.push(`📲 ${contents!.length} yayınlanmayı bekleyen içerik`);
+      if ((followups || []).length > 0) urgentLines.push(`✅ ${followups!.length} bekleyen görev`);
+
+      const weekLines = (weekPayments || []).map((p: any) => `  · ${p.title} — ${money(Number(p.amount))} (${p.due_date})`);
+
+      let intro = `${greeting} ${firstName} 👋\n\n`;
+
+      if (urgentLines.length > 0) {
+        intro += `Bugün acil:\n${urgentLines.join("\n")}`;
+      } else {
+        intro += `Bugün için acil bir şey yok.`;
+      }
+
+      if (todayTotal > 0) intro += `\n\n🎉 Bugün ${money(todayTotal)} gelir aldın.`;
+
+      if (weekLines.length > 0) {
+        intro += `\n\nBu hafta yaklaşan tahsilatlar:\n${weekLines.join("\n")}`;
+      }
+
+      intro += `\n\nNe yapmak istiyorsun? Fotoğraf çek, sesli söyle veya yaz.`;
 
       setMessages([{ role: "assistant", text: intro }]);
     }

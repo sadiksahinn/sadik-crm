@@ -119,6 +119,8 @@ export default function TahsilatlarPage() {
   const pending = items.filter((i) => i.status !== "ödendi");
   const paid = items.filter((i) => i.status === "ödendi");
   const pendingTotal = pending.reduce((t, i) => t + Number(i.amount || 0), 0);
+  const overdue = pending.filter((i) => i.due_date < today());
+  const overdueTotal = overdue.reduce((t, i) => t + Number(i.amount || 0), 0);
 
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
@@ -132,6 +134,14 @@ export default function TahsilatlarPage() {
           Ana
         </Link>
       </header>
+
+      {overdue.length > 0 && (
+        <section className="bg-red-500 rounded-[24px] p-4 mb-4 text-white">
+          <p className="text-xs font-black opacity-80 mb-1">GECİKMİŞ TAHSİLAT</p>
+          <p className="text-3xl font-black">{money(overdueTotal)}</p>
+          <p className="text-sm opacity-90 mt-1">{overdue.length} ödeme vadesi geçti — hemen takip et</p>
+        </section>
+      )}
 
       <section className="grid grid-cols-2 gap-3 mb-5">
         <div className="bg-white rounded-[26px] p-4 shadow-sm">
@@ -181,18 +191,22 @@ export default function TahsilatlarPage() {
       </section>
 
       <section className="grid gap-3">
-        {items.map((item) => (
-          <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm">
+        {items.map((item) => {
+          const isOverdue = item.status !== "ödendi" && item.due_date < today();
+          return (
+          <div key={item.id} className={`rounded-2xl p-4 shadow-sm ${isOverdue ? "bg-red-50 border border-red-200" : "bg-white"}`}>
             <div className="flex justify-between gap-3">
               <div>
-                <p className="text-xs text-slate-500">{item.due_date}</p>
+                <div className="flex items-center gap-2">
+                  <p className={`text-xs font-semibold ${isOverdue ? "text-red-500" : "text-slate-500"}`}>{item.due_date}</p>
+                  {isOverdue && <span className="text-[10px] font-black bg-red-500 text-white rounded-full px-2 py-0.5">GECİKMİŞ</span>}
+                </div>
                 <h3 className="font-black">{item.title}</h3>
-                <p className={item.status === "ödendi" ? "text-emerald-600 font-black" : "text-red-500 font-black"}>
+                <p className={item.status === "ödendi" ? "text-emerald-600 font-black text-sm" : "text-red-500 font-black text-sm"}>
                   {item.status}
                 </p>
               </div>
-
-              <p className="text-xl font-black">{money(Number(item.amount))}</p>
+              <p className={`text-xl font-black ${isOverdue ? "text-red-600" : ""}`}>{money(Number(item.amount))}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2 mt-3">
@@ -228,7 +242,8 @@ export default function TahsilatlarPage() {
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         {items.length === 0 && (
           <div className="bg-white rounded-2xl p-4 shadow-sm text-slate-500">
