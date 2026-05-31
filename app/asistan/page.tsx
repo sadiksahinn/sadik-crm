@@ -397,7 +397,6 @@ export default function AsistanPage() {
         ref={imageInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
