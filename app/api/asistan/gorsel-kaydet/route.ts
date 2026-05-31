@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-);
-
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -14,6 +9,13 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { items, access_token } = body;
+
+    // Kullanıcı JWT'sini Authorization header olarak geç — RLS politikasını karşılar
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      { global: { headers: { Authorization: `Bearer ${access_token}` } } }
+    );
 
     const { data: userData } = await supabase.auth.getUser(access_token);
     const user = userData.user;

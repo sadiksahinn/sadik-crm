@@ -9,6 +9,7 @@ const supabase = createClient();
 type ChatMessage = {
   role: "user" | "assistant";
   text: string;
+  image?: string; // base64 önizleme
   record?: any;
   proposal?: any;
 };
@@ -183,7 +184,15 @@ export default function AsistanPage() {
     if (!file || loading) return;
 
     setShowQuick(false);
-    setMessages((prev) => [...prev, { role: "user", text: `📷 ${file.name}` }]);
+
+    // Önizleme için base64'e çevir
+    const previewUrl = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.readAsDataURL(file);
+    });
+
+    setMessages((prev) => [...prev, { role: "user", text: "", image: previewUrl }]);
     setLoading(true);
 
     const { data: sessionData } = await supabase.auth.getSession();
@@ -335,7 +344,16 @@ export default function AsistanPage() {
                 : "mr-auto bg-white text-slate-950"
             }`}
           >
-            <p className="whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
+            {msg.image && (
+              <img
+                src={msg.image}
+                alt="Yüklenen görsel"
+                className="rounded-2xl max-h-52 w-full object-cover mb-2"
+              />
+            )}
+            {msg.text && (
+              <p className="whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
+            )}
 
             {/* Kısa onay kartı — sadece iki buton */}
             {msg.proposal && (
