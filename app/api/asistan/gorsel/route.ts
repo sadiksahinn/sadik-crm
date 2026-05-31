@@ -68,7 +68,9 @@ KESİN KURALLAR:
 5. Gerçek gelir: maaş, müşteri ödemesi, kira geliri, transfer olmayan banka kredisi.
 6. Tutarlar TL cinsinden sayı (nokta ondalık, TL işareti yok). Dövizliyse belgede yazan TL tutarını al.
 7. Şüpheli / çok büyük tutarları (>20.000 TL) yalnızca açıkça mağaza/hizmet adı varsa ekle.
-8. Yalnızca görüntüde net görülenleri ekle, uydurma.`,
+8. TARİH KURALI (ÇOK ÖNEMLİ): Belgede tarih varsa MUTLAKA YYYY-MM-DD formatına çevir. Örnekler: "31/05/2026" → "2026-05-31", "28.05.2026" → "2026-05-28", "27 May 2026" → "2026-05-27". Tarih hiç yoksa null yaz. Asla bugünün tarihini uydurma.
+9. TEKRARLAYAN İŞLEM: Aynı tarihte aynı tutar + benzer isim (ör. "ANTHROPIC" ve "CLAUDE.AI" ikisi de aynı abonelik) varsa sadece BİRİNİ ekle, ikincisini atla.
+10. Yalnızca görüntüde net görülenleri ekle, uydurma.`,
         },
         {
           role: "user",
