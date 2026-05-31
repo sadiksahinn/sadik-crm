@@ -38,7 +38,15 @@ function recordStyle(type: string) {
 }
 
 export default function AsistanPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const STORAGE_KEY = "valkea_chat_history";
+
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [command, setCommand] = useState("");
   const [loading, setLoading] = useState(false);
   const [showQuick, setShowQuick] = useState(true);
@@ -53,10 +61,20 @@ export default function AsistanPage() {
   }, [messages, loading]);
 
   useEffect(() => {
+    if (messages.length > 0) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-60))); } catch {}
+    }
+  }, [messages]);
+
+  useEffect(() => {
     async function loadIntro() {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
       if (!user) { window.location.href = "/login"; return; }
+
+      // Geçmiş varsa sadece auth kontrolü yap, intro mesajı tekrar ekleme
+      const saved = (() => { try { return localStorage.getItem(STORAGE_KEY); } catch { return null; } })();
+      if (saved && JSON.parse(saved).length > 0) return;
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -248,7 +266,18 @@ export default function AsistanPage() {
           <h1 className="text-3xl font-black">Asistan</h1>
           <p className="text-slate-500">Konuşarak işlerini yönet.</p>
         </div>
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
+        <div className="flex gap-2">
+          {messages.length > 1 && (
+            <button
+              onClick={() => { setMessages([]); localStorage.removeItem(STORAGE_KEY); setShowQuick(true); }}
+              className="bg-white rounded-2xl px-3 py-3 shadow-sm font-black text-slate-400 text-sm"
+              title="Sohbeti temizle"
+            >
+              🗑
+            </button>
+          )}
+          <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
+        </div>
       </header>
 
       {showQuick && messages.length > 0 && (

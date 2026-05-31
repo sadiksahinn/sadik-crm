@@ -46,7 +46,7 @@ async function analyzeMessage(message: string) {
 
 JSON:
 {
-  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "collection_paid" | "task_completed" | "daily_summary" | "analysis" | "chat" | "unknown",
+  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "collection_paid" | "task_completed" | "daily_summary" | "analysis" | "customer_query" | "whatsapp_template" | "chat" | "unknown",
   "customer_name": "",
   "title": "",
   "amount": 0,
@@ -71,6 +71,8 @@ Kurallar:
 - "tamamlandı", "bitti", "yapıldı", "paylaşıldı", "hallettim" => task_completed
 - "günlük özet", "bugünün özeti", "bugün durum ne", "özet ver" => daily_summary
 - "analiz", "durumum ne", "nasıl gidiyor", "kar", "kâr", "zarar", "tasarruf", "ne yapmalıyım", "öneri ver", "tavsiye", "ne kazandım", "ne harcadım", "rapor", "büyüme", "gelir analizi", "gider analizi" => analysis
+- "[müşteri] ne kadar ödedi", "[müşteri] ile durum ne", "[müşteri] hakkında", "müşteri bilgisi" => customer_query, customer_name'i çıkar
+- "mesaj yaz", "whatsapp mesajı", "tahsilat mesajı", "hatırlatma mesajı yaz", "şablon" => whatsapp_template, customer_name'i çıkar
 - "selam", "merhaba", "naber", "nasılsın", "iyi günler", "günaydın", "iyi akşamlar", "teşekkür", "tamam" => chat
 - emin değilsen => chat`,
       },
@@ -385,13 +387,13 @@ export async function POST(req: Request) {
       const title = ai.title || ai.note || text;
 
       const { data, error } = await supabase
-        .from("reminders")
+        .from("followups")
         .insert({
           user_id: user.id,
           title,
-          reminder_date: reminderDate,
+          followup_date: reminderDate,
           status: "bekliyor",
-          note: text,
+          priority: "normal",
         })
         .select()
         .single();
@@ -401,8 +403,84 @@ export async function POST(req: Request) {
       return NextResponse.json({
         ok: true,
         type: "hatırlatma",
-        message: `⏰ Hatırlatma kaydedildi.\n\n${data.title}\nTarih: ${data.reminder_date}`,
+        message: `⏰ Hatırlatma kaydedildi.\n\n${data.title}\nTarih: ${data.followup_date}`,
         record: { ...data, type: "hatırlatma" },
+      });
+    }
+
+    // ── CUSTOMER QUERY ────────────────────────────────────────────────────
+    if (ai.type === "customer_query") {
+      const searchName = ai.customer_name || "";
+      const startMonth = monthStart();
+
+      const { data: customers } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("user_id", user.id)
+        .or(`name.ilike.%${searchName}%,brand_name.ilike.%${searchName}%`)
+        .limit(1);
+
+      const customer = customers?.[0];
+      if (!customer) {
+        return NextResponse.json({ ok: false, message: `"${searchName}" adında bir müşteri bulamadım.` });
+      }
+
+      const [{ data: payments }, { data: followups }, { data: services }, { data: contents }] = await Promise.all([
+        supabase.from("payment_tracking").select("*").eq("customer_id", customer.id).order("due_date", { ascending: false }),
+        supabase.from("followups").select("*").eq("customer_id", customer.id).eq("status", "bekliyor"),
+        supabase.from("client_services").select("*").eq("customer_id", customer.id),
+        supabase.from("content_calendar").select("*").eq("customer_id", customer.id).eq("status", "planlandı").limit(5),
+      ]);
+
+      const totalPaid = (payments || []).filter((p: any) => p.status === "ödendi").reduce((t: number, p: any) => t + Number(p.amount || 0), 0);
+      const pending = (payments || []).filter((p: any) => p.status === "bekliyor");
+      const pendingTotal = pending.reduce((t: number, p: any) => t + Number(p.amount || 0), 0);
+      const activeService = (services || []).find((s: any) => s.status === "devam ediyor") || (services || [])[0];
+
+      return NextResponse.json({
+        ok: true,
+        type: "müşteri",
+        message:
+          `📋 ${customer.brand_name || customer.name}\n\n` +
+          (activeService ? `💼 Hizmet: ${activeService.service_name || "Genel"} · ${money(activeService.monthly_fee)}/ay\n` : "") +
+          `💚 Toplam alınan: ${money(totalPaid)}\n` +
+          `💰 Bekleyen tahsilat: ${money(pendingTotal)} (${pending.length} kayıt)\n` +
+          `✅ Bekleyen görev: ${(followups || []).length}\n` +
+          `📲 Planlı içerik: ${(contents || []).length}`,
+      });
+    }
+
+    // ── WHATSAPP TEMPLATE ─────────────────────────────────────────────────
+    if (ai.type === "whatsapp_template") {
+      const searchName = ai.customer_name || "";
+
+      const { data: customers } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("user_id", user.id)
+        .or(`name.ilike.%${searchName}%,brand_name.ilike.%${searchName}%`)
+        .limit(1);
+
+      const customer = customers?.[0];
+
+      const { data: payments } = customer
+        ? await supabase.from("payment_tracking").select("*").eq("customer_id", customer.id).eq("status", "bekliyor").order("due_date", { ascending: true })
+        : { data: [] };
+
+      const pending = (payments || [])[0];
+
+      const name = customer?.brand_name || customer?.name || searchName || "Müşteri";
+      const amount = pending ? money(Number(pending.amount)) : "";
+      const date = pending?.due_date || today();
+
+      const msg = amount
+        ? `Merhaba, ${name} için ${amount} tutarındaki ödemenizin vadesi ${date} tarihine gelmiştir. Müsait olduğunuzda ödemenizi gerçekleştirmenizi rica ederim. İyi çalışmalar 🙏`
+        : `Merhaba, aylık hizmet bedeliniz için ödeme günümüz gelmiştir. Müsait olduğunuzda ödemenizi gerçekleştirmenizi rica ederim. İyi çalışmalar 🙏`;
+
+      return NextResponse.json({
+        ok: true,
+        type: "şablon",
+        message: `📱 ${name} için WhatsApp mesajı:\n\n"${msg}"\n\nKopyalayıp gönderebilirsin.`,
       });
     }
 
