@@ -1,135 +1,87 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-
-const supabase = createClient();
 import Link from "next/link";
 
+const supabase = createClient();
 
 export default function ProfilPage() {
-  const [userId, setUserId] = useState("");
-  const [email, setEmail] = useState("");
-  const [avatar, setAvatar] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [userId, setUserId]       = useState("");
+  const [email, setEmail]         = useState("");
+  const [role, setRole]           = useState("user");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [saved, setSaved]         = useState(false);
+
+  const [fullName, setFullName]       = useState("");
+  const [phone, setPhone]             = useState("");
   const [companyName, setCompanyName] = useState("");
-  const [jobTitle, setJobTitle] = useState("");
-  const [bio, setBio] = useState("");
-  const [role, setRole] = useState("user");
-  const [phoneVerified, setPhoneVerified] = useState(false);
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [sentCode, setSentCode] = useState("");
-  const [codeInput, setCodeInput] = useState("");
+  const [jobTitle, setJobTitle]       = useState("");
+  const [iban, setIban]               = useState("");
+  const [bankName, setBankName]       = useState("");
+
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function load() {
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData.user;
-
-      if (!user) {
-        window.location.href = "/login";
-        return;
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { window.location.href = "/login"; return; }
 
       setUserId(user.id);
       setEmail(user.email || "");
-      setEmailVerified(!!user.email_confirmed_at);
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
+      const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      if (!p) return;
 
-      setAvatar(profile?.avatar_url || "");
-      setFullName(profile?.full_name || "");
-      setPhone(profile?.phone || "");
-      setCompanyName(profile?.company_name || "");
-      setJobTitle(profile?.job_title || "");
-      setBio(profile?.bio || "");
-      setRole(profile?.role || "user");
-      setPhoneVerified(!!profile?.phone_verified);
+      // Base64 avatar varsa temizle, storage URL kullan
+      setAvatarUrl(p.avatar_url?.startsWith("data:") ? "" : (p.avatar_url || ""));
+      setFullName(p.full_name || "");
+      setPhone(p.phone || "");
+      setCompanyName(p.company_name || "");
+      setJobTitle(p.job_title || "");
+      setIban(p.iban || "");
+      setBankName(p.bank_name || "");
+      setRole(p.role || "user");
     }
-
     load();
   }, []);
-
-  async function saveProfile() {
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        full_name: fullName,
-        phone,
-        company_name: companyName,
-        job_title: jobTitle,
-        bio,
-        email_verified: emailVerified,
-      })
-      .eq("id", userId);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    alert("Profil güncellendi.");
-  }
 
   async function uploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
 
-    const reader = new FileReader();
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${userId}/avatar.${ext}`;
 
-    reader.onload = async () => {
-      const result = String(reader.result);
-      setAvatar(result);
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (upErr) { alert("Fotoğraf yüklenemedi: " + upErr.message); setUploading(false); return; }
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({ avatar_url: result })
-        .eq("id", userId);
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+    const url = `${publicUrl}?t=${Date.now()}`; // cache bust
 
-      if (error) alert(error.message);
-    };
-
-    reader.readAsDataURL(file);
+    await supabase.from("profiles").update({ avatar_url: url }).eq("id", userId);
+    setAvatarUrl(url);
+    setUploading(false);
   }
 
-  function sendPhoneCode() {
-    if (!phone.trim()) {
-      alert("Önce telefon numarası gir.");
-      return;
-    }
+  async function save() {
+    setSaving(true);
+    const { error } = await supabase.from("profiles").update({
+      full_name: fullName,
+      phone,
+      company_name: companyName,
+      job_title: jobTitle,
+      iban,
+      bank_name: bankName,
+    }).eq("id", userId);
 
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    setSentCode(code);
-
-    alert(`Test doğrulama kodu: ${code}`);
-  }
-
-  async function verifyPhone() {
-    if (!sentCode || codeInput !== sentCode) {
-      alert("Kod hatalı.");
-      return;
-    }
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        phone,
-        phone_verified: true,
-      })
-      .eq("id", userId);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    setPhoneVerified(true);
-    alert("Telefon doğrulandı.");
+    setSaving(false);
+    if (error) { alert("Hata: " + error.message); return; }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   }
 
   async function logout() {
@@ -137,106 +89,89 @@ export default function ProfilPage() {
     window.location.href = "/login";
   }
 
+  const initials = (fullName || email || "K")[0].toUpperCase();
+
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
         <div>
           <p className="text-[#61aebd] text-xs font-black tracking-wide">VALKEA ACCOUNT</p>
-          <h1 className="text-4xl font-black">Profil</h1>
-          <p className="text-slate-500">Hesap, doğrulama ve kişisel bilgiler</p>
+          <h1 className="text-3xl font-black">Profil</h1>
         </div>
-
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">
-          Ana
-        </Link>
+        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
       </header>
 
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
-        <div className="flex items-center gap-4 mb-5">
+      {/* Avatar */}
+      <section className="bg-white rounded-[28px] p-5 shadow-sm mb-4 flex items-center gap-4">
+        <button onClick={() => fileRef.current?.click()} className="relative flex-shrink-0">
           <div className="h-20 w-20 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] grid place-items-center text-slate-950 text-3xl font-black">
-            {avatar ? <img src={avatar} alt="Profil" className="h-full w-full object-cover" /> : (fullName || email || "K")[0]}
+            {avatarUrl
+              ? <img src={avatarUrl} alt="avatar" className="h-full w-full object-cover" />
+              : initials}
           </div>
+          <div className="absolute bottom-0 right-0 h-6 w-6 bg-white rounded-full shadow flex items-center justify-center text-sm">
+            {uploading ? "⏳" : "📷"}
+          </div>
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={uploadAvatar} />
 
-          <div className="min-w-0">
-            <h2 className="text-2xl font-black truncate">{fullName || "Profilini tamamla"}</h2>
-            <p className="text-slate-500 text-sm truncate">{email}</p>
-            <div className="flex gap-2 mt-2">
-              <span className="text-xs font-black px-2 py-1 rounded-full bg-[#61aebd]/10 text-[#61aebd]">
-                {role === "superadmin" ? "Superadmin" : "Kullanıcı"}
-              </span>
-              {emailVerified && (
-                <span className="text-xs font-black px-2 py-1 rounded-full bg-emerald-50 text-emerald-600">
-                  E-posta doğrulandı
-                </span>
-              )}
-            </div>
-          </div>
+        <div className="min-w-0">
+          <p className="font-black text-lg truncate">{fullName || "İsim girilmedi"}</p>
+          <p className="text-slate-500 text-sm truncate">{email}</p>
+          <span className="text-xs font-black px-2 py-1 rounded-full bg-[#61aebd]/10 text-[#61aebd] mt-1 inline-block">
+            {role === "superadmin" ? "Superadmin" : "Kullanıcı"}
+          </span>
         </div>
-
-        <label className="block bg-slate-100 rounded-2xl p-4 font-black text-center">
-          Profil Fotoğrafı Seç
-          <input type="file" accept="image/*" onChange={uploadAvatar} className="hidden" />
-        </label>
       </section>
 
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
-        <h2 className="text-2xl font-black mb-4">Kişisel Bilgiler</h2>
-
+      {/* Kişisel bilgiler */}
+      <section className="bg-white rounded-[28px] p-5 shadow-sm mb-4">
+        <p className="font-black mb-3">Kişisel Bilgiler</p>
         <div className="grid gap-3">
-          <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ad Soyad" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Şirket / marka adı" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          <input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Görev / ünvan" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Kısa profil açıklaması" className="bg-slate-100 rounded-2xl p-4 outline-none min-h-[90px]" />
-
-          <button onClick={saveProfile} className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black">
-            Bilgileri Kaydet
-          </button>
+          <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ad Soyad" className="bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm" />
+          <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Şirket / Marka adı" className="bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm" />
+          <input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Görev / Ünvan" className="bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm" />
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon" className="bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm" />
         </div>
       </section>
 
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
-        <h2 className="text-2xl font-black mb-4">Doğrulama</h2>
-
+      {/* Fatura bilgileri */}
+      <section className="bg-white rounded-[28px] p-5 shadow-sm mb-4">
+        <p className="font-black mb-1">Fatura & Ödeme Bilgileri</p>
+        <p className="text-xs text-slate-400 mb-3">Fatura oluşturulurken otomatik kullanılır</p>
         <div className="grid gap-3">
-          <div className="bg-slate-100 rounded-2xl p-4">
-            <p className="text-xs font-black text-slate-500 mb-1">E-posta</p>
-            <p className="font-black">{email}</p>
-            <p className={`text-sm font-black mt-2 ${emailVerified ? "text-emerald-600" : "text-red-500"}`}>
-              {emailVerified ? "✓ Doğrulandı" : "Doğrulanmadı"}
-            </p>
-          </div>
-
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon numarası" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={sendPhoneCode} className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black">
-              Kod Gönder
-            </button>
-
-            <input value={codeInput} onChange={(e) => setCodeInput(e.target.value)} placeholder="Kod" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          </div>
-
-          <button onClick={verifyPhone} className="bg-emerald-50 text-emerald-600 rounded-2xl p-4 font-black">
-            {phoneVerified ? "✓ Telefon Doğrulandı" : "Telefonu Doğrula"}
-          </button>
+          <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Banka adı" className="bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm" />
+          <input value={iban} onChange={(e) => setIban(e.target.value)} placeholder="IBAN (TR...)" className="bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm font-mono" />
         </div>
       </section>
 
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
-        <h2 className="text-2xl font-black mb-4">Yönetim</h2>
-
-        <div className="grid gap-3">
-          {role === "superadmin" && (
-            <Link href="/admin" className="block w-full bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black text-center">
-              Admin Panel
-            </Link>
-          )}
-
-          <button onClick={logout} className="w-full bg-red-50 text-red-600 rounded-2xl p-4 font-black">
-            Çıkış Yap
-          </button>
+      {/* E-posta bilgisi */}
+      <section className="bg-white rounded-[28px] p-4 shadow-sm mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs text-slate-400">E-posta</p>
+          <p className="font-black text-sm">{email}</p>
         </div>
+        <span className="text-xs font-black px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-600">Doğrulandı</span>
       </section>
+
+      {/* Kaydet */}
+      <button
+        onClick={save}
+        disabled={saving}
+        className="w-full bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl py-4 font-black mb-3 disabled:opacity-60"
+      >
+        {saving ? "Kaydediliyor..." : saved ? "✅ Kaydedildi" : "Kaydet"}
+      </button>
+
+      {role === "superadmin" && (
+        <Link href="/admin" className="block w-full bg-white text-slate-700 rounded-2xl py-4 font-black text-center shadow-sm mb-3">
+          Admin Panel
+        </Link>
+      )}
+
+      <button onClick={logout} className="w-full bg-red-50 text-red-500 rounded-2xl py-4 font-black">
+        Çıkış Yap
+      </button>
     </main>
   );
 }
