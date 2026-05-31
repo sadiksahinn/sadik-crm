@@ -31,11 +31,14 @@ export default function TakvimPage() {
   const [month, setMonth] = useState(now.getMonth());
   const [items, setItems] = useState<CalItem[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [token, setToken] = useState("");
 
   async function load() {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) { window.location.href = "/login"; return; }
     const uid = userData.user.id;
+    const { data: sessionData } = await supabase.auth.getSession();
+    setToken(sessionData.session?.access_token || "");
 
     const start = `${year}-${pad2(month + 1)}-01`;
     const end = `${year}-${pad2(month + 1)}-${pad2(getDaysInMonth(year, month))}`;
@@ -92,6 +95,12 @@ export default function TakvimPage() {
     return "✅ TAKİP";
   }
 
+  function googleCalLink(title: string, date: string) {
+    const start = date.replace(/-/g, "") + "T090000";
+    const end = date.replace(/-/g, "") + "T100000";
+    return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${start}/${end}`;
+  }
+
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
@@ -100,7 +109,19 @@ export default function TakvimPage() {
           <h1 className="text-3xl font-black">Takvim</h1>
           <p className="text-slate-500">İş, ödeme ve içerik planı</p>
         </div>
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
+        <div className="flex gap-2">
+          {token && (
+            <a
+              href={`/api/takvim/export?token=${token}`}
+              download="valkea-takvim.ics"
+              className="bg-white rounded-2xl px-3 py-3 shadow-sm font-black text-sm text-[#61aebd]"
+              title="Takvimi indir (.ics)"
+            >
+              📅
+            </a>
+          )}
+          <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
+        </div>
       </header>
 
       {/* Ay navigasyonu + grid */}
@@ -165,17 +186,27 @@ export default function TakvimPage() {
           )}
           <div className="grid gap-2">
             {selectedItems.map((item) => (
-              <div key={item.id} className="bg-white rounded-[20px] p-4 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-[#61aebd] mb-0.5">{typeLabel(item.type)}</p>
-                  <p className="font-black text-sm">{item.title}</p>
-                  {item.amount && item.amount > 0 && <p className="text-emerald-600 font-black text-sm">{money(item.amount)}</p>}
+              <div key={item.id} className="bg-white rounded-[20px] p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-[10px] font-black text-[#61aebd] mb-0.5">{typeLabel(item.type)}</p>
+                    <p className="font-black text-sm">{item.title}</p>
+                    {item.amount && item.amount > 0 && <p className="text-emerald-600 font-black text-sm">{money(item.amount)}</p>}
+                  </div>
+                  <span className={`text-xs rounded-xl px-3 py-1.5 font-black ${
+                    item.status === "tamamlandı" || item.status === "ödendi" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                  }`}>
+                    {item.status}
+                  </span>
                 </div>
-                <span className={`text-xs rounded-xl px-3 py-1.5 font-black ${
-                  item.status === "tamamlandı" || item.status === "ödendi" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
-                }`}>
-                  {item.status}
-                </span>
+                <a
+                  href={googleCalLink(item.title, selectedDate!)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-[#61aebd] font-black"
+                >
+                  + Google Takvim'e Ekle
+                </a>
               </div>
             ))}
           </div>

@@ -73,6 +73,7 @@ Kurallar:
 - "analiz", "durumum ne", "nasıl gidiyor", "kar", "kâr", "zarar", "tasarruf", "ne yapmalıyım", "öneri ver", "tavsiye", "ne kazandım", "ne harcadım", "rapor", "büyüme", "gelir analizi", "gider analizi" => analysis
 - "[müşteri] ne kadar ödedi", "[müşteri] ile durum ne", "[müşteri] hakkında", "müşteri bilgisi" => customer_query, customer_name'i çıkar
 - "mesaj yaz", "whatsapp mesajı", "tahsilat mesajı", "hatırlatma mesajı yaz", "şablon" => whatsapp_template, customer_name'i çıkar
+- "not al", "hatırla", "aklında tut", "şunu bil", "kaydet ki" => reminder, title = notun kendisi
 - "selam", "merhaba", "naber", "nasılsın", "iyi günler", "günaydın", "iyi akşamlar", "teşekkür", "tamam" => chat
 - emin değilsen => chat`,
       },
@@ -102,6 +103,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, message: "Komut boş." });
     }
 
+    // Hafızayı yükle
+    const { data: memoryRows } = await supabase
+      .from("assistant_memory")
+      .select("key, value")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false })
+      .limit(20);
+
+    const memory = (memoryRows || []).map((r: any) => `${r.key}: ${r.value}`).join("\n");
+
     const ai = await analyzeMessage(text);
 
     // ── CHAT ──────────────────────────────────────────────────────────────
@@ -113,7 +124,8 @@ export async function POST(req: Request) {
           {
             role: "system",
             content:
-              "Sen Valkea, Türkçe çalışan kişisel bir iş asistanısın. Kısa, samimi ve yardımsever cevap ver. İş, finans, tahsilat, müşteri, takvim ve planlama konularında yardım edebilirsin.",
+              "Sen Valkea, Türkçe çalışan kişisel bir iş asistanısın. Kısa, samimi ve yardımsever cevap ver. İş, finans, tahsilat, müşteri, takvim ve planlama konularında yardım edebilirsin." +
+              (memory ? `\n\nKullanıcı hafızası:\n${memory}` : ""),
           },
           { role: "user", content: text },
         ],
@@ -400,6 +412,14 @@ export async function POST(req: Request) {
 
       if (error) throw error;
 
+      // "Not al / hafızaya ekle" komutlarını assistant_memory'ye de kaydet
+      if (/not al|hatırla|aklında tut|şunu bil|kaydet ki/i.test(text)) {
+        await supabase.from("assistant_memory").upsert(
+          { user_id: user.id, key: `not_${Date.now()}`, value: title, updated_at: new Date().toISOString() },
+          { onConflict: "user_id,key" }
+        );
+      }
+
       return NextResponse.json({
         ok: true,
         type: "hatırlatma",
@@ -647,7 +667,8 @@ export async function POST(req: Request) {
             role: "system",
             content: `Sen Valkea, Türkçe çalışan kişisel bir iş ve finans asistanısın.
 Görevin: kullanıcının gelir/gider durumunu analiz etmek, tahsilatları yorumlamak, günlük plan çıkarmak, tasarruf ve büyüme önerisi vermek.
-Kurallar: Türkçe yaz. Kısa ve net ol. Rakamları açıkça söyle. Risk varsa belirt. Bilmediğini uydurma.`,
+Kurallar: Türkçe yaz. Kısa ve net ol. Rakamları açıkça söyle. Risk varsa belirt. Bilmediğini uydurma.` +
+              (memory ? `\n\nKullanıcı hafızası (öğrenilen bilgiler):\n${memory}` : ""),
           },
           {
             role: "user",

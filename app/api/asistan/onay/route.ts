@@ -104,6 +104,19 @@ export async function POST(req: Request) {
         });
       }
 
+      // Hafızaya kaydet
+      const memoryValue = [
+        `Müşteri: ${proposal.customer_name}`,
+        proposal.amount ? `Aylık ücret: ${proposal.amount} TL` : null,
+        proposal.payment_day ? `Ödeme günü: Her ayın ${proposal.payment_day}. günü` : null,
+        `Kayıt tarihi: ${today()}`,
+      ].filter(Boolean).join(", ");
+
+      await supabase.from("assistant_memory").upsert(
+        { user_id: user.id, key: `musteri_${customer.id}`, value: memoryValue, updated_at: new Date().toISOString() },
+        { onConflict: "user_id,key" }
+      );
+
       return NextResponse.json({
         ok: true,
         type: "iş",

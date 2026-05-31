@@ -282,17 +282,23 @@ export default function MusteriDetayPage() {
         </div>
       </section>
 
-      {/* Asistana git */}
-      <Link
-        href={`/asistan`}
-        className="flex items-center justify-between bg-gradient-to-r from-[#61aebd] to-[#e5ab53] rounded-[24px] p-4 shadow-sm text-white"
-      >
-        <div>
-          <p className="font-black">Asistana Sor</p>
-          <p className="text-sm opacity-80">"{customer.brand_name || customer.name} için tahsilat mesajı yaz"</p>
-        </div>
-        <span className="text-2xl">→</span>
-      </Link>
+      {/* Hızlı Aksiyonlar */}
+      <div className="grid grid-cols-2 gap-3">
+        <Link
+          href={`/fatura/${id}`}
+          className="flex flex-col items-center justify-center bg-white rounded-[24px] p-4 shadow-sm gap-1"
+        >
+          <span className="text-2xl">🧾</span>
+          <p className="font-black text-sm">Fatura Oluştur</p>
+        </Link>
+        <Link
+          href="/asistan"
+          className="flex flex-col items-center justify-center bg-gradient-to-br from-[#61aebd] to-[#e5ab53] rounded-[24px] p-4 shadow-sm gap-1 text-white"
+        >
+          <span className="text-2xl">💬</span>
+          <p className="font-black text-sm">Asistana Sor</p>
+        </Link>
+      </div>
     </main>
   );
 }
