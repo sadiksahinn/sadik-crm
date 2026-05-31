@@ -83,11 +83,11 @@ export default function MusteriDetayPage() {
   }
 
   if (!customer) return (
-    <main className="min-h-screen bg-[#f7f8fc] flex items-center justify-center">
+    <main className="min-h-screen bg-[#F5F6FA] flex items-center justify-center">
       <div className="flex gap-1">
-        <span className="w-3 h-3 bg-[#61aebd] rounded-full animate-bounce [animation-delay:0ms]" />
-        <span className="w-3 h-3 bg-[#61aebd] rounded-full animate-bounce [animation-delay:150ms]" />
-        <span className="w-3 h-3 bg-[#61aebd] rounded-full animate-bounce [animation-delay:300ms]" />
+        <span className="w-3 h-3 bg-[#0B1437] rounded-full animate-bounce [animation-delay:0ms]" />
+        <span className="w-3 h-3 bg-[#0B1437] rounded-full animate-bounce [animation-delay:150ms]" />
+        <span className="w-3 h-3 bg-[#0B1437] rounded-full animate-bounce [animation-delay:300ms]" />
       </div>
     </main>
   );
@@ -98,14 +98,14 @@ export default function MusteriDetayPage() {
   const pendingTasks = tasks.filter((t) => t.status === "bekliyor");
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
+    <main className="min-h-screen bg-[#F5F6FA] text-slate-950 px-4 pt-5 pb-32">
       {/* Header */}
       <header className="flex items-center gap-3 mb-6">
         <Link href="/musteriler" className="h-11 w-11 bg-white rounded-2xl shadow-sm flex items-center justify-center font-black text-lg">
           ←
         </Link>
         <div className="flex-1">
-          <p className="text-[#61aebd] text-xs font-black tracking-wide">MÜŞTERİ</p>
+          <p className="text-[#1E3A5F] text-xs font-black tracking-wide">MÜŞTERİ</p>
           <h1 className="text-2xl font-black leading-tight">{customer.brand_name || customer.name}</h1>
         </div>
         <button onClick={() => setEditing(!editing)} className="h-11 px-4 bg-white rounded-2xl shadow-sm font-black text-sm">
@@ -126,7 +126,7 @@ export default function MusteriDetayPage() {
             <option>pasif müşteri</option>
             <option>eski müşteri</option>
           </select>
-          <button onClick={saveEdit} className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl py-3 font-black text-sm">
+          <button onClick={saveEdit} className="bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white rounded-2xl py-3 font-black text-sm">
             Kaydet
           </button>
         </section>
@@ -146,7 +146,7 @@ export default function MusteriDetayPage() {
 
       {/* Aktif hizmet */}
       {activeService && (
-        <section className="bg-gradient-to-br from-[#61aebd] to-[#e5ab53] rounded-[24px] p-4 shadow-sm mb-4 text-white">
+        <section className="bg-gradient-to-br from-[#0B1437] to-[#1E3A5F] rounded-[24px] p-4 shadow-sm mb-4 text-white">
           <p className="text-xs font-black opacity-70 mb-1">AKTİF HİZMET</p>
           <h2 className="font-black text-lg">{activeService.service_name || "Hizmet"}</h2>
           <div className="flex gap-4 mt-2 text-sm">
@@ -207,7 +207,7 @@ export default function MusteriDetayPage() {
             {upcomingContent.map((c) => (
               <div key={c.id} className="bg-white rounded-[20px] p-3 shadow-sm flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 bg-[#61aebd]/10 rounded-xl flex items-center justify-center text-lg">◉</div>
+                  <div className="h-10 w-10 bg-[#1E3A5F]/10 rounded-xl flex items-center justify-center text-lg">◉</div>
                   <div>
                     <p className="font-black text-sm">{c.content_title}</p>
                     <p className="text-xs text-slate-500">{dateLabel(c.publish_date)}</p>
@@ -250,7 +250,7 @@ export default function MusteriDetayPage() {
           <div className="grid gap-2">
             {logs.map((l) => (
               <div key={l.id} className="bg-white rounded-[20px] p-3 shadow-sm flex gap-3">
-                <div className="h-9 w-9 bg-[#61aebd]/10 rounded-xl flex items-center justify-center text-sm font-black text-[#61aebd] flex-shrink-0">
+                <div className="h-9 w-9 bg-[#1E3A5F]/10 rounded-xl flex items-center justify-center text-sm font-black text-[#1E3A5F] flex-shrink-0">
                   {l.action_type === "iş" ? "💼" : l.action_type === "tamamlandı" ? "✅" : l.action_type === "plan" ? "📋" : "📌"}
                 </div>
                 <div>
@@ -273,7 +273,7 @@ export default function MusteriDetayPage() {
             <div className="flex justify-between"><span className="text-slate-500">Marka</span><span className="font-black">{customer.brand_name}</span></div>
           )}
           {customer.phone && (
-            <div className="flex justify-between"><span className="text-slate-500">Telefon</span><a href={`tel:${customer.phone}`} className="font-black text-[#61aebd]">{customer.phone}</a></div>
+            <div className="flex justify-between"><span className="text-slate-500">Telefon</span><a href={`tel:${customer.phone}`} className="font-black text-[#1E3A5F]">{customer.phone}</a></div>
           )}
           <div className="flex justify-between"><span className="text-slate-500">Durum</span><span className="font-black">{customer.status}</span></div>
           <div className="flex justify-between"><span className="text-slate-500">Kaynak</span><span className="font-black">{customer.source || "—"}</span></div>
@@ -293,7 +293,7 @@ export default function MusteriDetayPage() {
         </Link>
         <Link
           href="/asistan"
-          className="flex flex-col items-center justify-center bg-gradient-to-br from-[#61aebd] to-[#e5ab53] rounded-[24px] p-4 shadow-sm gap-1 text-white"
+          className="flex flex-col items-center justify-center bg-gradient-to-br from-[#0B1437] to-[#1E3A5F] rounded-[24px] p-4 shadow-sm gap-1 text-white"
         >
           <span className="text-2xl">💬</span>
           <p className="font-black text-sm">Asistana Sor</p>

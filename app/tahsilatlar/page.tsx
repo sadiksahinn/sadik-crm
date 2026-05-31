@@ -123,7 +123,7 @@ export default function TahsilatlarPage() {
   const overdueTotal = overdue.reduce((t, i) => t + Number(i.amount || 0), 0);
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
+    <main className="min-h-screen bg-[#F5F6FA] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-3xl font-black">Tahsilatlar</h1>
@@ -183,7 +183,7 @@ export default function TahsilatlarPage() {
 
           <button
             onClick={addPayment}
-            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black"
+            className="bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white rounded-2xl p-4 font-black"
           >
             Tahsilat Ekle
           </button>
@@ -229,7 +229,7 @@ export default function TahsilatlarPage() {
                   navigator.clipboard.writeText(msg);
                   alert("WhatsApp mesajı kopyalandı.");
                 }}
-                className="bg-[#61aebd]/10 text-[#61aebd] rounded-xl p-3 font-black"
+                className="bg-[#1E3A5F]/10 text-[#1E3A5F] rounded-xl p-3 font-black"
               >
                 Mesaj
               </button>

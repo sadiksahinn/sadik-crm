@@ -145,10 +145,10 @@ export default function BildirimlerPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
+    <main className="min-h-screen bg-[#F5F6FA] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
         <div>
-          <p className="text-[#61aebd] text-xs font-black tracking-wide">VALKEA ALERTS</p>
+          <p className="text-[#1E3A5F] text-xs font-black tracking-wide">VALKEA ALERTS</p>
           <h1 className="text-3xl font-black">Bildirimler</h1>
           <p className="text-slate-500">Bugün dikkat etmen gerekenler</p>
         </div>
@@ -168,12 +168,12 @@ export default function BildirimlerPage() {
           <div key={`${item.itemType}-${item.id}-${i}`} className="bg-white rounded-[24px] p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-2xl bg-[#61aebd]/10 text-[#61aebd] grid place-items-center text-2xl font-black">
+                <div className="h-12 w-12 rounded-2xl bg-[#1E3A5F]/10 text-[#1E3A5F] grid place-items-center text-2xl font-black">
                   {item.icon}
                 </div>
 
                 <div>
-                  <p className="text-xs font-black text-[#e5ab53]">{item.type} · {item.date}</p>
+                  <p className="text-xs font-black text-amber-500">{item.type} · {item.date}</p>
                   <h3 className="font-black">{item.title}</h3>
                   <p className="text-slate-500 text-sm">{item.desc}</p>
                 </div>
@@ -184,7 +184,7 @@ export default function BildirimlerPage() {
 
             <button
               onClick={() => completeItem(item)}
-              className="mt-3 w-full bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-3 font-black"
+              className="mt-3 w-full bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white rounded-2xl p-3 font-black"
             >
               {item.itemType === "payment"
                 ? "Ödendi Yap"

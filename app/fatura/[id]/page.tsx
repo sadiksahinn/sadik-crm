@@ -67,9 +67,9 @@ export default function FaturaPage() {
   if (!ready) return (
     <main className="min-h-screen bg-white flex items-center justify-center">
       <div className="flex gap-1">
-        <span className="w-3 h-3 bg-[#61aebd] rounded-full animate-bounce [animation-delay:0ms]" />
-        <span className="w-3 h-3 bg-[#61aebd] rounded-full animate-bounce [animation-delay:150ms]" />
-        <span className="w-3 h-3 bg-[#61aebd] rounded-full animate-bounce [animation-delay:300ms]" />
+        <span className="w-3 h-3 bg-[#0B1437] rounded-full animate-bounce [animation-delay:0ms]" />
+        <span className="w-3 h-3 bg-[#0B1437] rounded-full animate-bounce [animation-delay:150ms]" />
+        <span className="w-3 h-3 bg-[#0B1437] rounded-full animate-bounce [animation-delay:300ms]" />
       </div>
     </main>
   );
@@ -77,7 +77,7 @@ export default function FaturaPage() {
   return (
     <>
       {/* Kontrol paneli — yazdırılırken gizlenir */}
-      <div className="print:hidden bg-[#f7f8fc] px-4 py-4 flex gap-3 items-center border-b">
+      <div className="print:hidden bg-[#F5F6FA] px-4 py-4 flex gap-3 items-center border-b">
         <button onClick={() => router.back()} className="h-10 px-4 bg-white rounded-2xl shadow-sm font-black text-sm">← Geri</button>
         <div className="flex-1 grid grid-cols-2 gap-2">
           <input
@@ -102,7 +102,7 @@ export default function FaturaPage() {
         </div>
         <button
           onClick={() => window.print()}
-          className="h-10 px-5 bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl font-black text-sm whitespace-nowrap"
+          className="h-10 px-5 bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white rounded-2xl font-black text-sm whitespace-nowrap"
         >
           Yazdır / PDF
         </button>
@@ -125,14 +125,14 @@ export default function FaturaPage() {
         {/* Taraflar */}
         <div className="grid grid-cols-2 gap-8 mb-10">
           <div>
-            <p className="text-xs font-black text-[#61aebd] tracking-wide mb-2">FATURALAYAN</p>
+            <p className="text-xs font-black text-[#1E3A5F] tracking-wide mb-2">FATURALAYAN</p>
             <p className="font-black text-lg">{profile?.full_name || "—"}</p>
             {profile?.company_name && <p className="text-slate-600">{profile.company_name}</p>}
             {profile?.email && <p className="text-slate-500 text-sm">{profile.email}</p>}
             {profile?.phone && <p className="text-slate-500 text-sm">{profile.phone}</p>}
           </div>
           <div>
-            <p className="text-xs font-black text-[#61aebd] tracking-wide mb-2">MÜŞTERİ</p>
+            <p className="text-xs font-black text-[#1E3A5F] tracking-wide mb-2">MÜŞTERİ</p>
             <p className="font-black text-lg">{customer?.brand_name || customer?.name}</p>
             {customer?.name && customer?.brand_name && customer.name !== customer.brand_name && (
               <p className="text-slate-600">{customer.name}</p>
@@ -168,7 +168,7 @@ export default function FaturaPage() {
           <tfoot>
             <tr className="bg-slate-50">
               <td className="py-4 pl-4 font-black text-lg rounded-l-xl">TOPLAM</td>
-              <td className="py-4 pr-4 text-right font-black text-2xl text-[#61aebd] rounded-r-xl">{money(toplam)}</td>
+              <td className="py-4 pr-4 text-right font-black text-2xl text-[#1E3A5F] rounded-r-xl">{money(toplam)}</td>
             </tr>
           </tfoot>
         </table>

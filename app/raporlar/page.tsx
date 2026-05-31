@@ -102,10 +102,10 @@ export default function RaporlarPage() {
   const maxBar = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 1);
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
+    <main className="min-h-screen bg-[#F5F6FA] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
         <div>
-          <p className="text-[#61aebd] text-xs font-black tracking-wide">VALKEA REPORT</p>
+          <p className="text-[#1E3A5F] text-xs font-black tracking-wide">VALKEA REPORT</p>
           <h1 className="text-3xl font-black">Raporlar</h1>
           <p className="text-slate-500">Son 3 ay analiz</p>
         </div>
@@ -114,7 +114,7 @@ export default function RaporlarPage() {
 
       {/* Net durum */}
       <section className="bg-white rounded-[30px] p-5 shadow-sm mb-4">
-        <p className="text-[#61aebd] text-xs font-black">BU AY NET DURUM</p>
+        <p className="text-[#1E3A5F] text-xs font-black">BU AY NET DURUM</p>
         <h2 className={`text-4xl font-black mt-1 ${cur.net >= 0 ? "text-emerald-600" : "text-red-500"}`}>{money(cur.net)}</h2>
         <p className="text-slate-400 text-sm mt-1">Tahsilatlar kapanırsa → {money(cur.net + totalPending)}</p>
       </section>
@@ -161,7 +161,7 @@ export default function RaporlarPage() {
           <button
             key={tab}
             onClick={() => setSelectedTab(tab)}
-            className={`flex-1 rounded-2xl py-2.5 text-xs font-black transition-colors ${selectedTab === tab ? "bg-[#61aebd] text-white" : "bg-white text-slate-500 shadow-sm"}`}
+            className={`flex-1 rounded-2xl py-2.5 text-xs font-black transition-colors ${selectedTab === tab ? "bg-[#0B1437] text-white" : "bg-white text-slate-500 shadow-sm"}`}
           >
             {tab === "aylik" ? "Bu Ay" : tab === "musteriler" ? "Müşteriler" : "Kategoriler"}
           </button>
@@ -185,7 +185,7 @@ export default function RaporlarPage() {
           </div>
           <div className="bg-white rounded-[24px] p-4 shadow-sm">
             <p className="text-xs text-slate-500 mb-1">Bekleyen Tahsilat</p>
-            <p className="text-2xl font-black text-[#e5ab53]">{money(totalPending)}</p>
+            <p className="text-2xl font-black text-amber-500">{money(totalPending)}</p>
             <p className="text-xs text-slate-400">{pendingPayments.length} kayıt</p>
           </div>
           <div className="bg-white rounded-[24px] p-4 shadow-sm">

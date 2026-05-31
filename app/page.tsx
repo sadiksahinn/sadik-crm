@@ -8,78 +8,34 @@ import Image from "next/image";
 const supabase = createClient();
 
 function money(v: number) {
-  return new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-    maximumFractionDigits: 0,
-  }).format(v || 0);
+  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(v || 0);
 }
 
-function firstName(name: string) {
-  return (name || "Kullanıcı").trim().split(" ")[0];
-}
-
-function greeting(name: string) {
-  const hour = new Date().getHours();
-  const prefix = hour >= 5 && hour < 12 ? "Günaydın" : "Merhaba";
-  return `${prefix}, ${firstName(name)}`;
-}
-
-function Spark({ color = "#8b5cf6" }: { color?: string }) {
-  return (
-    <svg viewBox="0 0 120 44" className="w-24 h-10">
-      <path
-        d="M5 34 C20 12, 28 35, 42 22 S65 8, 78 22 S98 38, 115 10"
-        fill="none"
-        stroke={color}
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      <path
-        d="M5 34 C20 12, 28 35, 42 22 S65 8, 78 22 S98 38, 115 10 L115 44 L5 44 Z"
-        fill={color}
-        opacity=".1"
-      />
-    </svg>
-  );
-}
+function firstName(name: string) { return (name || "Kullanıcı").trim().split(" ")[0]; }
 
 export default function HomePage() {
-  const [fullName, setFullName]               = useState("Kullanıcı");
-  const [avatar, setAvatar]                   = useState("");
-  const [customerCount, setCustomerCount]     = useState(0);
-  const [taskCount, setTaskCount]             = useState(0);
-  const [todayIncome, setTodayIncome]         = useState(0);
-  const [todayExpense, setTodayExpense]       = useState(0);
-  const [todayCollections, setTodayCollections] = useState(0);
-  const [collectionCount, setCollectionCount] = useState(0);
-  const [notificationCount, setNotificationCount] = useState(0);
-  const [agenda, setAgenda]                   = useState<any[]>([]);
+  const [fullName, setFullName]         = useState("Kullanıcı");
+  const [avatar, setAvatar]             = useState("");
+  const [customerCount, setCustomers]   = useState(0);
+  const [taskCount, setTasks]           = useState(0);
+  const [todayIncome, setIncome]        = useState(0);
+  const [todayExpense, setExpense]      = useState(0);
+  const [collectionTotal, setColTotal]  = useState(0);
+  const [collectionCount, setColCount]  = useState(0);
+  const [notifCount, setNotifCount]     = useState(0);
+  const [agenda, setAgenda]             = useState<any[]>([]);
 
   useEffect(() => {
     async function load() {
       const { data: sessionData } = await supabase.auth.getSession();
-
-      if (!sessionData.session) {
-        window.location.href = "/login";
-        return;
-      }
-
+      if (!sessionData.session) { window.location.href = "/login"; return; }
       const user = sessionData.session.user;
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, avatar_url, onboarding_completed")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile?.onboarding_completed) {
-        window.location.href = "/onboarding";
-        return;
-      }
+      const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url, onboarding_completed").eq("id", user.id).single();
+      if (!profile?.onboarding_completed) { window.location.href = "/onboarding"; return; }
 
       setFullName(profile?.full_name || "Kullanıcı");
-      setAvatar(profile?.avatar_url || "");
+      setAvatar(profile?.avatar_url?.startsWith("data:") ? "" : (profile?.avatar_url || ""));
 
       const today = new Date().toISOString().slice(0, 10);
 
@@ -103,259 +59,185 @@ export default function HomePage() {
         supabase.from("content_calendar").select("*").eq("user_id", user.id).eq("status", "planlandı").lte("publish_date", today).limit(3),
       ]);
 
-      const incomeTotal     = (incomes || []).reduce((a: number, b: any) => a + Number(b.amount || 0), 0);
-      const expenseTotal    = (expenses || []).reduce((a: number, b: any) => a + Number(b.amount || 0), 0);
-      const collectionTotal = (collections || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
+      const incomeTotal  = (incomes || []).reduce((a: number, b: any) => a + Number(b.amount || 0), 0);
+      const expenseTotal = (expenses || []).reduce((a: number, b: any) => a + Number(b.amount || 0), 0);
+      const colTotal     = (collections || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
 
-      setCustomerCount(customers || 0);
-      setTaskCount(tasks || 0);
-      setTodayIncome(incomeTotal);
-      setTodayExpense(expenseTotal);
-      setTodayCollections(collectionTotal);
-      setCollectionCount((collections || []).length);
-
-      setNotificationCount(
-        (payments || []).length + (followups || []).length + (contents || []).length
-      );
+      setCustomers(customers || 0);
+      setTasks(tasks || 0);
+      setIncome(incomeTotal);
+      setExpense(expenseTotal);
+      setColTotal(colTotal);
+      setColCount((collections || []).length);
+      setNotifCount((payments || []).length + (followups || []).length + (contents || []).length);
 
       setAgenda([
-        ...(payments || []).map((x: any) => ({
-          icon: "₺",
-          title: x.title,
-          sub: `${money(Number(x.amount || 0))} tahsilat bekliyor`,
-          type: "Tahsilat",
-        })),
-        ...(followups || []).map((x: any) => ({
-          icon: "✓",
-          title: x.title,
-          sub: "Takip bekliyor",
-          type: "Görev",
-        })),
-        ...(contents || []).map((x: any) => ({
-          icon: "▶",
-          title: x.content_title,
-          sub: "Paylaşım kontrolü",
-          type: "İçerik",
-        })),
+        ...(payments || []).map((x: any) => ({ icon: "₺", title: x.title, sub: money(Number(x.amount || 0)) + " tahsilat", type: "tahsilat", href: "/tahsilatlar" })),
+        ...(followups || []).map((x: any) => ({ icon: "✓", title: x.title, sub: "Görev bekliyor", type: "gorev", href: "/hatirlatmalar" })),
+        ...(contents || []).map((x: any) => ({ icon: "▶", title: x.content_title, sub: "Paylaşım kontrolü", type: "icerik", href: "/takvim" })),
       ].slice(0, 4));
     }
-
     load();
   }, []);
 
   const net = todayIncome - todayExpense;
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? "Günaydın" : hour < 18 ? "İyi günler" : "İyi akşamlar";
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-4 pb-32">
+    <main className="min-h-screen bg-[#F5F6FA] text-[#0B1437] px-4 pt-5 pb-32">
 
       {/* Header */}
-      <header className="flex items-center justify-between mb-4">
-        <div className="relative w-40 h-16">
+      <header className="flex items-center justify-between mb-5">
+        <div className="relative w-32 h-12">
           <Image src="/valkea-logo.png" alt="Valkea" fill className="object-contain object-left" priority />
         </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/bildirimler"
-            className="h-14 w-14 rounded-2xl bg-white shadow-sm grid place-items-center text-2xl relative"
-          >
-            🔔
-            {notificationCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-6 h-6 px-1 rounded-full bg-[#e5ab53] text-white text-xs font-black grid place-items-center">
-                {notificationCount}
-              </span>
+        <div className="flex items-center gap-2">
+          <Link href="/bildirimler" className="h-11 w-11 rounded-2xl bg-white shadow-sm grid place-items-center relative">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#0B1437]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            {notifCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-black grid place-items-center">{notifCount}</span>
             )}
           </Link>
-
-          <Link
-            href="/profil"
-            className="h-14 w-14 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] shadow-lg grid place-items-center font-black text-xl"
-          >
-            {avatar
-              ? <img src={avatar} className="h-full w-full object-cover" alt="Profil" />
-              : <span className="text-slate-950">{firstName(fullName)[0]}</span>
-            }
+          <Link href="/profil" className="h-11 w-11 rounded-full overflow-hidden bg-[#0B1437] grid place-items-center font-black text-white text-base shadow-sm">
+            {avatar ? <img src={avatar} className="h-full w-full object-cover" alt="" /> : firstName(fullName)[0]}
           </Link>
         </div>
       </header>
 
       {/* Selamlama */}
-      <section className="mb-4">
-        <h1 className="text-[30px] leading-tight font-black">{greeting(fullName)} 👋</h1>
-        <p className="text-slate-500 text-base mt-1">Gününü birlikte planlayalım.</p>
+      <div className="mb-4">
+        <p className="text-[#64748B] text-sm">{greet},</p>
+        <h1 className="text-2xl font-black">{firstName(fullName)}</h1>
+      </div>
+
+      {/* Ana bakiye kartı */}
+      <section className="rounded-3xl p-5 mb-4 overflow-hidden relative" style={{ background: "linear-gradient(135deg, #0B1437 0%, #1E3A5F 100%)" }}>
+        <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #10B981, transparent)", transform: "translate(30%, -30%)" }} />
+        <p className="text-white/60 text-xs font-semibold tracking-widest mb-1">GÜNLÜK NET DURUM</p>
+        <p className={`text-4xl font-black mb-4 ${net >= 0 ? "text-emerald-400" : "text-red-400"}`}>{money(net)}</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white/10 rounded-2xl p-3">
+            <p className="text-white/50 text-[10px] font-semibold">GELİR</p>
+            <p className="text-emerald-400 font-black text-base mt-0.5">{money(todayIncome)}</p>
+          </div>
+          <div className="bg-white/10 rounded-2xl p-3">
+            <p className="text-white/50 text-[10px] font-semibold">GİDER</p>
+            <p className="text-red-400 font-black text-base mt-0.5">{money(todayExpense)}</p>
+          </div>
+          <div className="bg-white/10 rounded-2xl p-3">
+            <p className="text-white/50 text-[10px] font-semibold">TAHSİLAT</p>
+            <p className="text-amber-400 font-black text-base mt-0.5">{money(collectionTotal)}</p>
+          </div>
+        </div>
       </section>
 
-      {/* Hero kart */}
-      <section className="relative overflow-hidden bg-white rounded-[30px] p-5 shadow-sm mb-5">
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#61aebd] to-[#e5ab53]" />
-        <div className="absolute right-0 top-10 h-44 w-44 rounded-full bg-gradient-to-br from-[#61aebd]/10 via-white to-[#e5ab53]/10 blur-xl opacity-80" />
-
-        <div className="relative z-10">
-          <p className="text-[#61aebd] font-black text-xs tracking-widest mb-3">BUGÜN</p>
-          <h2 className="text-[22px] font-black leading-tight">
-            {taskCount + collectionCount > 0
-              ? `${taskCount + collectionCount} kritik işlem var`
-              : "Temiz bir gün ✨"}
-          </h2>
-          <p className="text-slate-500 text-sm mt-1 mb-4">Planla, yönet, büyüt.</p>
-
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div>
-              <div className="h-10 w-10 bg-blue-50 rounded-2xl grid place-items-center text-lg mb-2">✓</div>
-              <p className="text-xl font-black">{taskCount}</p>
-              <p className="text-xs text-slate-500">Görev</p>
+      {/* Tahsilat uyarısı */}
+      {collectionCount > 0 && (
+        <Link href="/tahsilatlar" className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 bg-amber-100 rounded-xl grid place-items-center">
+              <span className="text-amber-600 font-black text-sm">₺</span>
             </div>
             <div>
-              <div className="h-10 w-10 bg-[#61aebd]/10 rounded-2xl grid place-items-center text-lg mb-2">👥</div>
-              <p className="text-xl font-black">{customerCount}</p>
-              <p className="text-xs text-slate-500">Müşteri</p>
-            </div>
-            <div>
-              <div className="h-10 w-10 bg-emerald-50 rounded-2xl grid place-items-center text-lg mb-2">₺</div>
-              <p className="text-xl font-black">{money(todayIncome)}</p>
-              <p className="text-xs text-slate-500">Gelir</p>
+              <p className="font-black text-sm text-amber-800">{collectionCount} bekleyen tahsilat</p>
+              <p className="text-amber-600 text-xs">{money(collectionTotal)} tahsil edilecek</p>
             </div>
           </div>
+          <span className="text-amber-500 font-black">›</span>
+        </Link>
+      )}
 
-          <Link
-            href="/tahsilatlar"
-            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#61aebd] to-[#e5ab53] px-5 py-3 text-slate-950 font-black shadow text-sm"
-          >
-            {collectionCount > 0
-              ? `${collectionCount} bekleyen tahsilat · ${money(todayCollections)}`
-              : "Bekleyen tahsilat yok"}
-            <span>›</span>
-          </Link>
-        </div>
-      </section>
+      {/* Özet kartlar */}
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <Link href="/musteriler" className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="h-10 w-10 bg-blue-50 rounded-xl grid place-items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <span className="text-xs text-[#64748B]">Müşteriler</span>
+          </div>
+          <p className="text-3xl font-black">{customerCount}</p>
+          <p className="text-xs text-[#64748B] mt-1">Aktif portföy</p>
+        </Link>
+
+        <Link href="/hatirlatmalar" className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="h-10 w-10 bg-purple-50 rounded-xl grid place-items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+            </div>
+            <span className="text-xs text-[#64748B]">Görevler</span>
+          </div>
+          <p className="text-3xl font-black">{taskCount}</p>
+          <p className="text-xs text-[#64748B] mt-1">Bekleyen</p>
+        </Link>
+      </div>
 
       {/* Hızlı erişim */}
-      <section className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-black tracking-widest text-slate-500">HIZLI ERİŞİM</h2>
-        </div>
-
+      <section className="mb-5">
+        <p className="text-xs font-bold tracking-widest text-[#64748B] mb-3">HIZLI ERİŞİM</p>
         <div className="grid grid-cols-5 gap-2">
           {([
-            ["+",  "Müşteri\nEkle",  "/musteriler"],
-            ["↑₺", "Gelir\nEkle",    "/gelir-gider"],
-            ["▣",  "Takvim",         "/takvim"],
-            ["◔",  "Raporlar",       "/raporlar"],
-            ["✧",  "Asistan",        "/asistan"],
-          ] as [string, string, string][]).map(([icon, label, href]) => (
-            <Link
-              key={label}
-              href={href}
-              className="bg-white rounded-[22px] p-2.5 shadow-sm text-center flex flex-col items-center justify-center min-h-[76px]"
-            >
-              <div className="text-xl bg-slate-50 h-10 w-10 rounded-xl grid place-items-center mb-1.5 text-[#61aebd] font-black">
-                {icon}
-              </div>
-              <p className="text-[11px] font-black whitespace-pre-line leading-tight text-slate-700">{label}</p>
+            { icon: "＋", label: "Müşteri", href: "/musteriler" },
+            { icon: "↑₺", label: "Gelir", href: "/gelir-gider" },
+            { icon: "📅", label: "Takvim", href: "/takvim" },
+            { icon: "◔", label: "Raporlar", href: "/raporlar" },
+            { icon: "✦", label: "Asistan", href: "/asistan" },
+          ]).map(({ icon, label, href }) => (
+            <Link key={label} href={href} className="bg-white rounded-2xl py-3 shadow-sm flex flex-col items-center justify-center gap-1">
+              <span className="text-lg">{icon}</span>
+              <span className="text-[10px] font-bold text-[#64748B]">{label}</span>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* İstatistik kartları */}
-      <section className="grid grid-cols-2 gap-3 mb-5">
-
-        <Link href="/musteriler" className="bg-white rounded-[26px] p-4 shadow-sm block">
-          <div className="h-11 w-11 bg-[#61aebd]/10 rounded-2xl grid place-items-center text-xl mb-3">👥</div>
-          <h3 className="font-black text-sm text-slate-500">Müşteriler</h3>
-          <p className="text-3xl font-black mt-1">{customerCount}</p>
-          <p className="text-slate-400 text-xs mt-1">Aktif portföy</p>
-          <Spark color="#61aebd" />
-        </Link>
-
-        <Link href="/gelir-gider" className="bg-white rounded-[26px] p-4 shadow-sm block">
-          <div className="h-11 w-11 bg-emerald-50 rounded-2xl grid place-items-center text-xl mb-3">₺</div>
-          <h3 className="font-black text-sm text-slate-500">Gelir</h3>
-          <p className="text-3xl font-black mt-1">{money(todayIncome)}</p>
-          <p className="text-slate-400 text-xs mt-1">Bugünkü gelir</p>
-          <Spark color="#22c55e" />
-        </Link>
-
-        <Link href="/gelir-gider" className="bg-white rounded-[26px] p-4 shadow-sm block">
-          <div className="h-11 w-11 bg-red-50 rounded-2xl grid place-items-center text-xl mb-3">↘</div>
-          <h3 className="font-black text-sm text-slate-500">Gider</h3>
-          <p className="text-3xl font-black mt-1">{money(todayExpense)}</p>
-          <p className="text-slate-400 text-xs mt-1">Bugünkü gider</p>
-          <Spark color="#f43f5e" />
-        </Link>
-
-        <Link href="/tahsilatlar" className="bg-white rounded-[26px] p-4 shadow-sm block">
-          <div className="h-11 w-11 bg-amber-50 rounded-2xl grid place-items-center text-xl mb-3">⏳</div>
-          <h3 className="font-black text-sm text-slate-500">Tahsilat</h3>
-          <p className="text-3xl font-black mt-1">{money(todayCollections)}</p>
-          <p className="text-slate-400 text-xs mt-1">
-            {collectionCount > 0 ? `${collectionCount} bekleyen` : "Bekleyen yok"}
-          </p>
-          <Spark color="#f59e0b" />
-        </Link>
-
-      </section>
-
-      {/* Net durum şeridi */}
-      <section className="bg-white rounded-[26px] px-5 py-4 shadow-sm mb-5 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-black text-slate-500 tracking-widest">GÜNLÜK NET</p>
-          <p className={`text-2xl font-black mt-0.5 ${net >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-            {money(net)}
-          </p>
-        </div>
-        <Link
-          href="/gelir-gider"
-          className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 font-black rounded-2xl px-4 py-2.5 text-sm"
-        >
-          Detay ›
-        </Link>
-      </section>
-
-      {/* Ajanda */}
+      {/* Günün ajandası */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-black tracking-widest text-slate-500">BUGÜNÜN AJANDASI</h2>
-          <Link href="/hatirlatmalar" className="text-[#61aebd] font-black text-xs">Tümü →</Link>
+          <p className="text-xs font-bold tracking-widest text-[#64748B]">BUGÜNÜN AJANDASI</p>
+          <Link href="/hatirlatmalar" className="text-xs font-bold text-[#1E3A5F]">Tümü →</Link>
         </div>
 
         {agenda.length === 0 ? (
-          <div className="bg-white rounded-[22px] p-5 shadow-sm text-center">
-            <p className="text-slate-400 text-sm">Bugün için bekleyen takip yok.</p>
-            <Link href="/asistan" className="mt-3 inline-block text-[#61aebd] font-black text-sm">
-              Asistan'a sor →
-            </Link>
+          <div className="bg-white rounded-2xl p-5 shadow-sm text-center">
+            <p className="text-[#64748B] text-sm mb-2">Bugün için bekleyen takip yok.</p>
+            <Link href="/asistan" className="text-sm font-bold text-[#1E3A5F]">Asistan'a sor →</Link>
           </div>
         ) : (
-          <div className="relative pl-8">
-            <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#61aebd] to-[#e5ab53] rounded-full" />
+          <div className="grid gap-2">
             {agenda.map((item, i) => (
-              <div key={i} className="relative bg-white rounded-[22px] p-4 shadow-sm mb-3 flex items-center justify-between">
-                <span className="absolute -left-[31px] h-3 w-3 rounded-full bg-gradient-to-br from-[#61aebd] to-[#e5ab53]" />
+              <Link key={i} href={item.href} className="bg-white rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-slate-50 grid place-items-center text-lg font-black text-[#61aebd]">
+                  <div className={`h-10 w-10 rounded-xl grid place-items-center font-black text-sm ${
+                    item.type === "tahsilat" ? "bg-amber-50 text-amber-600" :
+                    item.type === "gorev"    ? "bg-purple-50 text-purple-600" :
+                                              "bg-blue-50 text-blue-600"
+                  }`}>
                     {item.icon}
                   </div>
                   <div>
-                    <h3 className="font-black text-sm">{item.title}</h3>
-                    <p className="text-slate-500 text-xs">{item.sub}</p>
+                    <p className="font-bold text-sm text-[#0B1437]">{item.title}</p>
+                    <p className="text-xs text-[#64748B]">{item.sub}</p>
                   </div>
                 </div>
-                <span className="text-xs text-[#61aebd] font-black">{item.type} ›</span>
-              </div>
+                <span className="text-[#64748B] text-sm">›</span>
+              </Link>
             ))}
           </div>
         )}
       </section>
 
-      {/* FAB asistan butonu */}
-      <Link
-        href="/asistan"
-        className="fixed bottom-28 right-6 h-14 w-14 rounded-full bg-gradient-to-br from-[#61aebd] to-[#e5ab53] shadow-[0_12px_40px_rgba(97,174,189,0.5)] grid place-items-center text-slate-950 text-2xl font-black z-[9998]"
-      >
+      {/* FAB */}
+      <Link href="/asistan" className="fixed bottom-28 right-5 h-14 w-14 rounded-full bg-[#0B1437] shadow-lg grid place-items-center text-white text-xl z-[9998]">
         ✦
       </Link>
-
     </main>
   );
 }
