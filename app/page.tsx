@@ -177,7 +177,7 @@ export default function HomePage() {
           {[
             { icon: "👤＋", label: "Müşteri Ekle", href: "/musteriler", primary: true },
             { icon: "↑₺",   label: "Gelir Ekle",   href: "/gelir-gider", primary: false },
-            { icon: "🧾",   label: "Fatura Kes",    href: `/fatura/${Date.now()}`, primary: false },
+            { icon: "🧾",   label: "Fatura Kes",    href: "/musteriler", primary: false },
             { icon: "📊",   label: "Raporlar",      href: "/raporlar", primary: false },
             { icon: "✦",    label: "Asistan",       href: "/asistan", primary: false },
           ].map(({ icon, label, href, primary }) => (

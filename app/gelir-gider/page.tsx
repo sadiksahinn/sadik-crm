@@ -115,85 +115,97 @@ export default function GelirGiderPage() {
     load();
   }
 
+  const C = { primary:"#006879", bg:"#f8f9fa", card:"#ffffff", border:"#bdc8cc", textMain:"#191c1d", textSub:"#3e484b", error:"#ba1a1a", dark:"#2e3132" };
+  const net = incomeTotal - expenseTotal;
+
   return (
-    <main className="min-h-screen bg-[#F5F6FA] text-slate-950 px-4 pt-5 pb-32">
-      <header className="flex items-center justify-between mb-5">
+    <main style={{minHeight:"100vh",background:C.bg,color:C.textMain,fontFamily:"'Manrope',sans-serif",paddingBottom:96}}>
+      <header style={{position:"sticky",top:0,zIndex:50,background:C.card,borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px"}}>
         <div>
-          <h1 className="text-3xl font-black">Finans</h1>
-          <p className="text-slate-500">Gelir, gider ve kasa takibi</p>
+          <h1 style={{fontWeight:700,fontSize:18,margin:0}}>Finans</h1>
+          <p style={{fontSize:12,color:C.textSub,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>Gelir, gider ve kasa takibi</p>
         </div>
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
+        <Link href="/" style={{padding:"8px 14px",borderRadius:10,border:`1px solid ${C.border}`,background:"transparent",fontSize:13,fontWeight:600,color:C.textSub,textDecoration:"none",fontFamily:"'Hanken Grotesk',sans-serif"}}>Ana</Link>
       </header>
 
-      <section className="grid grid-cols-3 gap-2 mb-5">
-        <div className="bg-white rounded-2xl p-3 shadow-sm">
-          <p className="text-xs text-slate-500">Gelir</p>
-          <h2 className="text-lg font-black text-emerald-600">{money(incomeTotal)}</h2>
-        </div>
-        <div className="bg-white rounded-2xl p-3 shadow-sm">
-          <p className="text-xs text-slate-500">Gider</p>
-          <h2 className="text-lg font-black text-red-600">{money(expenseTotal)}</h2>
-        </div>
-        <div className="bg-white rounded-2xl p-3 shadow-sm">
-          <p className="text-xs text-slate-500">Net</p>
-          <h2 className="text-lg font-black">{money(incomeTotal - expenseTotal)}</h2>
-        </div>
-      </section>
-
-      <section className="bg-white rounded-[28px] p-4 shadow-sm mb-5">
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <button onClick={() => setTab("gelir")} className={`rounded-2xl p-4 font-black ${tab === "gelir" ? "bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white" : "bg-slate-100"}`}>Gelir Ekle</button>
-          <button onClick={() => setTab("gider")} className={`rounded-2xl p-4 font-black ${tab === "gider" ? "bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white" : "bg-slate-100"}`}>Gider Ekle</button>
-        </div>
-
-        <form onSubmit={save} className="grid gap-3">
-          <input name="title" required placeholder={tab === "gelir" ? "Örn: Suite Halı ödeme" : "Örn: Market"} className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          <input name="amount" required type="number" placeholder="Tutar" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          <input name="date" type="date" defaultValue={today()} className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          {tab === "gider" && <input name="category" placeholder="Kategori" className="bg-slate-100 rounded-2xl p-4 outline-none" />}
-          <select name="method" className="bg-slate-100 rounded-2xl p-4 outline-none">
-            <option>Nakit</option><option>Havale/EFT</option><option>Kredi Kartı</option><option>Diğer</option>
-          </select>
-          <textarea name="note" placeholder="Not" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          <button className="bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white rounded-2xl p-4 font-black">{tab === "gelir" ? "Geliri Kaydet" : "Gideri Kaydet"}</button>
-        </form>
-      </section>
-
-      <section className="grid gap-3">
-        {records.map((r) => (
-          <div key={`${r.type}-${r.id}`} className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex justify-between gap-3">
-              <div>
-                <p className={`text-xs font-black ${r.type === "gelir" ? "text-emerald-600" : "text-red-600"}`}>{r.type.toUpperCase()}</p>
-                <h3 className="font-black">{r.title}</h3>
-                <p className="text-slate-500 text-sm">{r.payment_method || "Yöntem yok"}</p>
-              </div>
-              <p className="font-black">{money(Number(r.amount))}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              <button onClick={() => setEditing(r)} className="bg-slate-100 rounded-xl p-3 font-black">Düzenle</button>
-              <button onClick={() => deleteRecord(r)} className="bg-red-50 text-red-600 rounded-xl p-3 font-black">Sil</button>
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {editing && (
-        <section className="fixed inset-0 bg-slate-950/30 z-[99999] grid place-items-end">
-          <div className="bg-white rounded-t-[32px] p-5 w-full shadow-2xl">
-            <h2 className="text-2xl font-black mb-4">Kaydı Düzenle</h2>
-            <div className="grid gap-3">
-              <input value={editing.title || ""} onChange={(e) => setEditing({...editing, title:e.target.value})} className="bg-slate-100 rounded-2xl p-4 outline-none" />
-              <input value={editing.amount || ""} type="number" onChange={(e) => setEditing({...editing, amount:e.target.value})} className="bg-slate-100 rounded-2xl p-4 outline-none" />
-              <textarea value={editing.note || ""} onChange={(e) => setEditing({...editing, note:e.target.value})} className="bg-slate-100 rounded-2xl p-4 outline-none" />
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={updateRecord} className="bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white rounded-2xl p-4 font-black">Kaydet</button>
-                <button onClick={() => setEditing(null)} className="bg-slate-100 rounded-2xl p-4 font-black">Vazgeç</button>
-              </div>
-            </div>
+      <div style={{padding:"16px",maxWidth:480,margin:"0 auto"}}>
+        {/* Özet */}
+        <section style={{borderRadius:12,padding:20,marginBottom:16,position:"relative",overflow:"hidden",background:C.dark}}>
+          <div style={{position:"absolute",top:0,right:0,width:120,height:120,borderRadius:"50%",opacity:0.15,background:`radial-gradient(circle,${C.primary},transparent)`,transform:"translate(30%,-30%)"}} />
+          <p style={{fontSize:10,letterSpacing:"0.08em",color:"rgba(255,255,255,0.5)",marginBottom:4,fontFamily:"'Hanken Grotesk',sans-serif"}}>TOPLAM NET</p>
+          <p style={{fontSize:32,fontWeight:700,color:net>=0?"#4ade80":"#f87171",letterSpacing:"-0.02em",margin:"0 0 12px"}}>{money(net)}</p>
+          <div style={{display:"flex",gap:20}}>
+            <div><p style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Hanken Grotesk',sans-serif"}}>GELİR</p><p style={{fontWeight:700,fontSize:14,color:"#4ade80"}}>{money(incomeTotal)}</p></div>
+            <div><p style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Hanken Grotesk',sans-serif"}}>GİDER</p><p style={{fontWeight:700,fontSize:14,color:"#f87171"}}>{money(expenseTotal)}</p></div>
           </div>
         </section>
+
+        {/* Form */}
+        <section style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:16,marginBottom:16}}>
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
+            {(["gelir","gider"] as const).map(t => (
+              <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:"10px 0",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",border:"none",fontFamily:"'Hanken Grotesk',sans-serif",background:tab===t?C.primary:"#f3f4f5",color:tab===t?"#fff":C.textSub}}>
+                {t==="gelir"?"💚 Gelir Ekle":"❤️ Gider Ekle"}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={save} style={{display:"grid",gap:10}}>
+            {[
+              {name:"title",placeholder:tab==="gelir"?"Örn: Suite Halı ödeme":"Örn: Market"},
+              {name:"amount",type:"number",placeholder:"Tutar"},
+              {name:"date",type:"date",defaultValue:today()},
+            ].map(p => (
+              <input key={p.name} {...p} required={p.name!=="date"} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none",fontFamily:"'Hanken Grotesk',sans-serif"}} />
+            ))}
+            {tab==="gider" && <input name="category" placeholder="Kategori (Market, Ulaşım...)" style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none",fontFamily:"'Hanken Grotesk',sans-serif"}} />}
+            <select name="method" style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none",fontFamily:"'Hanken Grotesk',sans-serif"}}>
+              <option>Nakit</option><option>Havale/EFT</option><option>Kredi Kartı</option><option>Diğer</option>
+            </select>
+            <button type="submit" style={{padding:"12px 0",borderRadius:8,background:C.primary,color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",border:"none",fontFamily:"'Hanken Grotesk',sans-serif"}}>
+              {tab==="gelir"?"Geliri Kaydet":"Gideri Kaydet"}
+            </button>
+          </form>
+        </section>
+
+        {/* Liste */}
+        <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:C.textSub,marginBottom:10,fontFamily:"'Hanken Grotesk',sans-serif"}}>TÜM KAYITLAR</p>
+        <div style={{display:"grid",gap:8}}>
+          {records.map((r) => (
+            <div key={`${r.type}-${r.id}`} style={{borderRadius:12,border:`1px solid ${C.border}`,borderLeft:`4px solid ${r.type==="gelir"?"#10b981":C.error}`,background:C.card,padding:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div>
+                  <p style={{fontSize:10,fontWeight:700,color:r.type==="gelir"?"#10b981":C.error,letterSpacing:"0.06em",marginBottom:2,fontFamily:"'Hanken Grotesk',sans-serif"}}>{r.type.toUpperCase()}</p>
+                  <p style={{fontWeight:700,fontSize:14,color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>{r.title}</p>
+                  <p style={{fontSize:12,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>{r.income_date||r.expense_date||""} · {r.payment_method||""}</p>
+                </div>
+                <p style={{fontWeight:700,fontSize:16,color:r.type==="gelir"?"#10b981":C.error,fontFamily:"'Manrope',sans-serif"}}>{money(Number(r.amount))}</p>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setEditing(r)} style={{flex:1,padding:"8px 0",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",fontSize:13,fontWeight:600,cursor:"pointer",color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>Düzenle</button>
+                <button onClick={()=>deleteRecord(r)} style={{flex:1,padding:"8px 0",borderRadius:8,border:`1px solid #fecaca`,background:"#fef2f2",fontSize:13,fontWeight:600,cursor:"pointer",color:C.error,fontFamily:"'Hanken Grotesk',sans-serif"}}>Sil</button>
+              </div>
+            </div>
+          ))}
+          {records.length===0 && <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:24,textAlign:"center"}}><p style={{color:C.textSub,fontSize:14}}>Henüz kayıt yok.</p></div>}
+        </div>
+      </div>
+
+      {editing && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.3)",zIndex:99999,display:"flex",alignItems:"flex-end"}}>
+          <div style={{background:C.card,borderRadius:"20px 20px 0 0",padding:20,width:"100%",boxShadow:"0 -8px 40px rgba(0,0,0,0.15)"}}>
+            <p style={{fontWeight:700,fontSize:16,marginBottom:16,color:C.textMain}}>Kaydı Düzenle</p>
+            <div style={{display:"grid",gap:10}}>
+              <input value={editing.title||""} onChange={e=>setEditing({...editing,title:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
+              <input value={editing.amount||""} type="number" onChange={e=>setEditing({...editing,amount:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
+              <textarea value={editing.note||""} onChange={e=>setEditing({...editing,note:e.target.value})} placeholder="Not" style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={updateRecord} style={{flex:1,padding:"12px 0",borderRadius:8,background:C.primary,color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",border:"none",fontFamily:"'Hanken Grotesk',sans-serif"}}>Kaydet</button>
+                <button onClick={()=>setEditing(null)} style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",fontWeight:600,fontSize:14,cursor:"pointer",color:C.textSub}}>Vazgeç</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );

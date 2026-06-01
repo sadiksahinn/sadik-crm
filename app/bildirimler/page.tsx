@@ -144,63 +144,60 @@ export default function BildirimlerPage() {
     load();
   }
 
-  return (
-    <main className="min-h-screen bg-[#F5F6FA] text-slate-950 px-4 pt-5 pb-32">
-      <header className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-[#1E3A5F] text-xs font-black tracking-wide">VALKEA ALERTS</p>
-          <h1 className="text-3xl font-black">Bildirimler</h1>
-          <p className="text-slate-500">Bugün dikkat etmen gerekenler</p>
-        </div>
+  const C = { primary:"#006879", secondary:"#835500", bg:"#f8f9fa", card:"#ffffff", border:"#bdc8cc", textMain:"#191c1d", textSub:"#3e484b", error:"#ba1a1a" };
 
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">
-          Ana
-        </Link>
+  return (
+    <main style={{minHeight:"100vh",background:C.bg,color:C.textMain,fontFamily:"'Manrope',sans-serif",paddingBottom:96}}>
+      <header style={{position:"sticky",top:0,zIndex:50,background:C.card,borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px"}}>
+        <div>
+          <h1 style={{fontWeight:700,fontSize:18,margin:0}}>Bildirimler</h1>
+          <p style={{fontSize:12,color:C.textSub,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>Bugün dikkat etmen gerekenler</p>
+        </div>
+        <Link href="/" style={{padding:"8px 14px",borderRadius:10,border:`1px solid ${C.border}`,fontSize:13,fontWeight:600,color:C.textSub,textDecoration:"none",fontFamily:"'Hanken Grotesk',sans-serif"}}>Ana</Link>
       </header>
 
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
-        <p className="text-slate-500 text-sm">Bekleyen bildirim</p>
-        <h2 className="text-4xl font-black">{items.length}</h2>
-      </section>
+      <div style={{padding:"16px",maxWidth:480,margin:"0 auto"}}>
+        {/* Özet */}
+        <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <p style={{fontSize:11,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif",letterSpacing:"0.06em"}}>BEKLEYEN BİLDİRİM</p>
+            <p style={{fontSize:36,fontWeight:700,color:items.length>0?C.error:C.primary,fontFamily:"'Manrope',sans-serif",lineHeight:1.1}}>{items.length}</p>
+          </div>
+          {items.length > 0 && <span style={{fontSize:28}}>⚠️</span>}
+        </div>
 
-      <section className="grid gap-3">
-        {items.map((item, i) => (
-          <div key={`${item.itemType}-${item.id}-${i}`} className="bg-white rounded-[24px] p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-2xl bg-[#1E3A5F]/10 text-[#1E3A5F] grid place-items-center text-2xl font-black">
-                  {item.icon}
+        {/* Liste */}
+        <div style={{display:"grid",gap:10}}>
+          {items.map((item, i) => {
+            const typeColor = item.itemType==="payment" ? C.error : item.itemType==="content" ? C.primary : C.secondary;
+            return (
+              <div key={`${item.itemType}-${item.id}-${i}`} style={{borderRadius:12,border:`1px solid ${C.border}`,borderLeft:`4px solid ${typeColor}`,background:C.card,padding:14}}>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+                  <div style={{width:44,height:44,borderRadius:10,background:`${typeColor}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
+                    {item.icon}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{fontSize:10,fontWeight:700,color:typeColor,letterSpacing:"0.06em",marginBottom:2,fontFamily:"'Hanken Grotesk',sans-serif"}}>{item.type} · {item.date}</p>
+                    <p style={{fontWeight:700,fontSize:14,color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif",margin:0}}>{item.title}</p>
+                    <p style={{fontSize:12,color:C.textSub,margin:0}}>{item.desc}</p>
+                  </div>
                 </div>
-
-                <div>
-                  <p className="text-xs font-black text-amber-500">{item.type} · {item.date}</p>
-                  <h3 className="font-black">{item.title}</h3>
-                  <p className="text-slate-500 text-sm">{item.desc}</p>
-                </div>
+                <button onClick={()=>completeItem(item)} style={{width:"100%",padding:"10px 0",borderRadius:8,background:C.primary,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",border:"none",fontFamily:"'Hanken Grotesk',sans-serif"}}>
+                  {item.itemType==="payment"?"✓ Ödendi Yap":item.itemType==="content"?"✓ Paylaşıldı Yap":"✓ Tamamlandı Yap"}
+                </button>
               </div>
+            );
+          })}
 
-              <span className="text-slate-400 font-black">›</span>
+          {items.length === 0 && (
+            <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:32,textAlign:"center"}}>
+              <p style={{fontSize:32,marginBottom:8}}>✅</p>
+              <p style={{fontWeight:700,fontSize:15,color:C.textMain,marginBottom:4}}>Harika!</p>
+              <p style={{fontSize:13,color:C.textSub}}>Bugün için bekleyen bildirim yok.</p>
             </div>
-
-            <button
-              onClick={() => completeItem(item)}
-              className="mt-3 w-full bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white rounded-2xl p-3 font-black"
-            >
-              {item.itemType === "payment"
-                ? "Ödendi Yap"
-                : item.itemType === "content"
-                ? "Paylaşıldı Yap"
-                : "Tamamlandı Yap"}
-            </button>
-          </div>
-        ))}
-
-        {items.length === 0 && (
-          <div className="bg-white rounded-[24px] p-5 shadow-sm text-slate-500">
-            Bugün için bekleyen bildirim yok.
-          </div>
-        )}
-      </section>
+          )}
+        </div>
+      </div>
     </main>
   );
 }

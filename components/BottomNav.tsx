@@ -19,10 +19,8 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* Material Symbols font */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
-        .msym { font-family:'Material Symbols Outlined'; font-size:24px; font-style:normal; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; line-height:1; }
+        .msym { font-family:'Material Symbols Outlined'; font-size:24px; font-style:normal; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; line-height:1; display:inline-block; }
         .msym-fill { font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24; }
       `}</style>
 
