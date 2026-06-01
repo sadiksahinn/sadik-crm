@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { name: "Ana Sayfa",  href: "/",           icon: "home" },
-  { name: "Müşteriler", href: "/musteriler",  icon: "group" },
-  { name: "Raporlar",   href: "/raporlar",    icon: "insert_chart" },
-  { name: "Tahsilatlar",href: "/tahsilatlar", icon: "payments" },
-  { name: "Asistan",    href: "/asistan",     icon: "smart_toy" },
+  { name: "Ana",       href: "/",              icon: "home" },
+  { name: "İş",        href: "/is",            icon: "business_center" },
+  { name: "Finans",    href: "/gelir-gider",   icon: "account_balance_wallet" },
+  { name: "Krediler",  href: "/krediler",      icon: "credit_card" },
+  { name: "Asistan",   href: "/asistan",       icon: "smart_toy" },
 ];
 
 const HIDDEN = ["/login", "/onboarding", "/auth"];

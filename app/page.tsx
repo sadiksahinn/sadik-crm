@@ -177,9 +177,9 @@ export default function HomePage() {
           {[
             { icon: "👤＋", label: "Müşteri Ekle", href: "/musteriler", primary: true },
             { icon: "↑₺",   label: "Gelir Ekle",   href: "/gelir-gider", primary: false },
-            { icon: "🧾",   label: "Fatura Kes",    href: "/musteriler", primary: false },
-            { icon: "📊",   label: "Raporlar",      href: "/raporlar", primary: false },
-            { icon: "✦",    label: "Asistan",       href: "/asistan", primary: false },
+            { icon: "💼",   label: "İş Alanı",      href: "/is", primary: false },
+            { icon: "🧾",   label: "Faturalar",     href: "/sabit-giderler", primary: false },
+            { icon: "💳",   label: "Krediler",      href: "/krediler", primary: false },
           ].map(({ icon, label, href, primary }) => (
             <Link key={label} href={href} className="flex flex-col items-center justify-center gap-2 min-w-[90px] h-20 rounded-xl border flex-shrink-0 active:scale-95 transition-transform text-sm font-semibold" style={{
               background: primary ? C.primary : C.card,
