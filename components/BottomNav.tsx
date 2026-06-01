@@ -60,14 +60,14 @@ function IconProfil({ active }: { active: boolean }) {
 }
 
 const TABS = [
-  { name: "Ana",    href: "/",           Icon: IconHome   },
-  { name: "Finans", href: "/gelir-gider", Icon: IconFinans },
-  { name: "Takvim", href: "/takvim",      Icon: IconTakvim },
-  { name: "CRM",    href: "/musteriler",  Icon: IconCRM    },
-  { name: "Profil", href: "/profil",      Icon: IconProfil },
+  { name: "Ana",       href: "/",           Icon: IconHome   },
+  { name: "Finans",    href: "/gelir-gider", Icon: IconFinans },
+  { name: "Takvim",    href: "/takvim",      Icon: IconTakvim },
+  { name: "CRM",       href: "/musteriler",  Icon: IconCRM    },
+  { name: "Asistan",   href: "/asistan",     Icon: IconProfil },
 ];
 
-const HIDDEN_PATHS = ["/asistan", "/login", "/onboarding", "/auth"];
+const HIDDEN_PATHS = ["/login", "/onboarding", "/auth"];
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -77,28 +77,27 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="fixed bottom-4 left-5 right-5 z-[9999] rounded-[30px] border border-white/70 bg-white/80 backdrop-blur-2xl shadow-[0_18px_55px_rgba(15,23,42,0.16)] px-2 py-2">
-      <div className="grid grid-cols-5 gap-1">
+    <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-white border-t border-slate-100 px-2 pb-safe pt-2">
+      <div className="grid grid-cols-5 gap-1 max-w-md mx-auto">
         {TABS.map(({ name, href, Icon }) => {
-          const active = pathname === href;
+          const active = pathname === href || (href !== "/" && pathname.startsWith(href));
           return (
             <Link
               key={name}
               href={href}
-              className="flex flex-col items-center justify-center gap-1 py-1"
+              className="flex flex-col items-center justify-center gap-1 py-2"
             >
-              <div className={`h-10 w-10 rounded-2xl grid place-items-center transition-all ${
-                active
-                  ? "bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-slate-950 shadow-md"
-                  : "text-slate-400"
+              <div className={`h-8 w-8 rounded-xl grid place-items-center transition-all ${
+                active ? "text-[#0B2545]" : "text-slate-400"
               }`}>
                 <Icon active={active} />
               </div>
-              <span className={`text-[11px] font-black tracking-tight ${
-                active ? "text-slate-950" : "text-slate-400"
+              <span className={`text-[10px] font-semibold tracking-tight ${
+                active ? "text-[#0B2545]" : "text-slate-400"
               }`}>
                 {name}
               </span>
+              {active && <div className="w-1 h-1 rounded-full bg-[#0B2545]" />}
             </Link>
           );
         })}
