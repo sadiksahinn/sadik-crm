@@ -2,255 +2,179 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-
-const supabase = createClient();
 import Link from "next/link";
 
+const supabase = createClient();
+const C = { primary:"#006879",secondary:"#835500",secFixed:"#feb956",dark:"#2e3132",bg:"#f8f9fa",card:"#ffffff",border:"#bdc8cc",textMain:"#191c1d",textSub:"#3e484b",error:"#ba1a1a" };
 
-function money(v: number) {
-  return new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-    maximumFractionDigits: 0,
-  }).format(v || 0);
-}
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
+function money(v: number) { return new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY",maximumFractionDigits:0}).format(v||0); }
+function today() { return new Date().toISOString().slice(0,10); }
 
 export default function TahsilatlarPage() {
-  const [items, setItems] = useState<any[]>([]);
-  const [title, setTitle] = useState("");
+  const [items, setItems]   = useState<any[]>([]);
+  const [title, setTitle]   = useState("");
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(today());
+  const [date, setDate]     = useState(today());
+  const [adding, setAdding] = useState(false);
 
   async function load() {
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
-
-    if (!user) {
-      window.location.href = "/login";
-      return;
-    }
-
-    const { data } = await supabase
-      .from("payment_tracking")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("due_date", { ascending: true });
-
-    setItems(data || []);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { window.location.href = "/login"; return; }
+    const { data } = await supabase.from("payment_tracking").select("*").eq("user_id",user.id).order("due_date",{ascending:true});
+    setItems(data||[]);
   }
-
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   async function addPayment() {
-    if (!title.trim() || !amount) {
-      alert("Başlık ve tutar gir.");
-      return;
-    }
-
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
+    if (!title.trim()||!amount) return;
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
-    const { error } = await supabase.from("payment_tracking").insert({
-      user_id: user.id,
-      title,
-      amount: Number(amount),
-      due_date: date,
-      status: "bekliyor",
-    });
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    setTitle("");
-    setAmount("");
-    setDate(today());
-    load();
+    await supabase.from("payment_tracking").insert({user_id:user.id,title,amount:Number(amount),due_date:date,status:"bekliyor"});
+    setTitle(""); setAmount(""); setDate(today()); setAdding(false); load();
   }
 
   async function markPaid(item: any) {
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
-    await supabase
-      .from("payment_tracking")
-      .update({
-        status: "ödendi",
-        paid_date: today(),
-        income_created: true,
-      })
-      .eq("id", item.id);
-
+    await supabase.from("payment_tracking").update({status:"ödendi",paid_date:today(),income_created:true}).eq("id",item.id);
     if (!item.income_created) {
-      const { data: createdIncome } = await supabase.from("income").insert({
-      user_id: user.id,
-      title: item.title,
-      amount: Number(item.amount || 0),
-      income_date: today(),
-      payment_method: "Tahsilat",
-      note: "Tahsilat ekranından ödendi olarak işaretlendi.",
-    }).select().single();
-
-    await supabase
-      .from("payment_tracking")
-      .update({ income_id: createdIncome?.id, income_created: true })
-      .eq("id", item.id);
+      const { data: inc } = await supabase.from("income").insert({user_id:user.id,title:item.title,amount:Number(item.amount||0),income_date:today(),payment_method:"Tahsilat"}).select().single();
+      if (inc) await supabase.from("payment_tracking").update({income_id:inc.id}).eq("id",item.id);
     }
-
     load();
   }
 
-  async function deletePayment(item: any) {
-    if (!confirm("Bu tahsilat kaydı silinsin mi?")) return;
-
-    await supabase.from("payment_tracking").delete().eq("id", item.id);
+  async function deletePayment(id: string) {
+    if (!confirm("Silinsin mi?")) return;
+    await supabase.from("payment_tracking").delete().eq("id",id);
     load();
   }
 
-  const pending = items.filter((i) => i.status !== "ödendi");
-  const paid = items.filter((i) => i.status === "ödendi");
-  const pendingTotal = pending.reduce((t, i) => t + Number(i.amount || 0), 0);
-  const overdue = pending.filter((i) => i.due_date < today());
-  const overdueTotal = overdue.reduce((t, i) => t + Number(i.amount || 0), 0);
+  const pending   = items.filter(i => i.status !== "ödendi");
+  const paid      = items.filter(i => i.status === "ödendi");
+  const overdue   = pending.filter(i => i.due_date < today());
+  const pendingTotal = pending.reduce((t,i) => t+Number(i.amount||0),0);
+  const overdueTotal = overdue.reduce((t,i) => t+Number(i.amount||0),0);
+  const paidTotal    = paid.reduce((t,i) => t+Number(i.amount||0),0);
 
   return (
-    <main className="min-h-screen bg-[#F5F6FA] text-slate-950 px-4 pt-5 pb-32">
-      <header className="flex items-center justify-between mb-5">
+    <main className="min-h-screen pb-24" style={{background:C.bg,color:C.textMain,fontFamily:"'Manrope',sans-serif"}}>
+      <header className="sticky top-0 z-50 flex justify-between items-center px-4 h-14 border-b" style={{background:C.card,borderColor:C.border}}>
         <div>
-          <h1 className="text-3xl font-black">Tahsilatlar</h1>
-          <p className="text-slate-500">Bekleyen ödemeleri takip et</p>
+          <h1 className="font-bold text-base">Tahsilatlar</h1>
+          <p className="text-xs" style={{color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>Bekleyen ve tamamlanan ödemeler</p>
         </div>
-
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">
-          Ana
-        </Link>
+        <div className="flex gap-2">
+          <button onClick={()=>setAdding(v=>!v)} className="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style={{background:C.primary,fontFamily:"'Hanken Grotesk',sans-serif"}}>+ Ekle</button>
+          <Link href="/" className="px-3 py-1.5 rounded-lg text-xs font-bold border" style={{borderColor:C.border,color:C.textSub}}>Ana</Link>
+        </div>
       </header>
 
-      {overdue.length > 0 && (
-        <section className="bg-red-500 rounded-[24px] p-4 mb-4 text-white">
-          <p className="text-xs font-black opacity-80 mb-1">GECİKMİŞ TAHSİLAT</p>
-          <p className="text-3xl font-black">{money(overdueTotal)}</p>
-          <p className="text-sm opacity-90 mt-1">{overdue.length} ödeme vadesi geçti — hemen takip et</p>
-        </section>
-      )}
+      <div className="px-4 pt-4 max-w-lg mx-auto">
+        {/* Gecikmiş uyarı */}
+        {overdue.length > 0 && (
+          <section className="rounded-xl p-4 mb-4 flex items-center gap-4" style={{background:`linear-gradient(135deg,${C.error},${C.secondary})`}}>
+            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-2xl">⚠️</div>
+            <div>
+              <h2 className="font-bold text-white">Gecikmiş Ödeme</h2>
+              <p className="text-white/80 text-xs">{overdue.length} müşteri · {money(overdueTotal)}</p>
+            </div>
+          </section>
+        )}
 
-      <section className="grid grid-cols-2 gap-3 mb-5">
-        <div className="bg-white rounded-[26px] p-4 shadow-sm">
-          <p className="text-slate-500 text-sm">Bekleyen</p>
-          <h2 className="text-2xl font-black text-red-600">{money(pendingTotal)}</h2>
-        </div>
-
-        <div className="bg-white rounded-[26px] p-4 shadow-sm">
-          <p className="text-slate-500 text-sm">Ödenen</p>
-          <h2 className="text-2xl font-black text-emerald-600">{paid.length}</h2>
-        </div>
-      </section>
-
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
-        <h2 className="text-xl font-black mb-4">Yeni Tahsilat</h2>
-
-        <div className="grid gap-3">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Örn: Suite Halı ödeme"
-            className="bg-slate-100 rounded-2xl p-4 outline-none"
-          />
-
-          <input
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            type="number"
-            placeholder="Tutar"
-            className="bg-slate-100 rounded-2xl p-4 outline-none"
-          />
-
-          <input
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            type="date"
-            className="bg-slate-100 rounded-2xl p-4 outline-none"
-          />
-
-          <button
-            onClick={addPayment}
-            className="bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white rounded-2xl p-4 font-black"
-          >
-            Tahsilat Ekle
-          </button>
-        </div>
-      </section>
-
-      <section className="grid gap-3">
-        {items.map((item) => {
-          const isOverdue = item.status !== "ödendi" && item.due_date < today();
-          return (
-          <div key={item.id} className={`rounded-2xl p-4 shadow-sm ${isOverdue ? "bg-red-50 border border-red-200" : "bg-white"}`}>
-            <div className="flex justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className={`text-xs font-semibold ${isOverdue ? "text-red-500" : "text-slate-500"}`}>{item.due_date}</p>
-                  {isOverdue && <span className="text-[10px] font-black bg-red-500 text-white rounded-full px-2 py-0.5">GECİKMİŞ</span>}
-                </div>
-                <h3 className="font-black">{item.title}</h3>
-                <p className={item.status === "ödendi" ? "text-emerald-600 font-black text-sm" : "text-red-500 font-black text-sm"}>
-                  {item.status}
-                </p>
+        {/* Yeni ekle formu */}
+        {adding && (
+          <section className="rounded-xl border p-4 mb-4" style={{background:C.card,borderColor:C.border}}>
+            <p className="font-bold text-sm mb-3">Yeni Tahsilat</p>
+            <div className="grid gap-2">
+              <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Başlık" className="rounded-lg px-3 py-2.5 text-sm border outline-none" style={{borderColor:C.border}} />
+              <div className="grid grid-cols-2 gap-2">
+                <input value={amount} onChange={e=>setAmount(e.target.value)} type="number" placeholder="Tutar" className="rounded-lg px-3 py-2.5 text-sm border outline-none" style={{borderColor:C.border}} />
+                <input value={date} onChange={e=>setDate(e.target.value)} type="date" className="rounded-lg px-3 py-2.5 text-sm border outline-none" style={{borderColor:C.border}} />
               </div>
-              <p className={`text-xl font-black ${isOverdue ? "text-red-600" : ""}`}>{money(Number(item.amount))}</p>
+              <div className="flex gap-2">
+                <button onClick={addPayment} className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white" style={{background:C.primary}}>Kaydet</button>
+                <button onClick={()=>setAdding(false)} className="flex-1 py-2.5 rounded-lg text-sm border" style={{borderColor:C.border,color:C.textSub}}>İptal</button>
+              </div>
             </div>
+          </section>
+        )}
 
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              {item.status !== "ödendi" ? (
-                <button
-                  onClick={() => markPaid(item)}
-                  className="bg-emerald-50 text-emerald-600 rounded-xl p-3 font-black"
-                >
-                  Ödendi
-                </button>
-              ) : (
-                <div className="bg-slate-100 rounded-xl p-3 font-black text-center">
-                  Tamam
-                </div>
-              )}
-
-              <button
-                onClick={() => {
-                  const msg = `Merhaba, ${item.title} için ${money(Number(item.amount || 0))} tutarındaki ödeme günümüz gelmiştir. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.`;
-                  navigator.clipboard.writeText(msg);
-                  alert("WhatsApp mesajı kopyalandı.");
-                }}
-                className="bg-[#1E3A5F]/10 text-[#1E3A5F] rounded-xl p-3 font-black"
-              >
-                Mesaj
-              </button>
-
-              <button
-                onClick={() => deletePayment(item)}
-                className="bg-red-50 text-red-600 rounded-xl p-3 font-black col-span-2"
-              >
-                Sil
-              </button>
+        {/* Bekleyen */}
+        {pending.length > 0 && (
+          <section className="mb-4">
+            <p className="text-xs font-bold tracking-widest mb-3" style={{color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>BEKLİYEN ({pending.length})</p>
+            <div className="space-y-3">
+              {pending.map((item) => {
+                const isOvr = item.due_date < today();
+                const init = item.title.split(" ").map((w:string)=>w[0]).join("").slice(0,2).toUpperCase();
+                return (
+                  <div key={item.id} className="rounded-xl border-l-4 border p-4" style={{background:C.card,borderLeftColor:isOvr?C.error:C.primary,borderColor:C.border}}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0" style={{background:`${isOvr?C.error:C.primary}18`,color:isOvr?C.error:C.primary}}>{init}</div>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm" style={{color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>{item.title}</p>
+                        <p className="text-xs" style={{color:C.textSub}}>Vade: {item.due_date}</p>
+                      </div>
+                      <p className="font-bold text-base" style={{color:isOvr?C.error:C.primary,fontFamily:"'Hanken Grotesk',sans-serif"}}>{money(Number(item.amount))}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={()=>markPaid(item)} className="flex-1 py-2 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1" style={{background:C.primary,fontFamily:"'Hanken Grotesk',sans-serif"}}>✓ Ödendi</button>
+                      <button onClick={()=>{
+                        const msg=`Merhaba, ${item.title} için ${money(Number(item.amount||0))} tutarındaki ödeme günümüz gelmiştir. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.`;
+                        navigator.clipboard.writeText(msg).catch(()=>{});
+                        alert("WhatsApp mesajı kopyalandı");
+                      }} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1" style={{borderColor:C.border,color:C.primary}}>💬 Mesaj</button>
+                      <button onClick={()=>deletePayment(item.id)} className="px-3 py-2 rounded-lg text-xs border" style={{borderColor:C.border,color:C.error}}>🗑</button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          </section>
+        )}
+
+        {/* Özet */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="rounded-xl p-4" style={{background:C.dark}}>
+            <p className="text-[10px] tracking-widest text-white/50 mb-1" style={{fontFamily:"'Hanken Grotesk',sans-serif"}}>BEKLEYEN</p>
+            <p className="font-bold text-xl text-white">{money(pendingTotal)}</p>
+            <p className="text-xs text-white/40 mt-1">{pending.length} kayıt</p>
           </div>
-          );
-        })}
+          <div className="rounded-xl p-4 border" style={{background:C.card,borderColor:C.border}}>
+            <p className="text-[10px] tracking-widest mb-1" style={{color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>ALINAN</p>
+            <p className="font-bold text-xl" style={{color:C.primary}}>{money(paidTotal)}</p>
+            <p className="text-xs mt-1" style={{color:C.textSub}}>{paid.length} tahsilat</p>
+          </div>
+        </div>
 
-        {items.length === 0 && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm text-slate-500">
-            Henüz tahsilat kaydı yok.
+        {/* Tamamlananlar */}
+        {paid.length > 0 && (
+          <section>
+            <p className="text-xs font-bold tracking-widest mb-3" style={{color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>TAMAMLANDI ({paid.length})</p>
+            <div className="space-y-2">
+              {paid.map((item) => (
+                <div key={item.id} className="rounded-xl border p-4 flex justify-between items-center opacity-75" style={{background:C.card,borderColor:C.border}}>
+                  <div>
+                    <p className="font-semibold text-sm" style={{color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>{item.title}</p>
+                    <p className="text-xs" style={{color:C.textSub}}>{item.paid_date||item.due_date}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-sm" style={{color:"#10b981",fontFamily:"'Hanken Grotesk',sans-serif"}}>{money(Number(item.amount))}</p>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{background:"#10b98120",color:"#10b981"}}>✓</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {items.length===0 && (
+          <div className="rounded-xl border p-8 text-center" style={{background:C.card,borderColor:C.border}}>
+            <p className="text-sm" style={{color:C.textSub}}>Henüz tahsilat yok.</p>
           </div>
         )}
-      </section>
+      </div>
     </main>
   );
 }

@@ -298,141 +298,95 @@ export default function AsistanPage() {
     }
   }
 
+  const C = { primary:"#006879", dark:"#2e3132", bg:"#f8f9fa", card:"#ffffff", border:"#bdc8cc", textMain:"#191c1d", textSub:"#3e484b", error:"#ba1a1a" };
+
   return (
-    <main className="min-h-screen bg-[#F5F6FA] text-slate-950 px-4 pt-5 pb-36">
-      <header className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-[#1E3A5F] text-xs font-black tracking-wide">VALKEA AI</p>
-          <h1 className="text-3xl font-black">Asistan</h1>
-          <p className="text-slate-500">Konuşarak işlerini yönet.</p>
+    <main style={{minHeight:"100vh",background:C.bg,fontFamily:"'Manrope',sans-serif",display:"flex",flexDirection:"column"}}>
+
+      {/* Header */}
+      <header style={{position:"sticky",top:0,zIndex:50,background:C.card,borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+          <div style={{width:40,height:40,borderRadius:"50%",background:C.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🤖</div>
+          <div>
+            <p style={{fontWeight:700,fontSize:15,color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>Valkea Finansal Asistan</p>
+            <p style={{fontSize:11,color:C.textSub}}>Son hat yapay zeka ile finans yönetimi</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div style={{display:"flex",gap:8}}>
           {messages.length > 1 && (
-            <button
-              onClick={() => { setMessages([]); localStorage.removeItem(STORAGE_KEY); setShowQuick(true); }}
-              className="bg-white rounded-2xl px-3 py-3 shadow-sm font-black text-slate-400 text-sm"
-              title="Sohbeti temizle"
-            >
-              🗑
+            <button onClick={() => { setMessages([]); localStorage.removeItem(STORAGE_KEY); setShowQuick(true); }} style={{padding:"6px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",cursor:"pointer",fontSize:13,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>
+              🗑 Temizle
             </button>
           )}
-          <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
         </div>
       </header>
 
+      {/* Hızlı aksiyonlar */}
       {showQuick && messages.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+        <div style={{display:"flex",gap:8,overflowX:"auto",padding:"12px 16px 8px",scrollbarWidth:"none"}}>
           {QUICK_ACTIONS.map((action) => (
-            <button
-              key={action}
-              onClick={() => sendMessage(action)}
-              className="whitespace-nowrap rounded-2xl bg-white border border-[#1E3A5F]/20 px-4 py-2 text-sm font-black text-[#1E3A5F] shadow-sm flex-shrink-0"
-            >
+            <button key={action} onClick={() => sendMessage(action)} style={{whiteSpace:"nowrap",padding:"8px 14px",borderRadius:20,border:`1px solid ${C.border}`,background:C.card,color:C.primary,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif",flexShrink:0}}>
               {action}
             </button>
           ))}
         </div>
       )}
 
-      <section className="grid gap-3">
+      {/* Mesajlar */}
+      <div style={{flex:1,padding:"12px 16px",paddingBottom:100,display:"flex",flexDirection:"column",gap:12}}>
         {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`max-w-[88%] rounded-[24px] p-4 shadow-sm ${
-              msg.role === "user"
-                ? "ml-auto bg-gradient-to-br from-[#0B1437] to-[#1E3A5F] text-white"
-                : "mr-auto bg-white text-slate-950"
-            }`}
-          >
-            {msg.image && (
-              <img
-                src={msg.image}
-                alt="Yüklenen görsel"
-                className="rounded-2xl max-h-52 w-full object-cover mb-2"
-              />
-            )}
-            {msg.text && (
-              <p className="whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
-            )}
+          <div key={index} style={{maxWidth:"88%",alignSelf:msg.role==="user"?"flex-end":"flex-start"}}>
+            <div style={{
+              borderRadius:16,padding:"12px 14px",
+              background:msg.role==="user"?C.primary:C.card,
+              color:msg.role==="user"?"#fff":C.textMain,
+              border:msg.role==="user"?"none":`1px solid ${C.border}`,
+              boxShadow:msg.role==="user"?"none":"0 1px 4px rgba(0,0,0,0.06)",
+            }}>
+              {msg.image && <img src={msg.image} alt="" style={{borderRadius:10,maxHeight:200,width:"100%",objectFit:"cover",marginBottom:8}} />}
+              {msg.text && <p style={{whiteSpace:"pre-line",fontSize:14,lineHeight:1.6,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>{msg.text}</p>}
 
-            {/* Kısa onay kartı — sadece iki buton */}
-            {msg.proposal && (
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={() => approveProposal(msg.proposal)}
-                  disabled={loading}
-                  className="flex-1 bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white rounded-2xl py-3 text-sm font-black disabled:opacity-50"
-                >
-                  ✅ Evet, kaydet
-                </button>
-                <button
-                  onClick={() =>
-                    setMessages((prev) => [
-                      ...prev,
-                      { role: "assistant", text: "Tamam, kaydedmedim. Başka bir şey var mı?" },
-                    ])
-                  }
-                  disabled={loading}
-                  className="flex-1 bg-slate-100 text-slate-600 rounded-2xl py-3 text-sm font-black disabled:opacity-50"
-                >
-                  ❌ Hayır
-                </button>
-              </div>
-            )}
+              {msg.proposal && (
+                <div style={{marginTop:12,display:"flex",gap:8}}>
+                  <button onClick={() => approveProposal(msg.proposal)} disabled={loading} style={{flex:1,padding:"10px 0",borderRadius:10,background:C.primary,color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer",border:"none",fontFamily:"'Hanken Grotesk',sans-serif"}}>✅ Evet, kaydet</button>
+                  <button onClick={() => setMessages(prev=>[...prev,{role:"assistant",text:"Tamam, kaydedmedim."}])} disabled={loading} style={{flex:1,padding:"10px 0",borderRadius:10,background:"#f3f4f5",color:C.textMain,fontWeight:600,fontSize:13,cursor:"pointer",border:`1px solid ${C.border}`,fontFamily:"'Hanken Grotesk',sans-serif"}}>❌ Hayır</button>
+                </div>
+              )}
 
-            {msg.record && (
-              <div className={`mt-3 rounded-2xl border p-3 ${recordStyle(msg.record.type)}`}>
-                <p className="text-xs font-black mb-1">
-                  {String(msg.record.type || "KAYIT").toUpperCase()} KAYDI
-                </p>
-                <h3 className="font-black">{msg.record.title}</h3>
-                {typeof msg.record.amount === "number" && (
-                  <p className="text-2xl font-black">{money(msg.record.amount)}</p>
-                )}
-              </div>
-            )}
+              {msg.record && (
+                <div style={{marginTop:10,padding:"10px 12px",borderRadius:10,border:`1px solid ${C.border}`,background:msg.record.type==="gelir"?"#f0fdf4":msg.record.type==="gider"?"#fef2f2":"#f8f9fa"}}>
+                  <p style={{fontSize:10,fontWeight:700,color:C.textSub,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.06em",fontFamily:"'Hanken Grotesk',sans-serif"}}>{msg.record.type||"KAYIT"}</p>
+                  <p style={{fontWeight:700,fontSize:14,margin:0,color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>{msg.record.title}</p>
+                  {typeof msg.record.amount==="number" && <p style={{fontSize:22,fontWeight:700,margin:"4px 0 0",color:msg.record.type==="gelir"?"#10b981":C.error,fontFamily:"'Manrope',sans-serif"}}>{money(msg.record.amount)}</p>}
+                </div>
+              )}
+            </div>
           </div>
         ))}
 
         {loading && (
-          <div className="mr-auto bg-white rounded-[24px] p-4 shadow-sm">
-            <div className="flex items-center gap-2 text-slate-400">
-              <span className="inline-flex gap-1">
-                <span className="w-2 h-2 bg-[#0B1437] rounded-full animate-bounce [animation-delay:0ms]" />
-                <span className="w-2 h-2 bg-[#0B1437] rounded-full animate-bounce [animation-delay:150ms]" />
-                <span className="w-2 h-2 bg-[#0B1437] rounded-full animate-bounce [animation-delay:300ms]" />
-              </span>
-              <span className="text-sm">{recording ? "Dinliyor..." : "Düşünüyor..."}</span>
-            </div>
+          <div style={{alignSelf:"flex-start",background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"12px 16px",display:"flex",alignItems:"center",gap:8}}>
+            <span style={{display:"inline-flex",gap:4}}>
+              {[0,150,300].map(d=><span key={d} className="w-2 h-2 rounded-full animate-bounce" style={{background:C.primary,animationDelay:`${d}ms`,display:"inline-block",width:7,height:7,borderRadius:"50%"}} />)}
+            </span>
+            <span style={{fontSize:13,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>{recording?"Dinliyor...":"Düşünüyor..."}</span>
           </div>
         )}
-
         <div ref={bottomRef} />
-      </section>
+      </div>
 
       {/* Hidden image input */}
-      <input
-        ref={imageInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleImageUpload(file);
-          e.target.value = "";
-        }}
-      />
+      <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e)=>{const f=e.target.files?.[0];if(f)handleImageUpload(f);e.target.value="";}} />
 
-      <section className="fixed bottom-4 left-4 right-4 bg-white rounded-[28px] p-3 shadow-[0_18px_60px_rgba(15,23,42,0.18)] z-[9999]">
-        <div className="flex gap-2 items-center">
+      {/* Input bar */}
+      <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.card,borderTop:`1px solid ${C.border}`,padding:"10px 16px",paddingBottom:"max(16px,env(safe-area-inset-bottom))",zIndex:9999,display:"flex",gap:10,alignItems:"center"}}>
           {/* Kamera */}
           <button
             onClick={() => imageInputRef.current?.click()}
             disabled={loading || recording}
-            className="h-12 w-12 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center flex-shrink-0 disabled:opacity-40 active:scale-95 transition-transform"
-            title="Fiş veya belge fotoğrafı"
+            style={{width:44,height:44,borderRadius:12,border:`1px solid ${C.border}`,background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,opacity:loading||recording?0.4:1}}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg xmlns="http://www.w3.org/2000/svg" style={{width:20,height:20,color:C.textSub}} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
@@ -442,21 +396,18 @@ export default function AsistanPage() {
           <input
             value={command}
             onChange={(e) => setCommand(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-            }}
-            placeholder={recording ? "Dinliyor..." : "Örn: Suite Halı 20.000₺ ödedi"}
+            onKeyDown={(e) => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();} }}
+            placeholder={recording?"Dinliyor...":"Bir soru sorun..."}
             disabled={recording}
-            className="flex-1 bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm disabled:opacity-50"
+            style={{flex:1,border:`1px solid ${C.border}`,borderRadius:12,padding:"10px 14px",fontSize:14,outline:"none",background:C.bg,color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif",opacity:recording?0.5:1}}
           />
 
           {/* Mikrofon */}
           <button
             onClick={toggleRecording}
             disabled={loading && !recording}
-            className={`h-12 w-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all active:scale-95 ${
-              recording ? "bg-red-500 text-white animate-pulse" : "bg-slate-100 text-slate-500 disabled:opacity-40"
-            }`}
+            style={{width:44,height:44,borderRadius:12,border:recording?"none":`1px solid ${C.border}`,background:recording?"#ef4444":C.bg,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,opacity:loading&&!recording?0.4:1}}
+            className={recording?"animate-pulse":""}
             title={recording ? "Kaydı durdur" : "Sesli komut"}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -468,12 +419,11 @@ export default function AsistanPage() {
           <button
             onClick={() => sendMessage()}
             disabled={loading || !command.trim() || recording}
-            className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#0B1437] to-[#1E3A5F] text-white font-black text-xl disabled:opacity-40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+            style={{width:44,height:44,borderRadius:12,background:C.primary,color:"#fff",fontWeight:700,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",border:"none",flexShrink:0,opacity:loading||!command.trim()||recording?0.4:1}}
           >
             →
           </button>
-        </div>
-      </section>
+      </div>
     </main>
   );
 }
