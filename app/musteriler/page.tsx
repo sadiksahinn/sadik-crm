@@ -66,7 +66,7 @@ export default function MusterilerPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F5F6FA] text-slate-950 px-4 pt-5 pb-32">
+    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-4xl font-black">Müşteriler</h1>
@@ -87,7 +87,7 @@ export default function MusterilerPage() {
           <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon" className="bg-slate-100 rounded-2xl p-4 outline-none" />
           <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Not" className="bg-slate-100 rounded-2xl p-4 outline-none" />
 
-          <button onClick={addCustomer} className="bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-slate-950 rounded-2xl p-4 font-black">
+          <button onClick={addCustomer} className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 rounded-2xl p-4 font-black">
             Müşteri Ekle
           </button>
         </div>
@@ -106,7 +106,7 @@ export default function MusterilerPage() {
                   {c.notes && <p className="text-slate-500 text-sm mt-3 line-clamp-2">{c.notes}</p>}
                 </div>
 
-                <span className="bg-[#1E3A5F]/10 text-[#1E3A5F] rounded-full px-3 py-2 text-xs font-black">
+                <span className="bg-[#61aebd]/10 text-[#61aebd] rounded-full px-3 py-2 text-xs font-black">
                   aktif
                 </span>
               </div>

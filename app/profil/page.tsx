@@ -92,10 +92,10 @@ export default function ProfilPage() {
   const initials = (fullName || email || "K")[0].toUpperCase();
 
   return (
-    <main className="min-h-screen bg-[#F5F6FA] text-slate-950 px-4 pt-5 pb-32">
+    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
         <div>
-          <p className="text-[#1E3A5F] text-xs font-black tracking-wide">VALKEA ACCOUNT</p>
+          <p className="text-[#61aebd] text-xs font-black tracking-wide">VALKEA ACCOUNT</p>
           <h1 className="text-3xl font-black">Profil</h1>
         </div>
         <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
@@ -104,7 +104,7 @@ export default function ProfilPage() {
       {/* Avatar */}
       <section className="bg-white rounded-[28px] p-5 shadow-sm mb-4 flex items-center gap-4">
         <button onClick={() => fileRef.current?.click()} className="relative flex-shrink-0">
-          <div className="h-20 w-20 rounded-full overflow-hidden bg-gradient-to-br from-[#0B1437] to-[#1E3A5F] grid place-items-center text-slate-950 text-3xl font-black">
+          <div className="h-20 w-20 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] grid place-items-center text-slate-950 text-3xl font-black">
             {avatarUrl
               ? <img src={avatarUrl} alt="avatar" className="h-full w-full object-cover" />
               : initials}
@@ -118,7 +118,7 @@ export default function ProfilPage() {
         <div className="min-w-0">
           <p className="font-black text-lg truncate">{fullName || "İsim girilmedi"}</p>
           <p className="text-slate-500 text-sm truncate">{email}</p>
-          <span className="text-xs font-black px-2 py-1 rounded-full bg-[#1E3A5F]/10 text-[#1E3A5F] mt-1 inline-block">
+          <span className="text-xs font-black px-2 py-1 rounded-full bg-[#61aebd]/10 text-[#61aebd] mt-1 inline-block">
             {role === "superadmin" ? "Superadmin" : "Kullanıcı"}
           </span>
         </div>
@@ -158,7 +158,7 @@ export default function ProfilPage() {
       <button
         onClick={save}
         disabled={saving}
-        className="w-full bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white rounded-2xl py-4 font-black mb-3 disabled:opacity-60"
+        className="w-full bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl py-4 font-black mb-3 disabled:opacity-60"
       >
         {saving ? "Kaydediliyor..." : saved ? "✅ Kaydedildi" : "Kaydet"}
       </button>

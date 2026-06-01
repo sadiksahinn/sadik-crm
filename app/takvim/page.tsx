@@ -85,7 +85,7 @@ export default function TakvimPage() {
 
   function dotColor(type: CalItem["type"]) {
     if (type === "tahsilat") return "bg-emerald-500";
-    if (type === "icerik") return "bg-[#0B1437]";
+    if (type === "icerik") return "bg-[#61aebd]";
     return "bg-amber-400";
   }
 
@@ -102,10 +102,10 @@ export default function TakvimPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F5F6FA] text-slate-950 px-4 pt-5 pb-32">
+    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
         <div>
-          <p className="text-[#1E3A5F] text-xs font-black tracking-wide">VALKEA CALENDAR</p>
+          <p className="text-[#61aebd] text-xs font-black tracking-wide">VALKEA CALENDAR</p>
           <h1 className="text-3xl font-black">Takvim</h1>
           <p className="text-slate-500">İş, ödeme ve içerik planı</p>
         </div>
@@ -114,7 +114,7 @@ export default function TakvimPage() {
             <a
               href={`/api/takvim/export?token=${token}`}
               download="valkea-takvim.ics"
-              className="bg-white rounded-2xl px-3 py-3 shadow-sm font-black text-sm text-[#1E3A5F]"
+              className="bg-white rounded-2xl px-3 py-3 shadow-sm font-black text-sm text-[#61aebd]"
               title="Takvimi indir (.ics)"
             >
               📅
@@ -151,11 +151,11 @@ export default function TakvimPage() {
                 key={day}
                 onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                 className={`relative flex flex-col items-center py-1.5 rounded-2xl transition-colors ${
-                  isSelected ? "bg-[#0B1437] text-white" :
-                  isToday ? "bg-[#1E3A5F]/10" : "hover:bg-slate-50"
+                  isSelected ? "bg-[#61aebd] text-white" :
+                  isToday ? "bg-[#61aebd]/10" : "hover:bg-slate-50"
                 }`}
               >
-                <span className={`text-sm font-black ${isToday && !isSelected ? "text-[#1E3A5F]" : ""}`}>{day}</span>
+                <span className={`text-sm font-black ${isToday && !isSelected ? "text-[#61aebd]" : ""}`}>{day}</span>
                 {types.length > 0 && (
                   <div className="flex gap-0.5 mt-0.5">
                     {types.map((t) => (
@@ -170,7 +170,7 @@ export default function TakvimPage() {
 
         <div className="flex gap-4 mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
           <span className="flex items-center gap-1"><span className="w-2 h-2 bg-emerald-500 rounded-full" /> Tahsilat</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[#0B1437] rounded-full" /> İçerik</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[#61aebd] rounded-full" /> İçerik</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 bg-amber-400 rounded-full" /> Takip</span>
         </div>
       </section>
@@ -189,7 +189,7 @@ export default function TakvimPage() {
               <div key={item.id} className="bg-white rounded-[20px] p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <p className="text-[10px] font-black text-[#1E3A5F] mb-0.5">{typeLabel(item.type)}</p>
+                    <p className="text-[10px] font-black text-[#61aebd] mb-0.5">{typeLabel(item.type)}</p>
                     <p className="font-black text-sm">{item.title}</p>
                     {item.amount && item.amount > 0 && <p className="text-emerald-600 font-black text-sm">{money(item.amount)}</p>}
                   </div>
@@ -203,7 +203,7 @@ export default function TakvimPage() {
                   href={googleCalLink(item.title, selectedDate!)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-[#1E3A5F] font-black"
+                  className="text-xs text-[#61aebd] font-black"
                 >
                   + Google Takvim'e Ekle
                 </a>
@@ -218,7 +218,7 @@ export default function TakvimPage() {
         <p className="font-black mb-3">Bu Ay Özet</p>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
-            <p className="text-2xl font-black text-[#1E3A5F]">{items.filter(i => i.type === "icerik").length}</p>
+            <p className="text-2xl font-black text-[#61aebd]">{items.filter(i => i.type === "icerik").length}</p>
             <p className="text-xs text-slate-400">İçerik</p>
           </div>
           <div>

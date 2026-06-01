@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 
 const supabase = createClient();
-const C = { primary:"#006879", secondary:"#835500", dark:"#2e3132", bg:"#f8f9fa", card:"#ffffff", border:"#bdc8cc", textMain:"#191c1d", textSub:"#3e484b", error:"#ba1a1a" };
+const C = { primary:"#61aebd", secondary:"#e5ab53", dark:"#1a1a2e", bg:"#f7f8fc", card:"#ffffff", border:"#e2e8f0", textMain:"#0f172a", textSub:"#64748b", error:"#ef4444" };
 
 function money(v: number) { return new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY",maximumFractionDigits:0}).format(v||0); }
 function today() { return new Date().toISOString().slice(0,10); }

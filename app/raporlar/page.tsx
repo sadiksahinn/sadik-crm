@@ -5,208 +5,252 @@ import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 
 const supabase = createClient();
-const C = { primary:"#006879",secondary:"#835500",dark:"#2e3132",bg:"#f8f9fa",card:"#ffffff",border:"#bdc8cc",textMain:"#191c1d",textSub:"#3e484b",error:"#ba1a1a" };
 
-function money(v: number) { return new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY",maximumFractionDigits:0}).format(v||0); }
+function money(v: number) {
+  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(v || 0);
+}
 
 function monthRange(offset: number) {
-  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()+offset);
-  const start = d.toISOString().slice(0,10);
-  const end = new Date(d.getFullYear(),d.getMonth()+1,0).toISOString().slice(0,10);
-  const label = d.toLocaleDateString("tr-TR",{month:"short"});
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + offset);
+  const start = d.toISOString().slice(0, 10);
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+  const label = d.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
   return { start, end, label };
 }
 
-type MonthData = { label:string; income:number; expense:number; net:number };
+type MonthData = { label: string; income: number; expense: number; net: number };
 
 export default function RaporlarPage() {
-  const [tab, setTab] = useState<"aylik"|"musteriler"|"kategoriler">("aylik");
+  const [selectedTab, setSelectedTab] = useState<"aylik" | "musteriler" | "kategoriler">("aylik");
   const [months, setMonths] = useState<MonthData[]>([]);
   const [currentIncome, setCurrentIncome] = useState<any[]>([]);
   const [currentExpenses, setCurrentExpenses] = useState<any[]>([]);
   const [pendingPayments, setPendingPayments] = useState<any[]>([]);
-  const [customerData, setCustomerData] = useState<{name:string;paid:number;pending:number}[]>([]);
+  const [customerData, setCustomerData] = useState<{ name: string; paid: number; pending: number }[]>([]);
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href="/login"; return; }
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      if (!user) { window.location.href = "/login"; return; }
 
-      const ranges = [monthRange(-2),monthRange(-1),monthRange(0)];
-      const monthResults: MonthData[] = await Promise.all(ranges.map(async r => {
-        const [{ data: inc },{ data: exp }] = await Promise.all([
-          supabase.from("income").select("amount").eq("user_id",user.id).gte("income_date",r.start).lte("income_date",r.end),
-          supabase.from("expenses").select("amount").eq("user_id",user.id).gte("expense_date",r.start).lte("expense_date",r.end),
-        ]);
-        const income=(inc||[]).reduce((t,x)=>t+Number(x.amount||0),0);
-        const expense=(exp||[]).reduce((t,x)=>t+Number(x.amount||0),0);
-        return { label:r.label, income, expense, net:income-expense };
-      }));
+      // Son 3 ay
+      const ranges = [monthRange(-2), monthRange(-1), monthRange(0)];
+
+      const monthResults: MonthData[] = await Promise.all(
+        ranges.map(async (r) => {
+          const [{ data: inc }, { data: exp }] = await Promise.all([
+            supabase.from("income").select("amount").eq("user_id", user.id).gte("income_date", r.start).lte("income_date", r.end),
+            supabase.from("expenses").select("amount").eq("user_id", user.id).gte("expense_date", r.start).lte("expense_date", r.end),
+          ]);
+          const income = (inc || []).reduce((t, x) => t + Number(x.amount || 0), 0);
+          const expense = (exp || []).reduce((t, x) => t + Number(x.amount || 0), 0);
+          return { label: r.label, income, expense, net: income - expense };
+        })
+      );
       setMonths(monthResults);
 
       const cur = monthRange(0);
-      const [{ data: incData },{ data: expData },{ data: payData },{ data: customers },{ data: payments }] = await Promise.all([
-        supabase.from("income").select("*").eq("user_id",user.id).gte("income_date",cur.start).lte("income_date",cur.end).order("income_date",{ascending:false}),
-        supabase.from("expenses").select("*").eq("user_id",user.id).gte("expense_date",cur.start).lte("expense_date",cur.end).order("expense_date",{ascending:false}),
-        supabase.from("payment_tracking").select("*").eq("user_id",user.id).eq("status","bekliyor").order("due_date",{ascending:true}),
-        supabase.from("customers").select("id,name,brand_name").eq("user_id",user.id),
-        supabase.from("payment_tracking").select("*").eq("user_id",user.id),
+
+      const [
+        { data: incData },
+        { data: expData },
+        { data: payData },
+        { data: customers },
+        { data: payments },
+      ] = await Promise.all([
+        supabase.from("income").select("*").eq("user_id", user.id).gte("income_date", cur.start).lte("income_date", cur.end).order("income_date", { ascending: false }),
+        supabase.from("expenses").select("*").eq("user_id", user.id).gte("expense_date", cur.start).lte("expense_date", cur.end).order("expense_date", { ascending: false }),
+        supabase.from("payment_tracking").select("*").eq("user_id", user.id).eq("status", "bekliyor").order("due_date", { ascending: true }),
+        supabase.from("customers").select("id, name, brand_name").eq("user_id", user.id),
+        supabase.from("payment_tracking").select("*").eq("user_id", user.id),
       ]);
-      setCurrentIncome(incData||[]); setCurrentExpenses(expData||[]); setPendingPayments(payData||[]);
-      if (customers&&payments) {
-        const cd=customers.map((c:any)=>{
-          const cp=payments.filter((p:any)=>p.customer_id===c.id);
-          const paid=cp.filter((p:any)=>p.status==="ödendi").reduce((t,p:any)=>t+Number(p.amount||0),0);
-          const pending=cp.filter((p:any)=>p.status==="bekliyor").reduce((t,p:any)=>t+Number(p.amount||0),0);
-          return { name:c.brand_name||c.name, paid, pending };
-        }).filter((c:any)=>c.paid>0||c.pending>0).sort((a:any,b:any)=>b.paid-a.paid);
+
+      setCurrentIncome(incData || []);
+      setCurrentExpenses(expData || []);
+      setPendingPayments(payData || []);
+
+      // Müşteri bazlı kâr
+      if (customers && payments) {
+        const cd = customers.map((c: any) => {
+          const cPay = payments.filter((p: any) => p.customer_id === c.id);
+          const paid = cPay.filter((p: any) => p.status === "ödendi").reduce((t, p: any) => t + Number(p.amount || 0), 0);
+          const pending = cPay.filter((p: any) => p.status === "bekliyor").reduce((t, p: any) => t + Number(p.amount || 0), 0);
+          return { name: c.brand_name || c.name, paid, pending };
+        }).filter((c) => c.paid > 0 || c.pending > 0).sort((a, b) => b.paid - a.paid);
         setCustomerData(cd);
       }
     }
     load();
-  },[]);
+  }, []);
 
-  const cur = months[2]||{label:"",income:0,expense:0,net:0};
-  const pendingTotal = pendingPayments.reduce((t,p)=>t+Number(p.amount||0),0);
-  const maxBar = Math.max(...months.map(m=>Math.max(m.income,m.expense)),1);
-  const efficiency = cur.income>0 ? Math.round((cur.net/cur.income)*100) : 0;
+  const cur = months[2] || { label: "", income: 0, expense: 0, net: 0 };
+  const totalPending = pendingPayments.reduce((t, p) => t + Number(p.amount || 0), 0);
 
-  const catBreak = currentExpenses.reduce((acc:any[],e:any)=>{
-    const k=e.category||"Genel";
-    const f=acc.find(x=>x.cat===k);
-    if(f) f.total+=Number(e.amount||0); else acc.push({cat:k,total:Number(e.amount||0)});
-    return acc;
-  },[]).sort((a:any,b:any)=>b.total-a.total);
+  const categoryBreakdown = currentExpenses
+    .reduce((acc: any[], item: any) => {
+      const key = item.category || "Genel";
+      const found = acc.find((x) => x.category === key);
+      if (found) found.total += Number(item.amount || 0);
+      else acc.push({ category: key, total: Number(item.amount || 0) });
+      return acc;
+    }, [])
+    .sort((a, b) => b.total - a.total);
+
+  const maxBar = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 1);
 
   return (
-    <main className="min-h-screen pb-24" style={{background:C.bg,color:C.textMain,fontFamily:"'Manrope',sans-serif"}}>
-      <header className="sticky top-0 z-50 flex justify-between items-center px-4 h-14 border-b" style={{background:C.card,borderColor:C.border}}>
+    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
+      <header className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="font-bold text-base">Raporlar</h1>
-          <p className="text-xs" style={{color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>Finansal performansınızın detaylı analizi</p>
+          <p className="text-[#61aebd] text-xs font-black tracking-wide">VALKEA REPORT</p>
+          <h1 className="text-3xl font-black">Raporlar</h1>
+          <p className="text-slate-500">Son 3 ay analiz</p>
         </div>
-        <Link href="/" className="px-3 py-1.5 rounded-lg text-xs font-bold border" style={{borderColor:C.border,color:C.textSub}}>Ana</Link>
+        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
       </header>
 
-      <div className="px-4 pt-4 max-w-lg mx-auto">
-        {/* Net Kâr kartı */}
-        <section className="rounded-xl p-5 mb-4 relative overflow-hidden" style={{background:C.dark}}>
-          <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-20" style={{background:`radial-gradient(circle,${C.primary},transparent)`,transform:"translate(30%,-30%)"}} />
-          <p className="text-[10px] tracking-widest text-white/50 mb-1" style={{fontFamily:"'Hanken Grotesk',sans-serif"}}>NET KÂR</p>
-          <p className={`text-4xl font-bold mb-1 ${cur.net>=0?"text-green-400":"text-red-400"}`} style={{letterSpacing:"-0.02em"}}>{money(cur.net)}</p>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-              <div className="h-full rounded-full bg-green-400" style={{width:`${Math.max(0,Math.min(efficiency,100))}%`}} />
-            </div>
-            <span className="text-xs text-white/60" style={{fontFamily:"'Hanken Grotesk',sans-serif"}}>{efficiency>=0?`Verimli ${efficiency}%`:"Zararda"}</span>
-          </div>
-          <div className="flex gap-4 mt-4">
-            <div><p className="text-[10px] text-white/40" style={{fontFamily:"'Hanken Grotesk',sans-serif"}}>GELİR</p><p className="font-bold text-sm text-green-400">{money(cur.income)}</p></div>
-            <div><p className="text-[10px] text-white/40" style={{fontFamily:"'Hanken Grotesk',sans-serif"}}>GİDER</p><p className="font-bold text-sm text-red-400">{money(cur.expense)}</p></div>
-            <div><p className="text-[10px] text-white/40" style={{fontFamily:"'Hanken Grotesk',sans-serif"}}>TAHSİLAT</p><p className="font-bold text-sm" style={{color:"#4CD7F6"}}>{money(pendingTotal)}</p></div>
-          </div>
-        </section>
+      {/* Net durum */}
+      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-4">
+        <p className="text-[#61aebd] text-xs font-black">BU AY NET DURUM</p>
+        <h2 className={`text-4xl font-black mt-1 ${cur.net >= 0 ? "text-emerald-600" : "text-red-500"}`}>{money(cur.net)}</h2>
+        <p className="text-slate-400 text-sm mt-1">Tahsilatlar kapanırsa → {money(cur.net + totalPending)}</p>
+      </section>
 
-        {/* Gelir/Gider bar grafik */}
-        <section className="rounded-xl border p-5 mb-4" style={{background:C.card,borderColor:C.border}}>
-          <p className="font-semibold text-sm mb-4" style={{color:C.textMain}}>Gelir & Gider Karşılaştırması</p>
-          <div className="flex items-end gap-4 h-28 mb-3">
-            {months.map((m,i)=>(
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full flex gap-1 items-end h-24">
-                  <div className="flex-1 rounded-t-lg" style={{height:`${(m.income/maxBar)*100}%`,minHeight:m.income>0?"6px":"0",background:C.primary,opacity:0.85}} />
-                  <div className="flex-1 rounded-t-lg" style={{height:`${(m.expense/maxBar)*100}%`,minHeight:m.expense>0?"6px":"0",background:C.error,opacity:0.7}} />
-                </div>
-                <p className="text-[10px]" style={{color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>{m.label}</p>
+      {/* 3 aylık bar grafik */}
+      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-4">
+        <p className="font-black mb-4">Son 3 Ay</p>
+        <div className="flex items-end gap-3 h-32 mb-3">
+          {months.map((m, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <div className="w-full flex gap-1 items-end h-28">
+                <div
+                  className="flex-1 bg-emerald-400 rounded-t-xl"
+                  style={{ height: `${(m.income / maxBar) * 100}%`, minHeight: m.income > 0 ? "8px" : "0" }}
+                />
+                <div
+                  className="flex-1 bg-red-400 rounded-t-xl"
+                  style={{ height: `${(m.expense / maxBar) * 100}%`, minHeight: m.expense > 0 ? "8px" : "0" }}
+                />
               </div>
-            ))}
-          </div>
-          <div className="flex gap-4 text-xs" style={{fontFamily:"'Hanken Grotesk',sans-serif"}}>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{background:C.primary}} /> Gelir</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{background:C.error}} /> Gider</span>
-          </div>
-        </section>
-
-        {/* Tabs */}
-        <div className="flex rounded-xl border p-1 mb-4" style={{background:C.card,borderColor:C.border}}>
-          {(["aylik","musteriler","kategoriler"] as const).map(t=>(
-            <button key={t} onClick={()=>setTab(t)} className="flex-1 py-2 rounded-lg text-xs font-bold transition-colors" style={{
-              background:tab===t?C.primary:"transparent",
-              color:tab===t?"#fff":C.textSub,
-              fontFamily:"'Hanken Grotesk',sans-serif",
-            }}>
-              {t==="aylik"?"Bu Ay":t==="musteriler"?"Müşteriler":"Kategoriler"}
-            </button>
+              <p className="text-[10px] text-slate-500 font-semibold text-center leading-tight">{m.label.split(" ")[0]}</p>
+            </div>
           ))}
         </div>
+        <div className="flex gap-4 text-xs">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-400 rounded" /> Gelir</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-400 rounded" /> Gider</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100">
+          {months.map((m, i) => (
+            <div key={i} className="text-center">
+              <p className="text-[10px] text-slate-400">{m.label}</p>
+              <p className="text-xs font-black text-emerald-600">{money(m.income)}</p>
+              <p className="text-xs text-red-500">{money(m.expense)}</p>
+              <p className={`text-xs font-black ${m.net >= 0 ? "text-slate-700" : "text-red-500"}`}>{money(m.net)}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-        {/* Bu Ay */}
-        {tab==="aylik" && (
-          <section className="rounded-xl border p-5" style={{background:C.card,borderColor:C.border}}>
-            <p className="font-semibold text-sm mb-3" style={{color:C.textMain}}>Son Gelirler</p>
-            {currentIncome.slice(0,6).map((i:any)=>(
-              <div key={i.id} className="flex justify-between py-2.5 border-b last:border-0" style={{borderColor:C.border}}>
-                <span className="text-sm" style={{color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>{i.title}</span>
-                <span className="font-bold text-sm" style={{color:C.primary,fontFamily:"'Hanken Grotesk',sans-serif"}}>{money(Number(i.amount))}</span>
+      {/* Tabs */}
+      <div className="flex gap-2 mb-4">
+        {(["aylik", "musteriler", "kategoriler"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setSelectedTab(tab)}
+            className={`flex-1 rounded-2xl py-2.5 text-xs font-black transition-colors ${selectedTab === tab ? "bg-[#61aebd] text-white" : "bg-white text-slate-500 shadow-sm"}`}
+          >
+            {tab === "aylik" ? "Bu Ay" : tab === "musteriler" ? "Müşteriler" : "Kategoriler"}
+          </button>
+        ))}
+      </div>
+
+      {/* Bu Ay */}
+      {selectedTab === "aylik" && (
+        <section className="grid gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white rounded-[24px] p-4 shadow-sm">
+              <p className="text-xs text-slate-500">Gelir</p>
+              <p className="text-2xl font-black text-emerald-600">{money(cur.income)}</p>
+              <p className="text-xs text-slate-400">{currentIncome.length} kayıt</p>
+            </div>
+            <div className="bg-white rounded-[24px] p-4 shadow-sm">
+              <p className="text-xs text-slate-500">Gider</p>
+              <p className="text-2xl font-black text-red-500">{money(cur.expense)}</p>
+              <p className="text-xs text-slate-400">{currentExpenses.length} kayıt</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-[24px] p-4 shadow-sm">
+            <p className="text-xs text-slate-500 mb-1">Bekleyen Tahsilat</p>
+            <p className="text-2xl font-black text-[#e5ab53]">{money(totalPending)}</p>
+            <p className="text-xs text-slate-400">{pendingPayments.length} kayıt</p>
+          </div>
+          <div className="bg-white rounded-[24px] p-4 shadow-sm">
+            <p className="font-black mb-3">Son Gelirler</p>
+            {currentIncome.slice(0, 5).map((i) => (
+              <div key={i.id} className="flex justify-between py-2 border-b border-slate-50 text-sm">
+                <span className="text-slate-700 truncate pr-2">{i.title}</span>
+                <span className="font-black text-emerald-600 whitespace-nowrap">{money(Number(i.amount))}</span>
               </div>
             ))}
-            {currentIncome.length===0&&<p className="text-sm text-center py-4" style={{color:C.textSub}}>Bu ay gelir yok.</p>}
-          </section>
-        )}
+            {currentIncome.length === 0 && <p className="text-slate-400 text-sm">Bu ay gelir kaydı yok.</p>}
+          </div>
+        </section>
+      )}
 
-        {/* Müşteriler */}
-        {tab==="musteriler" && (
-          <section className="rounded-xl border p-5" style={{background:C.card,borderColor:C.border}}>
-            <p className="font-semibold text-sm mb-3" style={{color:C.textMain}}>En Çok Tahsilat Yapılan Müşteriler</p>
-            {customerData.length===0&&<p className="text-sm text-center py-4" style={{color:C.textSub}}>Veri yok.</p>}
-            {customerData.map((c,i)=>{
-              const pct=c.paid+c.pending>0?Math.round(c.paid/(c.paid+c.pending)*100):0;
-              const init=c.name.split(" ").map((w:string)=>w[0]).join("").slice(0,2).toUpperCase();
-              const colors=[C.primary,C.secondary,"#5d5c74"];
-              return (
-                <div key={i} className="py-3 border-b last:border-0" style={{borderColor:C.border}}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white flex-shrink-0" style={{background:colors[i%3]}}>{init}</div>
-                    <div className="flex-1">
-                      <p className="font-bold text-sm" style={{color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>{c.name}</p>
-                      <p className="text-xs" style={{color:C.textSub}}>Alınan: {money(c.paid)}{c.pending>0?` · Bekleyen: ${money(c.pending)}`:""}</p>
-                    </div>
-                    <p className="font-bold text-sm" style={{color:C.primary,fontFamily:"'Hanken Grotesk',sans-serif"}}>+{money(c.paid)}</p>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{background:C.border}}>
-                    <div className="h-full rounded-full" style={{width:`${pct}%`,background:colors[i%3]}} />
-                  </div>
+      {/* Müşteriler */}
+      {selectedTab === "musteriler" && (
+        <section className="bg-white rounded-[30px] p-5 shadow-sm">
+          <p className="font-black mb-3">Müşteri Bazlı Tahsilat</p>
+          {customerData.length === 0 && <p className="text-slate-400 text-sm">Henüz müşteri bazlı veri yok.</p>}
+          {customerData.map((c, i) => (
+            <div key={i} className="py-3 border-b border-slate-100 last:border-0">
+              <div className="flex justify-between mb-1">
+                <span className="font-black text-sm">{c.name}</span>
+                <span className="font-black text-emerald-600 text-sm">{money(c.paid)}</span>
+              </div>
+              {c.pending > 0 && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">Bekleyen</span>
+                  <span className="text-red-400 font-semibold">{money(c.pending)}</span>
                 </div>
-              );
-            })}
-          </section>
-        )}
+              )}
+              <div className="mt-2 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-emerald-400 h-full rounded-full"
+                  style={{ width: `${Math.min((c.paid / (c.paid + c.pending || 1)) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
 
-        {/* Kategoriler */}
-        {tab==="kategoriler" && (
-          <section className="rounded-xl border p-5" style={{background:C.card,borderColor:C.border}}>
-            <p className="font-semibold text-sm mb-3" style={{color:C.textMain}}>Kategori Dağılımı</p>
-            {catBreak.length===0&&<p className="text-sm text-center py-4" style={{color:C.textSub}}>Bu ay gider yok.</p>}
-            {catBreak.map((c:any)=>{
-              const pct=cur.expense>0?Math.round(c.total/cur.expense*100):0;
-              return (
-                <div key={c.cat} className="py-3 border-b last:border-0" style={{borderColor:C.border}}>
-                  <div className="flex justify-between mb-1">
-                    <span className="font-semibold text-sm" style={{color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>{c.cat}</span>
-                    <span className="font-bold text-sm" style={{color:C.error,fontFamily:"'Hanken Grotesk',sans-serif"}}>{money(c.total)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:C.border}}>
-                      <div className="h-full rounded-full" style={{width:`${pct}%`,background:C.error,opacity:0.7}} />
-                    </div>
-                    <span className="text-xs" style={{color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>%{pct}</span>
-                  </div>
+      {/* Kategoriler */}
+      {selectedTab === "kategoriler" && (
+        <section className="bg-white rounded-[30px] p-5 shadow-sm">
+          <p className="font-black mb-3">Bu Ay Gider Kategorileri</p>
+          {categoryBreakdown.length === 0 && <p className="text-slate-400 text-sm">Bu ay gider kaydı yok.</p>}
+          {categoryBreakdown.map((c) => {
+            const pct = Math.round((c.total / cur.expense) * 100) || 0;
+            return (
+              <div key={c.category} className="py-3 border-b border-slate-100 last:border-0">
+                <div className="flex justify-between mb-1">
+                  <span className="font-black text-sm">{c.category}</span>
+                  <span className="font-black text-red-500 text-sm">{money(c.total)}</span>
                 </div>
-              );
-            })}
-          </section>
-        )}
-      </div>
+                <div className="bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-red-400 h-full rounded-full" style={{ width: `${pct}%` }} />
+                </div>
+                <p className="text-xs text-slate-400 mt-1">%{pct}</p>
+              </div>
+            );
+          })}
+        </section>
+      )}
     </main>
   );
 }

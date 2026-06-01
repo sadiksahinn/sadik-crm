@@ -1,83 +1,45 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap');
 
-* { box-sizing: border-box; }
-body { margin: 0; font-family: 'Manrope', sans-serif; }
-
-html, body { scrollbar-width: none; }
-html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
-
-/* Stitch Design System Colors */
-:root {
-  --primary:                  #006879;
-  --on-primary:               #ffffff;
-  --primary-container:        #47a8bd;
-  --on-primary-container:     #003943;
-  --primary-fixed:            #a8edff;
-  --primary-fixed-dim:        #77d4ea;
-  --on-primary-fixed:         #001f26;
-  --on-primary-fixed-variant: #004e5b;
-  --inverse-primary:          #77d4ea;
-
-  --secondary:                #835500;
-  --on-secondary:             #ffffff;
-  --secondary-container:      #feb956;
-  --on-secondary-container:   #734a00;
-  --secondary-fixed:          #ffddb4;
-  --secondary-fixed-dim:      #feb956;
-  --on-secondary-fixed:       #291800;
-  --on-secondary-fixed-variant: #633f00;
-
-  --tertiary:                 #5d5c74;
-  --on-tertiary:              #ffffff;
-  --tertiary-container:       #9b99b3;
-  --on-tertiary-container:    #323147;
-  --tertiary-fixed:           #e2e0fc;
-  --tertiary-fixed-dim:       #c6c4df;
-  --on-tertiary-fixed:        #1a1a2e;
-  --on-tertiary-fixed-variant:#45455b;
-
-  --error:                    #ba1a1a;
-  --on-error:                 #ffffff;
-  --error-container:          #ffdad6;
-  --on-error-container:       #93000a;
-
-  --surface:                  #f8f9fa;
-  --surface-dim:              #d9dadb;
-  --surface-bright:           #f8f9fa;
-  --surface-container-lowest: #ffffff;
-  --surface-container-low:    #f3f4f5;
-  --surface-container:        #edeeef;
-  --surface-container-high:   #e7e8e9;
-  --surface-container-highest:#e1e3e4;
-  --surface-variant:          #e1e3e4;
-  --surface-tint:             #006879;
-
-  --on-surface:               #191c1d;
-  --on-surface-variant:       #3e484b;
-  --inverse-surface:          #2e3132;
-  --inverse-on-surface:       #f0f1f2;
-
-  --outline:                  #6e797c;
-  --outline-variant:          #bdc8cc;
-
-  --background:               #f8f9fa;
-  --on-background:            #191c1d;
+* {
+  box-sizing: border-box;
 }
 
-/* Utility classes for Stitch colors */
-.bg-primary     { background-color: var(--primary); }
-.bg-secondary   { background-color: var(--secondary); }
-.bg-surface     { background-color: var(--surface); }
-.bg-surface-container-lowest { background-color: var(--surface-container-lowest); }
-.bg-inverse-surface { background-color: var(--inverse-surface); }
-.text-primary   { color: var(--primary); }
-.text-on-primary { color: var(--on-primary); }
-.text-on-surface { color: var(--on-surface); }
-.text-on-surface-variant { color: var(--on-surface-variant); }
-.border-outline-variant { border-color: var(--outline-variant); }
-.font-manrope   { font-family: 'Manrope', sans-serif; }
-.font-hanken    { font-family: 'Hanken Grotesk', sans-serif; }
+body {
+  margin: 0;
+}
+/* Mobile premium cleanup */
+html, body {
+  scrollbar-width: none;
+}
 
-/* Safe area bottom for iPhone */
-.pb-safe { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+:root {
+  --primary: #61aebd;
+  --accent: #e5ab53;
+}
+
+.gradient-main {
+  background: linear-gradient(135deg, #61aebd, #e5ab53);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #61aebd, #e5ab53);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+
+/* Force light mode - Valkea */
+html {
+  color-scheme: light !important;
+  background: #f7f8fc !important;
+}
+
+body {
+  background: #f7f8fc !important;
+  color: #070b1d !important;
+}
