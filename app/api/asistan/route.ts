@@ -619,6 +619,9 @@ export async function POST(req: Request) {
         { data: customers },
         { data: followups },
         { data: contents },
+        { data: cards },
+        { data: loans },
+        { data: fixedExp },
       ] = await Promise.all([
         supabase.from("profiles").select("full_name, company_name, profession").eq("id", user.id).single(),
         supabase.from("income").select("*").eq("user_id", user.id).gte("income_date", startMonth).order("income_date", { ascending: false }),
@@ -627,11 +630,23 @@ export async function POST(req: Request) {
         supabase.from("customers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
         supabase.from("followups").select("*").eq("user_id", user.id).eq("status", "bekliyor").order("followup_date", { ascending: true }).limit(20),
         supabase.from("content_calendar").select("*").eq("user_id", user.id).order("publish_date", { ascending: true }).limit(20),
+        supabase.from("credit_cards").select("bank_name, card_name, current_balance, min_payment, payment_day, is_paid_this_month").eq("user_id", user.id),
+        supabase.from("loans").select("bank_name, loan_type, remaining_amount, monthly_payment, payment_day, remaining_months").eq("user_id", user.id),
+        supabase.from("fixed_expenses").select("title, amount, due_day, category, is_paid_this_month").eq("user_id", user.id),
       ]);
 
       const totalIncome = (incomes || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
       const totalExpense = (expenses || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
       const totalPayment = (payments || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
+
+      // Borç & aylık yükümlülükler
+      const cardBalance = (cards || []).reduce((t: number, c: any) => t + Number(c.current_balance || 0), 0);
+      const cardMinTotal = (cards || []).reduce((t: number, c: any) => t + Number(c.min_payment || 0), 0);
+      const loanMonthly = (loans || []).reduce((t: number, l: any) => t + Number(l.monthly_payment || 0), 0);
+      const loanRemaining = (loans || []).reduce((t: number, l: any) => t + Number(l.remaining_amount || 0), 0);
+      const fixedMonthly = (fixedExp || []).reduce((t: number, f: any) => t + Number(f.amount || 0), 0);
+      const fixedUnpaid = (fixedExp || []).filter((f: any) => !f.is_paid_this_month).reduce((t: number, f: any) => t + Number(f.amount || 0), 0);
+      const monthlyObligations = cardMinTotal + loanMonthly + fixedMonthly;
 
       const context = {
         user: {
@@ -646,6 +661,30 @@ export async function POST(req: Request) {
           monthly_net: money(totalIncome - totalExpense),
           pending_collection: money(totalPayment),
         },
+        obligations: {
+          // Bu ayki toplam yükümlülük: kart min. ödeme + kredi taksiti + sabit giderler
+          monthly_total: money(monthlyObligations),
+          credit_card_debt: money(cardBalance),
+          credit_card_min_payment: money(cardMinTotal),
+          loan_monthly_installment: money(loanMonthly),
+          loan_remaining_debt: money(loanRemaining),
+          fixed_expenses_monthly: money(fixedMonthly),
+          fixed_expenses_unpaid_this_month: money(fixedUnpaid),
+        },
+        credit_cards: (cards || []).map((c: any) => ({
+          bank: c.bank_name, name: c.card_name,
+          debt: money(c.current_balance), min_payment: money(c.min_payment),
+          payment_day: c.payment_day, paid_this_month: !!c.is_paid_this_month,
+        })),
+        loans: (loans || []).map((l: any) => ({
+          bank: l.bank_name, type: l.loan_type,
+          remaining: money(l.remaining_amount), monthly: money(l.monthly_payment),
+          payment_day: l.payment_day, remaining_months: l.remaining_months,
+        })),
+        fixed_expenses: (fixedExp || []).map((f: any) => ({
+          title: f.title, amount: money(f.amount), due_day: f.due_day,
+          category: f.category, paid_this_month: !!f.is_paid_this_month,
+        })),
         counts: {
           customers: customers?.length || 0,
           pending_followups: followups?.length || 0,
@@ -667,7 +706,9 @@ export async function POST(req: Request) {
             role: "system",
             content: `Sen Valkea, Türkçe çalışan kişisel bir iş ve finans asistanısın.
 Görevin: kullanıcının gelir/gider durumunu analiz etmek, tahsilatları yorumlamak, günlük plan çıkarmak, tasarruf ve büyüme önerisi vermek.
-Kurallar: Türkçe yaz. Kısa ve net ol. Rakamları açıkça söyle. Risk varsa belirt. Bilmediğini uydurma.` +
+Ayrıca kullanıcının BORÇLARINI ve AYLIK YÜKÜMLÜLÜKLERİNİ bilirsin: kredi kartı borçları (credit_cards), kredi taksitleri (loans) ve sabit giderler (fixed_expenses). "obligations" alanında bu ayki toplam ödeme yükü, kart minimumları, kredi taksitleri ve sabit giderler var.
+"Bu ay ne kadar ödemem/borcum var?", "kredi kartı borcum ne?", "hangi faturayı ödedim?" gibi sorulara bu verilerle net cevap ver. Ödeme günü yaklaşanları (payment_day / due_day bugüne yakınsa) hatırlat.
+Kurallar: Türkçe yaz. Kısa ve net ol. Rakamları açıkça söyle. Risk varsa belirt (örn. gelir < yükümlülük). Bilmediğini uydurma.` +
               (memory ? `\n\nKullanıcı hafızası (öğrenilen bilgiler):\n${memory}` : ""),
           },
           {

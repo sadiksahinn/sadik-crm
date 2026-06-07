@@ -16,9 +16,10 @@ type ChatMessage = {
 
 const QUICK_ACTIONS = [
   "Bugün ne yapıyoruz?",
+  "Bu ay ne kadar ödemem var?",
+  "Kredi kartı borcum ne?",
   "Tahsilat durumu?",
   "Günlük özet",
-  "Nasıl gidiyor?",
   "Tasarruf önerisi",
 ];
 
