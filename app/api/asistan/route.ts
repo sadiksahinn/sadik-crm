@@ -46,8 +46,11 @@ async function analyzeMessage(message: string) {
 
 JSON:
 {
-  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "collection_paid" | "task_completed" | "daily_summary" | "analysis" | "customer_query" | "whatsapp_template" | "chat" | "unknown",
+  "type": "job" | "income" | "expense" | "service_plan" | "reminder" | "daily_plan" | "collection_query" | "collection_paid" | "task_completed" | "daily_summary" | "analysis" | "customer_query" | "customer_create" | "whatsapp_template" | "chat" | "unknown",
   "customer_name": "",
+  "brand_name": "",
+  "phone": "",
+  "sector": "",
   "title": "",
   "amount": 0,
   "payment_day": null,
@@ -71,6 +74,7 @@ Kurallar:
 - "tamamlandı", "bitti", "yapıldı", "paylaşıldı", "hallettim" => task_completed
 - "günlük özet", "bugünün özeti", "bugün durum ne", "özet ver" => daily_summary
 - "analiz", "durumum ne", "nasıl gidiyor", "kar", "kâr", "zarar", "tasarruf", "ne yapmalıyım", "öneri ver", "tavsiye", "ne kazandım", "ne harcadım", "rapor", "büyüme", "gelir analizi", "gider analizi" => analysis
+- "yeni müşteri", "müşteri ekle", "müşteri kartı oluştur", "müşteri oluştur", "[isim] diye müşteri ekle", "[isim]'i müşteri yap" => customer_create; customer_name = kişi/firma adı, varsa brand_name (marka), phone (telefon), sector (sektör) çıkar
 - "[müşteri] ne kadar ödedi", "[müşteri] ile durum ne", "[müşteri] hakkında", "müşteri bilgisi" => customer_query, customer_name'i çıkar
 - "mesaj yaz", "whatsapp mesajı", "tahsilat mesajı", "hatırlatma mesajı yaz", "şablon" => whatsapp_template, customer_name'i çıkar
 - "not al", "hatırla", "aklında tut", "şunu bil", "kaydet ki" => reminder, title = notun kendisi
@@ -137,6 +141,61 @@ export async function POST(req: Request) {
         message:
           reply.choices[0]?.message?.content ||
           "Merhaba 👋 Nasıl yardımcı olabilirim?",
+      });
+    }
+
+    // ── CUSTOMER CREATE (yeni müşteri kartı) ──────────────────────────────
+    if (ai.type === "customer_create") {
+      const name = String(ai.customer_name || ai.brand_name || ai.title || "").trim();
+      if (!name) {
+        return NextResponse.json({
+          ok: true,
+          type: "müşteri",
+          message: "Tabii, müşterinin adını yazar mısın? Örn: \"Bella Cafe diye müşteri ekle\" veya \"Yeni müşteri: Ahmet Yılmaz, 0532...\"",
+        });
+      }
+
+      // Aynı isimde müşteri var mı?
+      const { data: existing } = await supabase
+        .from("customers").select("id, name")
+        .eq("user_id", user.id).ilike("name", name).limit(1);
+
+      if (existing && existing.length > 0) {
+        return NextResponse.json({
+          ok: true,
+          type: "müşteri",
+          message: `"${name}" zaten kayıtlı görünüyor. İstersen bilgilerini güncelleyebilir veya farklı bir isimle ekleyebilirsin.`,
+        });
+      }
+
+      const { data: created, error } = await supabase
+        .from("customers")
+        .insert({
+          user_id: user.id,
+          name,
+          brand_name: ai.brand_name?.trim() || null,
+          phone: ai.phone?.trim() || null,
+          sector: ai.sector?.trim() || null,
+          status: "aktif",
+        })
+        .select()
+        .single();
+
+      if (error) {
+        return NextResponse.json({ ok: false, message: "Müşteri eklenemedi: " + error.message });
+      }
+
+      const extra = [
+        created?.brand_name ? `Marka: ${created.brand_name}` : "",
+        created?.phone ? `Tel: ${created.phone}` : "",
+        created?.sector ? `Sektör: ${created.sector}` : "",
+      ].filter(Boolean).join(" · ");
+
+      return NextResponse.json({
+        ok: true,
+        type: "müşteri",
+        message: `✅ ${name} müşteri kartı oluşturuldu.${extra ? `\n${extra}` : ""}\n\nMüşteriler sayfasından detaylarını düzenleyebilirsin.`,
+        record: { type: "iş", title: name },
       });
     }
 
