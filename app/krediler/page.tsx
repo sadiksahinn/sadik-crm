@@ -12,24 +12,73 @@ function money(v: number) { return new Intl.NumberFormat("tr-TR",{style:"currenc
 const LOAN_TYPES = ["bireysel","konut","araç","ihtiyaç","taşıt"];
 const CARD_BANKS = ["Ziraat","Yapı Kredi","İş Bankası","Garanti","Akbank","Halkbank","Vakıfbank","QNB","ING","Diğer"];
 
+const THIS_MONTH = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+const TODAY = new Date().toISOString().slice(0, 10);
+
 export default function KredilerPage() {
   const [cards, setCards]     = useState<any[]>([]);
   const [loans, setLoans]     = useState<any[]>([]);
+  const [cardPayments, setCardPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [addingCard, setAddingCard] = useState(false);
   const [addingLoan, setAddingLoan] = useState(false);
+  const [payingCardId, setPayingCardId] = useState<string|null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payType, setPayType] = useState<"min"|"full"|"custom">("custom");
   const [cardForm, setCardForm] = useState({ bank_name:"", card_name:"", credit_limit:"", current_balance:"", payment_day:"", min_payment:"" });
   const [loanForm, setLoanForm] = useState({ bank_name:"", loan_type:"bireysel", title:"", total_amount:"", remaining_amount:"", monthly_payment:"", payment_day:"", remaining_months:"" });
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { window.location.href="/login"; return; }
-    const [{ data: c }, { data: l }] = await Promise.all([
+    const [{ data: c }, { data: l }, { data: cp }] = await Promise.all([
       supabase.from("credit_cards").select("*").eq("user_id",user.id).order("created_at",{ascending:false}),
       supabase.from("loans").select("*").eq("user_id",user.id).order("created_at",{ascending:false}),
+      supabase.from("card_payments").select("*").eq("user_id",user.id).order("payment_date",{ascending:false}),
     ]);
-    setCards(c||[]); setLoans(l||[]);
+    setCards(c||[]); setLoans(l||[]); setCardPayments(cp||[]);
+    setLoading(false);
   }
   useEffect(() => { load(); }, []);
+
+  // Bir kartın bu ay yaptığı ödemeler / son ödeme (geçmişten hesaplanır — ay dönünce otomatik sıfırlanır)
+  function cardMonthPayments(cardId: string) {
+    return cardPayments.filter(p => p.card_id === cardId && String(p.payment_date||"").slice(0,7) === THIS_MONTH);
+  }
+  function cardPaidThisMonth(cardId: string) {
+    return cardMonthPayments(cardId).reduce((t,p)=>t+Number(p.amount||0), 0);
+  }
+  function cardLastPayment(cardId: string) {
+    return cardPayments.find(p => p.card_id === cardId) || null;
+  }
+
+  async function openPay(card: any) {
+    if (payingCardId === card.id) { setPayingCardId(null); return; }
+    setPayingCardId(card.id);
+    setPayType("custom");
+    setPayAmount(String(Number(card.min_payment) || ""));
+  }
+
+  async function saveCardPayment(card: any) {
+    const amount = Number(payAmount) || 0;
+    if (amount <= 0) { alert("Geçerli bir tutar gir."); return; }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // 1) Ödeme geçmişine yaz
+    await supabase.from("card_payments").insert({
+      user_id: user.id, card_id: card.id, amount,
+      payment_type: payType, payment_date: TODAY,
+    });
+    // 2) Kart borcunu düş + bu ay ödendi işaretle
+    const newBalance = Math.max(0, Number(card.current_balance||0) - amount);
+    await supabase.from("credit_cards").update({
+      current_balance: newBalance, is_paid_this_month: true, last_paid_date: TODAY,
+    }).eq("id", card.id);
+
+    setPayingCardId(null); setPayAmount(""); setPayType("custom");
+    load();
+  }
 
   async function saveCard() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -54,6 +103,9 @@ export default function KredilerPage() {
   const totalCardMinimum  = cards.reduce((t,c)=>t+Number(c.min_payment||0),0);
   const totalLoanMonthly  = loans.reduce((t,l)=>t+Number(l.monthly_payment||0),0);
   const totalMonthly      = totalCardMinimum + totalLoanMonthly;
+  const totalPaidThisMonth = cardPayments
+    .filter(p => String(p.payment_date||"").slice(0,7) === THIS_MONTH)
+    .reduce((t,p)=>t+Number(p.amount||0), 0);
 
   const loanIcon = (type: string) => ({ konut:"🏠", araç:"🚗", taşıt:"🚗", bireysel:"👤", ihtiyaç:"💼" }[type] || "💳");
 
@@ -79,6 +131,14 @@ export default function KredilerPage() {
             <div><p style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Hanken Grotesk',sans-serif"}}>KREDİ TAKSİT</p><p style={{fontWeight:700,fontSize:14,color:"#fb923c"}}>{money(totalLoanMonthly)}</p></div>
             <div><p style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Hanken Grotesk',sans-serif"}}>K.KARTI BORÇ</p><p style={{fontWeight:700,fontSize:14,color:"#f87171"}}>{money(totalCardBalance)}</p></div>
           </div>
+          {totalPaidThisMonth > 0 && (
+            <div style={{marginTop:14,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:14}}>✅</span>
+              <p style={{fontSize:12,color:"rgba(255,255,255,0.7)",margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>
+                Bu ay ödenen: <span style={{fontWeight:700,color:"#34d399"}}>{money(totalPaidThisMonth)}</span>
+              </p>
+            </div>
+          )}
         </section>
 
         {/* ── KREDİ KARTLARI ── */}
@@ -110,6 +170,7 @@ export default function KredilerPage() {
         )}
 
         <div style={{display:"grid",gap:10,marginBottom:20}}>
+          {loading && [1,2].map(i => <div key={i} className="skeleton" style={{height:150}} />)}
           {cards.map(card => {
             const usage = card.credit_limit > 0 ? Math.round((card.current_balance/card.credit_limit)*100) : 0;
             return (
@@ -149,10 +210,45 @@ export default function KredilerPage() {
                     </div>
                   </div>
                 )}
+
+                {/* ── Ödeme takibi ── */}
+                {(() => {
+                  const paid = cardPaidThisMonth(card.id);
+                  const last = cardLastPayment(card.id);
+                  const isPaying = payingCardId === card.id;
+                  const chip = (a:boolean) => ({ padding:"7px 10px", borderRadius:8, border:`1px solid ${a?C.primary:C.border}`, background:a?"#eef7f9":"#fff", color:a?C.primary:C.textSub, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"'Hanken Grotesk',sans-serif" } as const);
+                  return (
+                    <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                        <div>
+                          {paid > 0
+                            ? <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:12,fontWeight:700,color:"#059669",background:"#ecfdf5",borderRadius:8,padding:"4px 9px"}}>✓ Bu ay {money(paid)} ödendi</span>
+                            : <span style={{fontSize:12,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>Bu ay henüz ödeme yok</span>}
+                          {last && <p style={{fontSize:11,color:C.textSub,margin:"4px 0 0",fontFamily:"'Hanken Grotesk',sans-serif"}}>Son ödeme: {last.payment_date} · {money(last.amount)}</p>}
+                        </div>
+                        <button onClick={()=>openPay(card)} style={{padding:"8px 14px",borderRadius:9,background:isPaying?"#f3f4f5":C.primary,color:isPaying?C.textSub:"#fff",fontSize:12,fontWeight:700,border:"none",cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif",whiteSpace:"nowrap"}}>{isPaying?"Kapat":"Ödeme Yap"}</button>
+                      </div>
+
+                      {isPaying && (
+                        <div style={{marginTop:10,display:"grid",gap:8}}>
+                          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                            {Number(card.min_payment)>0 && <button onClick={()=>{setPayType("min");setPayAmount(String(Number(card.min_payment)));}} style={chip(payType==="min")}>Min: {money(card.min_payment)}</button>}
+                            {Number(card.current_balance)>0 && <button onClick={()=>{setPayType("full");setPayAmount(String(Number(card.current_balance)));}} style={chip(payType==="full")}>Tüm borç: {money(card.current_balance)}</button>}
+                          </div>
+                          <input type="number" placeholder="Tutar (₺)" value={payAmount} onChange={e=>{setPayAmount(e.target.value);setPayType("custom");}} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
+                          <div style={{display:"flex",gap:8}}>
+                            <button onClick={()=>saveCardPayment(card)} style={{flex:1,padding:"10px 0",borderRadius:8,background:"#059669",color:"#fff",fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif"}}>Ödemeyi Kaydet</button>
+                            <button onClick={()=>setPayingCardId(null)} style={{flex:1,padding:"10px 0",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",fontWeight:600,fontSize:13,cursor:"pointer",color:C.textSub}}>İptal</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
-          {cards.length===0 && !addingCard && (
+          {!loading && cards.length===0 && !addingCard && (
             <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:24,textAlign:"center"}}>
               <p style={{fontSize:28,marginBottom:8}}>💳</p>
               <p style={{fontSize:13,color:C.textSub}}>Henüz kredi kartı eklenmedi.</p>
@@ -192,6 +288,7 @@ export default function KredilerPage() {
         )}
 
         <div style={{display:"grid",gap:10}}>
+          {loading && <div className="skeleton" style={{height:150}} />}
           {loans.map(loan => {
             const progress = loan.total_amount > 0 ? Math.round(((loan.total_amount - loan.remaining_amount)/loan.total_amount)*100) : 0;
             return (
@@ -234,7 +331,7 @@ export default function KredilerPage() {
               </div>
             );
           })}
-          {loans.length===0 && !addingLoan && (
+          {!loading && loans.length===0 && !addingLoan && (
             <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:24,textAlign:"center"}}>
               <p style={{fontSize:28,marginBottom:8}}>🏦</p>
               <p style={{fontSize:13,color:C.textSub}}>Henüz kredi eklenmedi.</p>

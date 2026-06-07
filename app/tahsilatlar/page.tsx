@@ -21,6 +21,7 @@ function today() {
 
 export default function TahsilatlarPage() {
   const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today());
@@ -41,6 +42,7 @@ export default function TahsilatlarPage() {
       .order("due_date", { ascending: true });
 
     setItems(data || []);
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -123,7 +125,7 @@ export default function TahsilatlarPage() {
   const overdueTotal = overdue.reduce((t, i) => t + Number(i.amount || 0), 0);
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
+    <main className="v-enter min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-3xl font-black">Tahsilatlar</h1>
@@ -191,7 +193,8 @@ export default function TahsilatlarPage() {
       </section>
 
       <section className="grid gap-3">
-        {items.map((item) => {
+        {loading && Array.from({ length: 3 }).map((_, i) => <div key={`sk-${i}`} className="skeleton h-[120px]" />)}
+        {!loading && items.map((item) => {
           const isOverdue = item.status !== "ödendi" && item.due_date < today();
           return (
           <div key={item.id} className={`rounded-2xl p-4 shadow-sm ${isOverdue ? "bg-red-50 border border-red-200" : "bg-white"}`}>
@@ -245,9 +248,10 @@ export default function TahsilatlarPage() {
           );
         })}
 
-        {items.length === 0 && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm text-slate-500">
-            Henüz tahsilat kaydı yok.
+        {!loading && items.length === 0 && (
+          <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
+            <p className="text-3xl mb-2">💸</p>
+            <p className="text-slate-400 text-sm font-black">Henüz tahsilat kaydı yok.</p>
           </div>
         )}
       </section>

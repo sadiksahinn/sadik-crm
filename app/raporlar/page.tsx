@@ -102,7 +102,7 @@ export default function RaporlarPage() {
   const maxBar = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 1);
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
+    <main className="v-enter min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
         <div>
           <p className="text-[#61aebd] text-xs font-black tracking-wide">VALKEA REPORT</p>

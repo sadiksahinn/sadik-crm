@@ -25,11 +25,13 @@ export default function GelirGiderPage() {
   const [incomeTotal, setIncomeTotal] = useState(0);
   const [expenseTotal, setExpenseTotal] = useState(0);
   const [editing, setEditing] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   async function load() {
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
     if (!user) return (window.location.href = "/login");
+    setLoading(true);
 
     const { data: incomes } = await supabase.from("income").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     const { data: expenses } = await supabase.from("expenses").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
@@ -41,6 +43,7 @@ export default function GelirGiderPage() {
       ...(incomes || []).map((i:any) => ({ ...i, type: "gelir" })),
       ...(expenses || []).map((e:any) => ({ ...e, type: "gider" })),
     ].sort((a,b) => String(b.created_at).localeCompare(String(a.created_at))));
+    setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
@@ -116,7 +119,7 @@ export default function GelirGiderPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
+    <main className="v-enter min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-3xl font-black">Finans</h1>
@@ -160,7 +163,16 @@ export default function GelirGiderPage() {
       </section>
 
       <section className="grid gap-3">
-        {records.map((r) => (
+        {loading && Array.from({ length: 4 }).map((_, i) => (
+          <div key={`sk-${i}`} className="skeleton h-[92px]" />
+        ))}
+        {!loading && records.length === 0 && (
+          <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
+            <p className="text-3xl mb-2">🧾</p>
+            <p className="text-slate-400 text-sm font-black">Henüz kayıt yok. İlk gelir veya gideri ekle.</p>
+          </div>
+        )}
+        {!loading && records.map((r) => (
           <div key={`${r.type}-${r.id}`} className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex justify-between gap-3">
               <div>

@@ -59,15 +59,27 @@ function IconProfil({ active }: { active: boolean }) {
   );
 }
 
+function IconAsistan({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4L12 3z"
+        stroke="currentColor" strokeWidth={active ? 2 : 1.6}
+        fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.18 : 0} />
+      <path d="M18 15l.7 1.9L20.7 18l-2 .6L18 21l-.7-2.4L15.3 18l2-1.1L18 15z"
+        stroke="currentColor" strokeWidth={active ? 1.6 : 1.3} />
+    </svg>
+  );
+}
+
 const TABS = [
-  { name: "Ana",     href: "/",              Icon: IconHome   },
-  { name: "İş",      href: "/is",            Icon: IconCRM    },
-  { name: "Finans",  href: "/gelir-gider",   Icon: IconFinans },
-  { name: "Asistan", href: "/asistan",       Icon: IconProfil },
-  { name: "Profil",  href: "/profil",        Icon: IconProfil },
+  { name: "Ana",     href: "/",              Icon: IconHome    },
+  { name: "İş",      href: "/is",            Icon: IconCRM     },
+  { name: "Finans",  href: "/gelir-gider",   Icon: IconFinans  },
+  { name: "Asistan", href: "/asistan",       Icon: IconAsistan },
+  { name: "Profil",  href: "/profil",        Icon: IconProfil  },
 ];
 
-const HIDDEN_PATHS = ["/login", "/onboarding", "/auth"];
+const HIDDEN_PATHS = ["/asistan", "/login", "/onboarding", "/auth"];
 
 export default function BottomNav() {
   const pathname = usePathname();
