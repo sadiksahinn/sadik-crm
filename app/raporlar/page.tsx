@@ -3,8 +3,22 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
+import { NetTrend, Donut } from "@/components/Charts";
 
 const supabase = createClient();
+
+const CAT_COLORS = ["#61aebd", "#e5ab53", "#8b5cf6", "#f87171", "#34d399", "#f59e0b", "#64748b"];
+
+// Son 6 ayın etiketleri ve anahtarları
+function last6Months() {
+  const arr: { key: string; label: string }[] = [];
+  const d = new Date(); d.setDate(1);
+  for (let i = 5; i >= 0; i--) {
+    const m = new Date(d.getFullYear(), d.getMonth() - i, 1);
+    arr.push({ key: m.toISOString().slice(0, 7), label: m.toLocaleDateString("tr-TR", { month: "short" }) });
+  }
+  return arr;
+}
 
 function money(v: number) {
   return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(v || 0);
@@ -29,6 +43,7 @@ export default function RaporlarPage() {
   const [currentExpenses, setCurrentExpenses] = useState<any[]>([]);
   const [pendingPayments, setPendingPayments] = useState<any[]>([]);
   const [customerData, setCustomerData] = useState<{ name: string; paid: number; pending: number }[]>([]);
+  const [trend6, setTrend6] = useState<{ label: string; net: number }[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -51,6 +66,19 @@ export default function RaporlarPage() {
         })
       );
       setMonths(monthResults);
+
+      // 6 aylık net trend — tek seferde çekip aya göre topla
+      const months6 = last6Months();
+      const sixStart = months6[0].key + "-01";
+      const [{ data: inc6 }, { data: exp6 }] = await Promise.all([
+        supabase.from("income").select("amount,income_date").eq("user_id", user.id).gte("income_date", sixStart),
+        supabase.from("expenses").select("amount,expense_date").eq("user_id", user.id).gte("expense_date", sixStart),
+      ]);
+      const incByM: Record<string, number> = {};
+      const expByM: Record<string, number> = {};
+      (inc6 || []).forEach((r: any) => { const k = String(r.income_date).slice(0, 7); incByM[k] = (incByM[k] || 0) + Number(r.amount || 0); });
+      (exp6 || []).forEach((r: any) => { const k = String(r.expense_date).slice(0, 7); expByM[k] = (expByM[k] || 0) + Number(r.amount || 0); });
+      setTrend6(months6.map((m) => ({ label: m.label, net: (incByM[m.key] || 0) - (expByM[m.key] || 0) })));
 
       const cur = monthRange(0);
 
@@ -117,6 +145,17 @@ export default function RaporlarPage() {
         <p className="text-[#61aebd] text-xs font-black">BU AY NET DURUM</p>
         <h2 className={`text-4xl font-black mt-1 ${cur.net >= 0 ? "text-emerald-600" : "text-red-500"}`}>{money(cur.net)}</h2>
         <p className="text-slate-400 text-sm mt-1">Tahsilatlar kapanırsa → {money(cur.net + totalPending)}</p>
+      </section>
+
+      {/* Net trend — son 6 ay */}
+      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-black">Net Trend</p>
+          <span className="text-[10px] font-black tracking-wide text-slate-400">SON 6 AY</span>
+        </div>
+        {trend6.length > 0
+          ? <NetTrend points={trend6} height={160} />
+          : <div className="skeleton h-[160px]" />}
       </section>
 
       {/* 3 aylık bar grafik */}
@@ -234,6 +273,26 @@ export default function RaporlarPage() {
         <section className="bg-white rounded-[30px] p-5 shadow-sm">
           <p className="font-black mb-3">Bu Ay Gider Kategorileri</p>
           {categoryBreakdown.length === 0 && <p className="text-slate-400 text-sm">Bu ay gider kaydı yok.</p>}
+          {categoryBreakdown.length > 0 && (
+            <div className="flex items-center gap-4 mb-4">
+              <Donut
+                size={140}
+                centerLabel="kategori"
+                data={categoryBreakdown.map((c, i) => ({ label: c.category, value: c.total, color: CAT_COLORS[i % CAT_COLORS.length] }))}
+              />
+              <div className="flex-1 grid gap-1.5">
+                {categoryBreakdown.slice(0, 6).map((c, i) => (
+                  <div key={c.category} className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-slate-600 font-semibold truncate">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CAT_COLORS[i % CAT_COLORS.length] }} />
+                      <span className="truncate">{c.category}</span>
+                    </span>
+                    <span className="font-black text-slate-700 whitespace-nowrap ml-2">%{Math.round((c.total / cur.expense) * 100) || 0}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {categoryBreakdown.map((c) => {
             const pct = Math.round((c.total / cur.expense) * 100) || 0;
             return (
