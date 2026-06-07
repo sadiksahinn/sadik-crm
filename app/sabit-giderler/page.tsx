@@ -9,6 +9,9 @@ const C = { primary:"#3fa7c9", secondary:"#e0a23c", dark:"#1c2b4d", bg:"#f7f8fc"
 
 function money(v: number) { return new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY",maximumFractionDigits:0}).format(v||0); }
 function today() { return new Date().toISOString().slice(0,10); }
+const THIS_MONTH = new Date().toISOString().slice(0,7); // "YYYY-MM"
+// "Bu ay ödendi" yalnızca son ödeme bu ayda ise geçerli — ay dönünce otomatik sıfırlanır
+const isPaidThisMonth = (i: any) => !!i.is_paid_this_month && String(i.last_paid_date || "").slice(0,7) === THIS_MONTH;
 
 const CATEGORIES = [
   { value:"kira",      label:"🏠 Kira" },
@@ -45,14 +48,18 @@ export default function SabitGiderlerPage() {
   }
 
   async function togglePaid(item: any) {
-    const nowPaid = !item.is_paid_this_month;
+    const nowPaid = !isPaidThisMonth(item);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     await supabase.from("fixed_expenses").update({ is_paid_this_month:nowPaid, last_paid_date: nowPaid ? today() : null }).eq("id",item.id);
-    // Ödendi işaretlenince gider tablosuna da kaydet
     if (nowPaid) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from("expenses").insert({ user_id:user.id, title:item.title, amount:Number(item.amount||0), expense_date:today(), category:item.category, payment_method:"Sabit Gider", note:`Aylık sabit gider - ${item.category}` });
-      }
+      // Ödendi işaretlenince gider tablosuna da kaydet
+      await supabase.from("expenses").insert({ user_id:user.id, title:item.title, amount:Number(item.amount||0), expense_date:today(), category:item.category, payment_method:"Sabit Gider", note:`Aylık sabit gider - ${item.category}` });
+    } else {
+      // Geri alınınca bu ay oluşturulan sabit gider kaydını da temizle (hayalet gider olmasın)
+      await supabase.from("expenses").delete()
+        .eq("user_id", user.id).eq("title", item.title)
+        .eq("payment_method", "Sabit Gider").gte("expense_date", THIS_MONTH + "-01");
     }
     load();
   }
@@ -64,9 +71,9 @@ export default function SabitGiderlerPage() {
   }
 
   const totalMonthly  = items.reduce((t,i)=>t+Number(i.amount||0),0);
-  const totalPaid     = items.filter(i=>i.is_paid_this_month).reduce((t,i)=>t+Number(i.amount||0),0);
+  const totalPaid     = items.filter(isPaidThisMonth).reduce((t,i)=>t+Number(i.amount||0),0);
   const totalUnpaid   = totalMonthly - totalPaid;
-  const paidCount     = items.filter(i=>i.is_paid_this_month).length;
+  const paidCount     = items.filter(isPaidThisMonth).length;
   const today_day     = new Date().getDate();
 
   const catLabel = (v: string) => CATEGORIES.find(c=>c.value===v)?.label || v;
@@ -137,7 +144,7 @@ export default function SabitGiderlerPage() {
         <div style={{display:"grid",gap:8}}>
           {items.map(item => {
             const isDue = item.due_day && Math.abs(item.due_day - today_day) <= 3;
-            const borderColor = item.is_paid_this_month ? "#10b981" : isDue ? C.error : C.primary;
+            const borderColor = isPaidThisMonth(item) ? "#10b981" : isDue ? C.error : C.primary;
             return (
               <div key={item.id} style={{borderRadius:12,border:`1px solid ${C.border}`,borderLeft:`4px solid ${borderColor}`,background:C.card,padding:14}}>
                 <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -147,18 +154,18 @@ export default function SabitGiderlerPage() {
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
                       <p style={{fontWeight:700,fontSize:14,color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif",margin:0}}>{item.title}</p>
-                      <p style={{fontWeight:700,fontSize:15,color:item.is_paid_this_month?"#10b981":C.error,fontFamily:"'Manrope',sans-serif",margin:0}}>{money(Number(item.amount))}</p>
+                      <p style={{fontWeight:700,fontSize:15,color:isPaidThisMonth(item)?"#10b981":C.error,fontFamily:"'Manrope',sans-serif",margin:0}}>{money(Number(item.amount))}</p>
                     </div>
                     <div style={{display:"flex",gap:8,alignItems:"center"}}>
                       <span style={{fontSize:11,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>{catLabel(item.category).split(" ").slice(1).join(" ")}</span>
-                      {item.due_day && <span style={{fontSize:11,color:isDue&&!item.is_paid_this_month?C.error:C.textSub,fontWeight:isDue?700:400,fontFamily:"'Hanken Grotesk',sans-serif"}}>· Her ayın {item.due_day}. günü</span>}
-                      {isDue && !item.is_paid_this_month && <span style={{fontSize:10,fontWeight:700,background:`${C.error}20`,color:C.error,padding:"2px 6px",borderRadius:4,fontFamily:"'Hanken Grotesk',sans-serif"}}>YAKLAŞIYOR</span>}
+                      {item.due_day && <span style={{fontSize:11,color:isDue&&!isPaidThisMonth(item)?C.error:C.textSub,fontWeight:isDue?700:400,fontFamily:"'Hanken Grotesk',sans-serif"}}>· Her ayın {item.due_day}. günü</span>}
+                      {isDue && !isPaidThisMonth(item) && <span style={{fontSize:10,fontWeight:700,background:`${C.error}20`,color:C.error,padding:"2px 6px",borderRadius:4,fontFamily:"'Hanken Grotesk',sans-serif"}}>YAKLAŞIYOR</span>}
                     </div>
                   </div>
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:10}}>
-                  <button onClick={()=>togglePaid(item)} style={{flex:1,padding:"9px 0",borderRadius:8,background:item.is_paid_this_month?"#f3f4f5":C.primary,color:item.is_paid_this_month?C.textSub:"#fff",fontWeight:700,fontSize:12,border:"none",cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif"}}>
-                    {item.is_paid_this_month?"✓ Ödendi (geri al)":"Ödendi İşaretle"}
+                  <button onClick={()=>togglePaid(item)} style={{flex:1,padding:"9px 0",borderRadius:8,background:isPaidThisMonth(item)?"#f3f4f5":C.primary,color:isPaidThisMonth(item)?C.textSub:"#fff",fontWeight:700,fontSize:12,border:"none",cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif"}}>
+                    {isPaidThisMonth(item)?"✓ Ödendi (geri al)":"Ödendi İşaretle"}
                   </button>
                   <button onClick={()=>deleteItem(item.id)} style={{padding:"9px 14px",borderRadius:8,border:`1px solid #fecaca`,background:"#fef2f2",fontSize:12,cursor:"pointer",color:C.error}}>Sil</button>
                 </div>
