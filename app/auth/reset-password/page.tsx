@@ -11,12 +11,12 @@ const SOFT = { type: "spring", stiffness: 300, damping: 24 } as const;
 function AnimatedCheck() {
   return (
     <div className="relative flex items-center justify-center h-24">
-      <motion.div className="absolute rounded-[30px] bg-gradient-to-br from-[#61aebd] to-[#e5ab53]"
+      <motion.div className="absolute rounded-[30px] bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c]"
         initial={{ width: 80, height: 80, opacity: 0.7 }}
         animate={{ width: 104, height: 104, opacity: 0 }}
         transition={{ duration: 1.3, repeat: Infinity, ease: "easeOut" }} />
       <motion.div
-        className="relative z-10 h-20 w-20 rounded-[24px] bg-gradient-to-br from-[#61aebd] to-[#e5ab53] flex items-center justify-center shadow-[0_8px_32px_rgba(97,174,189,0.5)]"
+        className="relative z-10 h-20 w-20 rounded-[24px] bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] flex items-center justify-center shadow-[0_8px_32px_rgba(97,174,189,0.5)]"
         initial={{ scale: 0, rotate: -15 }} animate={{ scale: 1, rotate: 0 }}
         transition={{ ...SOFT, delay: 0.1 }}>
         <svg viewBox="0 0 40 40" className="w-10 h-10">
@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
             exit={{ opacity: 0, y: -16 }} transition={SOFT}
             className="bg-white rounded-[36px] p-6 shadow-[0_20px_70px_rgba(15,23,42,0.10)]">
 
-            <div className="h-14 w-14 rounded-2xl bg-[#61aebd]/10 grid place-items-center text-3xl mb-4">🔒</div>
+            <div className="h-14 w-14 rounded-2xl bg-[#3fa7c9]/10 grid place-items-center text-3xl mb-4">🔒</div>
             <h1 className="text-3xl font-black text-slate-950 mb-1">Yeni şifre</h1>
             <p className="text-slate-500 mb-6">Hesabın için yeni bir şifre belirle.</p>
 
@@ -100,7 +100,7 @@ export default function ResetPasswordPage() {
               </AnimatePresence>
 
               <motion.button onClick={handleReset} disabled={loading}
-                className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 rounded-2xl p-4 font-black disabled:opacity-50"
+                className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-slate-950 rounded-2xl p-4 font-black disabled:opacity-50"
                 whileTap={{ scale: 0.97 }}>
                 {loading ? "Kaydediliyor..." : "Şifremi Güncelle"}
               </motion.button>

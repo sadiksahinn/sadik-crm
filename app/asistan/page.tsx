@@ -33,7 +33,7 @@ function money(value: number) {
 function recordStyle(type: string) {
   if (type === "gelir") return "bg-emerald-50 border-emerald-200 text-emerald-900";
   if (type === "gider") return "bg-red-50 border-red-200 text-red-900";
-  if (type === "iş") return "bg-[#61aebd]/10 border-[#61aebd]/20 text-slate-950";
+  if (type === "iş") return "bg-[#3fa7c9]/10 border-[#3fa7c9]/20 text-slate-950";
   if (type === "hatırlatma") return "bg-amber-50 border-amber-200 text-amber-900";
   return "bg-slate-50 border-slate-200 text-slate-950";
 }
@@ -302,7 +302,7 @@ export default function AsistanPage() {
     <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-36">
       <header className="flex items-center justify-between mb-5">
         <div>
-          <p className="text-[#61aebd] text-xs font-black tracking-wide">VALKEA AI</p>
+          <p className="text-[#3fa7c9] text-xs font-black tracking-wide">VALKEA AI</p>
           <h1 className="text-3xl font-black">Asistan</h1>
           <p className="text-slate-500">Konuşarak işlerini yönet.</p>
         </div>
@@ -326,7 +326,7 @@ export default function AsistanPage() {
             <button
               key={action}
               onClick={() => sendMessage(action)}
-              className="whitespace-nowrap rounded-2xl bg-white border border-[#61aebd]/20 px-4 py-2 text-sm font-black text-[#61aebd] shadow-sm flex-shrink-0"
+              className="whitespace-nowrap rounded-2xl bg-white border border-[#3fa7c9]/20 px-4 py-2 text-sm font-black text-[#3fa7c9] shadow-sm flex-shrink-0"
             >
               {action}
             </button>
@@ -340,7 +340,7 @@ export default function AsistanPage() {
             key={index}
             className={`max-w-[88%] rounded-[24px] p-4 shadow-sm ${
               msg.role === "user"
-                ? "ml-auto bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-white"
+                ? "ml-auto bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] text-white"
                 : "mr-auto bg-white text-slate-950"
             }`}
           >
@@ -361,7 +361,7 @@ export default function AsistanPage() {
                 <button
                   onClick={() => approveProposal(msg.proposal)}
                   disabled={loading}
-                  className="flex-1 bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl py-3 text-sm font-black disabled:opacity-50"
+                  className="flex-1 bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-white rounded-2xl py-3 text-sm font-black disabled:opacity-50"
                 >
                   ✅ Evet, kaydet
                 </button>
@@ -398,9 +398,9 @@ export default function AsistanPage() {
           <div className="mr-auto bg-white rounded-[24px] p-4 shadow-sm">
             <div className="flex items-center gap-2 text-slate-400">
               <span className="inline-flex gap-1">
-                <span className="w-2 h-2 bg-[#61aebd] rounded-full animate-bounce [animation-delay:0ms]" />
-                <span className="w-2 h-2 bg-[#61aebd] rounded-full animate-bounce [animation-delay:150ms]" />
-                <span className="w-2 h-2 bg-[#61aebd] rounded-full animate-bounce [animation-delay:300ms]" />
+                <span className="w-2 h-2 bg-[#3fa7c9] rounded-full animate-bounce [animation-delay:0ms]" />
+                <span className="w-2 h-2 bg-[#3fa7c9] rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-2 h-2 bg-[#3fa7c9] rounded-full animate-bounce [animation-delay:300ms]" />
               </span>
               <span className="text-sm">{recording ? "Dinliyor..." : "Düşünüyor..."}</span>
             </div>
@@ -468,7 +468,7 @@ export default function AsistanPage() {
           <button
             onClick={() => sendMessage()}
             disabled={loading || !command.trim() || recording}
-            className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-white font-black text-xl disabled:opacity-40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+            className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] text-white font-black text-xl disabled:opacity-40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
           >
             →
           </button>

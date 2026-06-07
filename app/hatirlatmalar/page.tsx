@@ -87,7 +87,7 @@ export default function HatirlatmalarPage() {
     <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
       <header className="flex items-center justify-between mb-5">
         <div>
-          <p className="text-[#61aebd] text-xs font-black tracking-wide">VALKEA TASKS</p>
+          <p className="text-[#3fa7c9] text-xs font-black tracking-wide">VALKEA TASKS</p>
           <h1 className="text-3xl font-black">Hatırlatmalar</h1>
           <p className="text-slate-500">{pendingCount} bekleyen görev</p>
         </div>
@@ -108,7 +108,7 @@ export default function HatirlatmalarPage() {
               <option value="acil">Acil</option>
             </select>
           </div>
-          <button onClick={saveReminder} className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black">
+          <button onClick={saveReminder} className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-white rounded-2xl p-4 font-black">
             Kaydet
           </button>
         </div>
@@ -120,7 +120,7 @@ export default function HatirlatmalarPage() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`flex-1 rounded-2xl py-2.5 text-xs font-black transition-colors ${filter === f ? "bg-[#61aebd] text-white" : "bg-white text-slate-500 shadow-sm"}`}
+            className={`flex-1 rounded-2xl py-2.5 text-xs font-black transition-colors ${filter === f ? "bg-[#3fa7c9] text-white" : "bg-white text-slate-500 shadow-sm"}`}
           >
             {f === "bekliyor" ? `Bekliyor (${pendingCount})` : f === "tamamlandı" ? "Tamamlandı" : "Tümü"}
           </button>
@@ -134,7 +134,7 @@ export default function HatirlatmalarPage() {
             <div className="flex items-start justify-between gap-2 mb-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="text-xs font-black text-[#61aebd]">{item.date}</p>
+                  <p className="text-xs font-black text-[#3fa7c9]">{item.date}</p>
                   {item.priority && item.priority !== "normal" && (
                     <span className={`text-xs font-black px-2 py-0.5 rounded-full ${item.priority === "acil" ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"}`}>
                       {item.priority}

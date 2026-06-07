@@ -185,7 +185,7 @@ export default function TahsilatlarPage() {
 
           <button
             onClick={addPayment}
-            className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black"
+            className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-white rounded-2xl p-4 font-black"
           >
             Tahsilat Ekle
           </button>
@@ -232,7 +232,7 @@ export default function TahsilatlarPage() {
                   navigator.clipboard.writeText(msg);
                   alert("WhatsApp mesajı kopyalandı.");
                 }}
-                className="bg-[#61aebd]/10 text-[#61aebd] rounded-xl p-3 font-black"
+                className="bg-[#3fa7c9]/10 text-[#3fa7c9] rounded-xl p-3 font-black"
               >
                 Mesaj
               </button>

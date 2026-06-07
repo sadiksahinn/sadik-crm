@@ -60,9 +60,9 @@ function DualBarChart({ income, expense, height = 48 }: { income: number[]; expe
         return (
           <g key={i}>
             <rect x={x} y={height - ih} width={bw} height={ih} rx={2}
-              fill="#61aebd" opacity={isToday ? 1 : 0.4 + (i / income.length) * 0.4} />
+              fill="#3fa7c9" opacity={isToday ? 1 : 0.4 + (i / income.length) * 0.4} />
             <rect x={x + bw + gap} y={height - eh} width={bw} height={eh} rx={2}
-              fill="#e5ab53" opacity={isToday ? 1 : 0.4 + (i / income.length) * 0.4} />
+              fill="#e0a23c" opacity={isToday ? 1 : 0.4 + (i / income.length) * 0.4} />
           </g>
         );
       })}
@@ -202,12 +202,12 @@ export default function HomePage() {
           <Link href="/bildirimler" className="h-12 w-12 rounded-2xl bg-white shadow-sm grid place-items-center text-xl relative">
             🔔
             {notifCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-[#e5ab53] text-white text-[10px] font-black grid place-items-center">
+              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-[#e0a23c] text-white text-[10px] font-black grid place-items-center">
                 {notifCount}
               </span>
             )}
           </Link>
-          <Link href="/profil" className="h-12 w-12 rounded-full overflow-hidden bg-gradient-to-br from-[#61aebd] to-[#e5ab53] shadow grid place-items-center font-black text-lg">
+          <Link href="/profil" className="h-12 w-12 rounded-full overflow-hidden bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] shadow grid place-items-center font-black text-lg">
             {avatar ? <img src={avatar} className="h-full w-full object-cover" alt="" /> : <span className="text-slate-950">{firstName(fullName)[0]}</span>}
           </Link>
         </div>
@@ -221,7 +221,7 @@ export default function HomePage() {
 
       {/* ── HERO KART — Aylık Net + 7 Günlük Bar Grafik ── */}
       <section className="v-enter relative overflow-hidden rounded-[28px] p-5 mb-5 shadow-lg"
-        style={{ background: "linear-gradient(135deg, #61aebd 0%, #4a9aaa 40%, #e5ab53 100%)" }}>
+        style={{ background: "linear-gradient(135deg, #3fa7c9 0%, #1c2b4d 40%, #e0a23c 100%)" }}>
 
         {/* Dekoratif daireler */}
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
@@ -314,8 +314,8 @@ export default function HomePage() {
 
         <Link href="/musteriler" className="bg-white rounded-[24px] p-4 shadow-sm block">
           <div className="flex items-center justify-between mb-3">
-            <div className="h-10 w-10 bg-[#61aebd]/10 rounded-2xl grid place-items-center text-lg">👥</div>
-            <span className="text-xs font-black text-[#61aebd]">aktif</span>
+            <div className="h-10 w-10 bg-[#3fa7c9]/10 rounded-2xl grid place-items-center text-lg">👥</div>
+            <span className="text-xs font-black text-[#3fa7c9]">aktif</span>
           </div>
           <p className="text-xs text-slate-500 font-black">MÜŞTERİLER</p>
           <p className="text-2xl font-black mt-0.5">{customerCount}</p>
@@ -330,7 +330,7 @@ export default function HomePage() {
           <p className="text-[10px] font-black text-slate-400 tracking-widest">GÜNLÜK NET</p>
           <p className={`text-2xl font-black mt-0.5 ${net >= 0 ? "text-emerald-600" : "text-red-500"}`}><CountUp value={net} format={money} /></p>
         </div>
-        <Link href="/gelir-gider" className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 font-black rounded-2xl px-4 py-2.5 text-sm">
+        <Link href="/gelir-gider" className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-slate-950 font-black rounded-2xl px-4 py-2.5 text-sm">
           Detay ›
         </Link>
       </section>
@@ -348,7 +348,7 @@ export default function HomePage() {
           ] as [string, string, string][]).map(([icon, label, href]) => (
             <Link key={label} href={href}
               className="bg-white rounded-[20px] p-2.5 shadow-sm text-center flex flex-col items-center justify-center min-h-[72px]">
-              <div className="text-xl bg-slate-50 h-9 w-9 rounded-xl grid place-items-center mb-1.5 text-[#61aebd] font-black">
+              <div className="text-xl bg-slate-50 h-9 w-9 rounded-xl grid place-items-center mb-1.5 text-[#3fa7c9] font-black">
                 {icon}
               </div>
               <p className="text-[10px] font-black whitespace-pre-line leading-tight text-slate-600">{label}</p>
@@ -361,24 +361,24 @@ export default function HomePage() {
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[10px] font-black tracking-widest text-slate-400">BUGÜNÜN AJANDASI</h2>
-          <Link href="/hatirlatmalar" className="text-[#61aebd] font-black text-xs">Tümü →</Link>
+          <Link href="/hatirlatmalar" className="text-[#3fa7c9] font-black text-xs">Tümü →</Link>
         </div>
 
         {agenda.length === 0 ? (
           <div className="bg-white rounded-[22px] p-5 shadow-sm text-center">
             <p className="text-3xl mb-2">✨</p>
             <p className="text-slate-400 text-sm font-black">Bugün temiz!</p>
-            <Link href="/asistan" className="mt-2 inline-block text-[#61aebd] font-black text-sm">Asistan'a sor →</Link>
+            <Link href="/asistan" className="mt-2 inline-block text-[#3fa7c9] font-black text-sm">Asistan'a sor →</Link>
           </div>
         ) : (
           <div className="relative pl-8">
-            <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#61aebd] to-[#e5ab53] rounded-full" />
+            <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#3fa7c9] to-[#e0a23c] rounded-full" />
             {agenda.map((item, i) => (
               <Link key={i} href={item.href}
                 className="relative bg-white rounded-[22px] p-4 shadow-sm mb-3 flex items-center justify-between block">
-                <span className="absolute -left-[31px] h-3 w-3 rounded-full bg-gradient-to-br from-[#61aebd] to-[#e5ab53]" />
+                <span className="absolute -left-[31px] h-3 w-3 rounded-full bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c]" />
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-[#61aebd]/10 grid place-items-center text-lg font-black text-[#61aebd]">
+                  <div className="h-10 w-10 rounded-2xl bg-[#3fa7c9]/10 grid place-items-center text-lg font-black text-[#3fa7c9]">
                     {item.icon}
                   </div>
                   <div>
@@ -386,7 +386,7 @@ export default function HomePage() {
                     <p className="text-slate-500 text-xs">{item.sub}</p>
                   </div>
                 </div>
-                <span className="text-xs text-[#61aebd] font-black">{item.type} ›</span>
+                <span className="text-xs text-[#3fa7c9] font-black">{item.type} ›</span>
               </Link>
             ))}
           </div>
@@ -395,7 +395,7 @@ export default function HomePage() {
 
       {/* FAB */}
       <Link href="/asistan"
-        className="fixed bottom-28 right-5 h-14 w-14 rounded-full bg-gradient-to-br from-[#61aebd] to-[#e5ab53] shadow-[0_12px_40px_rgba(97,174,189,0.5)] grid place-items-center text-slate-950 text-2xl font-black z-[9998]">
+        className="fixed bottom-28 right-5 h-14 w-14 rounded-full bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] shadow-[0_12px_40px_rgba(97,174,189,0.5)] grid place-items-center text-slate-950 text-2xl font-black z-[9998]">
         ✦
       </Link>
     </main>

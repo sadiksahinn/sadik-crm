@@ -81,7 +81,7 @@ export default function OnboardingPage() {
             <div
               key={s}
               className={`h-1.5 flex-1 rounded-full transition-colors ${
-                s <= step ? "bg-[#61aebd]" : "bg-slate-100"
+                s <= step ? "bg-[#3fa7c9]" : "bg-slate-100"
               }`}
             />
           ))}
@@ -89,7 +89,7 @@ export default function OnboardingPage() {
 
         {step === 1 && (
           <>
-            <p className="text-[#61aebd] font-black text-xs mb-2 tracking-wide">ADIM 1 / 2</p>
+            <p className="text-[#3fa7c9] font-black text-xs mb-2 tracking-wide">ADIM 1 / 2</p>
             <h1 className="text-3xl font-black mb-1">Seni tanıyalım 👋</h1>
             <p className="text-slate-500 mb-6">Karşılama ve kayıtlar sana özel görünsün.</p>
 
@@ -118,7 +118,7 @@ export default function OnboardingPage() {
                   setError("");
                   setStep(2);
                 }}
-                className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 rounded-2xl p-4 font-black"
+                className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-slate-950 rounded-2xl p-4 font-black"
               >
                 Devam →
               </button>
@@ -128,7 +128,7 @@ export default function OnboardingPage() {
 
         {step === 2 && (
           <>
-            <p className="text-[#61aebd] font-black text-xs mb-2 tracking-wide">ADIM 2 / 2</p>
+            <p className="text-[#3fa7c9] font-black text-xs mb-2 tracking-wide">ADIM 2 / 2</p>
             <h1 className="text-3xl font-black mb-1">İşini anlat 💼</h1>
             <p className="text-slate-500 mb-6">Asistan sana özel tavsiyeler üretsin.</p>
 
@@ -147,7 +147,7 @@ export default function OnboardingPage() {
                     onClick={() => { setProfession(p); setError(""); }}
                     className={`rounded-2xl p-3 text-sm font-black text-left transition-all ${
                       profession === p
-                        ? "bg-[#61aebd] text-white"
+                        ? "bg-[#3fa7c9] text-white"
                         : "bg-slate-100 text-slate-700"
                     }`}
                   >
@@ -174,7 +174,7 @@ export default function OnboardingPage() {
               <button
                 onClick={save}
                 disabled={loading}
-                className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 rounded-2xl p-4 font-black disabled:opacity-50"
+                className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-slate-950 rounded-2xl p-4 font-black disabled:opacity-50"
               >
                 {loading ? "Kaydediliyor..." : "Profilimi Tamamla ✓"}
               </button>

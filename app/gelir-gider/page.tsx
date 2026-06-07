@@ -145,8 +145,8 @@ export default function GelirGiderPage() {
 
       <section className="bg-white rounded-[28px] p-4 shadow-sm mb-5">
         <div className="grid grid-cols-2 gap-2 mb-4">
-          <button onClick={() => setTab("gelir")} className={`rounded-2xl p-4 font-black ${tab === "gelir" ? "bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white" : "bg-slate-100"}`}>Gelir Ekle</button>
-          <button onClick={() => setTab("gider")} className={`rounded-2xl p-4 font-black ${tab === "gider" ? "bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white" : "bg-slate-100"}`}>Gider Ekle</button>
+          <button onClick={() => setTab("gelir")} className={`rounded-2xl p-4 font-black ${tab === "gelir" ? "bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-white" : "bg-slate-100"}`}>Gelir Ekle</button>
+          <button onClick={() => setTab("gider")} className={`rounded-2xl p-4 font-black ${tab === "gider" ? "bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-white" : "bg-slate-100"}`}>Gider Ekle</button>
         </div>
 
         <form onSubmit={save} className="grid gap-3">
@@ -158,7 +158,7 @@ export default function GelirGiderPage() {
             <option>Nakit</option><option>Havale/EFT</option><option>Kredi Kartı</option><option>Diğer</option>
           </select>
           <textarea name="note" placeholder="Not" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          <button className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black">{tab === "gelir" ? "Geliri Kaydet" : "Gideri Kaydet"}</button>
+          <button className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-white rounded-2xl p-4 font-black">{tab === "gelir" ? "Geliri Kaydet" : "Gideri Kaydet"}</button>
         </form>
       </section>
 
@@ -200,7 +200,7 @@ export default function GelirGiderPage() {
               <input value={editing.amount || ""} type="number" onChange={(e) => setEditing({...editing, amount:e.target.value})} className="bg-slate-100 rounded-2xl p-4 outline-none" />
               <textarea value={editing.note || ""} onChange={(e) => setEditing({...editing, note:e.target.value})} className="bg-slate-100 rounded-2xl p-4 outline-none" />
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={updateRecord} className="bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-white rounded-2xl p-4 font-black">Kaydet</button>
+                <button onClick={updateRecord} className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-white rounded-2xl p-4 font-black">Kaydet</button>
                 <button onClick={() => setEditing(null)} className="bg-slate-100 rounded-2xl p-4 font-black">Vazgeç</button>
               </div>
             </div>

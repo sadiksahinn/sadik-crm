@@ -101,7 +101,7 @@ export default function BottomNav() {
             >
               <div className={`h-10 w-10 rounded-2xl grid place-items-center transition-all ${
                 active
-                  ? "bg-gradient-to-br from-[#61aebd] to-[#e5ab53] text-slate-950 shadow-md"
+                  ? "bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] text-slate-950 shadow-md"
                   : "text-slate-400"
               }`}>
                 <Icon active={active} />

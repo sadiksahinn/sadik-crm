@@ -22,16 +22,16 @@ body::-webkit-scrollbar {
 }
 
 :root {
-  --primary: #61aebd;
-  --accent: #e5ab53;
+  --primary: #3fa7c9;
+  --accent: #e0a23c;
 }
 
 .gradient-main {
-  background: linear-gradient(135deg, #61aebd, #e5ab53);
+  background: linear-gradient(135deg, #3fa7c9, #e0a23c);
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #61aebd, #e5ab53);
+  background: linear-gradient(135deg, #3fa7c9, #e0a23c);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }

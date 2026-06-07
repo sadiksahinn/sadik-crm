@@ -94,7 +94,7 @@ export default function AdminPage(){
 
       <header className="flex items-center justify-between mb-5">
         <div>
-          <p className="text-[#61aebd] text-xs font-black tracking-wide">
+          <p className="text-[#3fa7c9] text-xs font-black tracking-wide">
             VALKEA CONTROL
           </p>
           <h1 className="text-3xl font-black">
@@ -119,7 +119,7 @@ export default function AdminPage(){
 
         <div className="bg-white rounded-[28px] p-5 shadow-sm">
           <p className="text-slate-500 text-sm">Bekleyen Tahsilat</p>
-          <h2 className="text-2xl font-black text-[#e5ab53]">
+          <h2 className="text-2xl font-black text-[#e0a23c]">
             {money(totals.payments)}
           </h2>
         </div>
@@ -175,7 +175,7 @@ export default function AdminPage(){
 
                   <span className={`text-xs px-2 py-1 rounded-full font-black ${
                     user.role === "superadmin"
-                    ? "bg-[#61aebd]/10 text-[#61aebd]"
+                    ? "bg-[#3fa7c9]/10 text-[#3fa7c9]"
                     : "bg-slate-100 text-slate-600"
                   }`}>
                     {user.role || "user"}

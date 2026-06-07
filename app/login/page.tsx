@@ -76,7 +76,7 @@ function PrimaryBtn({
     <motion.button
       onClick={onClick}
       disabled={disabled}
-      className="w-full bg-gradient-to-r from-[#61aebd] to-[#e5ab53] text-slate-950 rounded-2xl p-4 font-black disabled:opacity-50"
+      className="w-full bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-slate-950 rounded-2xl p-4 font-black disabled:opacity-50"
       whileTap={{ scale: 0.97 }}
       whileHover={{ scale: 1.015 }}
     >
@@ -132,16 +132,16 @@ function PhoneIcon() {
 function AnimatedCheck() {
   return (
     <div className="relative flex items-center justify-center h-24">
-      <motion.div className="absolute rounded-[30px] bg-gradient-to-br from-[#61aebd] to-[#e5ab53]"
+      <motion.div className="absolute rounded-[30px] bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c]"
         initial={{ width: 80, height: 80, opacity: 0.7 }}
         animate={{ width: 104, height: 104, opacity: 0 }}
         transition={{ duration: 1.3, repeat: Infinity, ease: "easeOut" }} />
-      <motion.div className="absolute rounded-[28px] bg-gradient-to-br from-[#61aebd] to-[#e5ab53]"
+      <motion.div className="absolute rounded-[28px] bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c]"
         initial={{ width: 80, height: 80, opacity: 0.4 }}
         animate={{ width: 96, height: 96, opacity: 0 }}
         transition={{ duration: 1.3, repeat: Infinity, ease: "easeOut", delay: 0.4 }} />
       <motion.div
-        className="relative z-10 h-20 w-20 rounded-[24px] bg-gradient-to-br from-[#61aebd] to-[#e5ab53] flex items-center justify-center shadow-[0_8px_32px_rgba(97,174,189,0.5)]"
+        className="relative z-10 h-20 w-20 rounded-[24px] bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] flex items-center justify-center shadow-[0_8px_32px_rgba(97,174,189,0.5)]"
         initial={{ scale: 0, rotate: -15 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ ...SOFT, delay: 0.1 }}
@@ -201,7 +201,7 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
           onKeyDown={(e) => handleKeyDown(i, e)}
           onPaste={handlePaste}
           className={`h-14 w-12 rounded-2xl text-center text-2xl font-black outline-none border-2 transition-all ${
-            d ? "border-[#61aebd] bg-[#61aebd]/8 text-slate-950" : "border-slate-200 bg-slate-100 text-slate-400"
+            d ? "border-[#3fa7c9] bg-[#3fa7c9]/8 text-slate-950" : "border-slate-200 bg-slate-100 text-slate-400"
           }`}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -346,7 +346,7 @@ export default function LoginPage() {
                       className="bg-slate-100 rounded-2xl p-4 outline-none w-full pr-36" />
                     <button
                       onClick={() => goTo("forgot-password", 1)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#61aebd] font-black whitespace-nowrap"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#3fa7c9] font-black whitespace-nowrap"
                     >
                       Şifremi unuttum
                     </button>
@@ -454,7 +454,7 @@ export default function LoginPage() {
               className="bg-white rounded-[36px] p-6 shadow-[0_20px_70px_rgba(15,23,42,0.10)]">
 
               <Field delay={0}>
-                <div className="h-14 w-14 rounded-2xl bg-[#61aebd]/10 grid place-items-center text-3xl mb-4">🔑</div>
+                <div className="h-14 w-14 rounded-2xl bg-[#3fa7c9]/10 grid place-items-center text-3xl mb-4">🔑</div>
                 <h1 className="text-3xl font-black text-slate-950">Şifremi unuttum</h1>
                 <p className="text-slate-500 mt-1 mb-6">
                   E-postanı gir, şifre sıfırlama bağlantısı gönderelim.
@@ -560,7 +560,7 @@ export default function LoginPage() {
               className="bg-white rounded-[36px] p-6 shadow-[0_20px_70px_rgba(15,23,42,0.10)]">
 
               <Field delay={0}>
-                <div className="h-14 w-14 rounded-2xl bg-[#61aebd]/10 grid place-items-center text-2xl mb-4">
+                <div className="h-14 w-14 rounded-2xl bg-[#3fa7c9]/10 grid place-items-center text-2xl mb-4">
                   <PhoneIcon />
                 </div>
                 <h1 className="text-3xl font-black text-slate-950">Telefon ile giriş</h1>
@@ -626,7 +626,7 @@ export default function LoginPage() {
                 <Field delay={0.45}>
                   <div className="text-center">
                     <button onClick={() => { setOtp(""); handleSendOtp(); }}
-                      className="text-[#61aebd] font-black text-sm">
+                      className="text-[#3fa7c9] font-black text-sm">
                       Kodu tekrar gönder
                     </button>
                   </div>
