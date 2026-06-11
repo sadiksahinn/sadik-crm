@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
+import { PageHeader } from "@/components/ui";
+import { ICamera, ICheck, ILogout, IShield, ICheckCircle } from "@/components/Icons";
 
 const supabase = createClient();
 
@@ -92,85 +94,79 @@ export default function ProfilPage() {
   const initials = (fullName || email || "K")[0].toUpperCase();
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
-      <header className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-[#3fa7c9] text-xs font-black tracking-wide">VALKEA ACCOUNT</p>
-          <h1 className="text-3xl font-black">Profil</h1>
-        </div>
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
-      </header>
+    <main className="v-enter min-h-screen px-4 pt-5 pb-36 max-w-[520px] mx-auto">
+      <PageHeader overline="Valkea Hesap" title="Profil" subtitle="Hesap ve fatura bilgilerin" />
 
-      {/* Avatar */}
-      <section className="bg-white rounded-[28px] p-5 shadow-sm mb-4 flex items-center gap-4">
-        <button onClick={() => fileRef.current?.click()} className="relative flex-shrink-0">
-          <div className="h-20 w-20 rounded-full overflow-hidden bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] grid place-items-center text-slate-950 text-3xl font-black">
-            {avatarUrl
-              ? <img src={avatarUrl} alt="avatar" className="h-full w-full object-cover" />
-              : initials}
-          </div>
-          <div className="absolute bottom-0 right-0 h-6 w-6 bg-white rounded-full shadow flex items-center justify-center text-sm">
-            {uploading ? "⏳" : "📷"}
-          </div>
-        </button>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={uploadAvatar} />
+      {/* Profil hero */}
+      <section className="v-hero p-5 mb-4">
+        <div className="relative z-10 flex items-center gap-4">
+          <button onClick={() => fileRef.current?.click()} className="v-press relative shrink-0">
+            <div className="h-20 w-20 rounded-[26px] overflow-hidden bg-gradient-to-br from-teal to-amber grid place-items-center text-white text-3xl font-extrabold border-2 border-white/20">
+              {avatarUrl
+                ? <img src={avatarUrl} alt="avatar" className="h-full w-full object-cover" />
+                : initials}
+            </div>
+            <div className="absolute -bottom-1 -right-1 h-7 w-7 bg-white rounded-full shadow grid place-items-center text-ink">
+              {uploading ? <span className="h-3 w-3 rounded-full border-2 border-teal border-t-transparent animate-spin" /> : <ICamera size={13} />}
+            </div>
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={uploadAvatar} />
 
-        <div className="min-w-0">
-          <p className="font-black text-lg truncate">{fullName || "İsim girilmedi"}</p>
-          <p className="text-slate-500 text-sm truncate">{email}</p>
-          <span className="text-xs font-black px-2 py-1 rounded-full bg-[#3fa7c9]/10 text-[#3fa7c9] mt-1 inline-block">
-            {role === "superadmin" ? "Superadmin" : "Kullanıcı"}
-          </span>
+          <div className="min-w-0">
+            <p className="font-extrabold text-lg truncate">{fullName || "İsim girilmedi"}</p>
+            <p className="text-white/55 text-sm font-medium truncate">{email}</p>
+            <span className="v-chip mt-1.5 bg-white/10 text-white/80 border border-white/10">
+              {role === "superadmin" ? "Superadmin" : "Kullanıcı"}
+            </span>
+          </div>
         </div>
       </section>
 
       {/* Kişisel bilgiler */}
-      <section className="bg-white rounded-[28px] p-5 shadow-sm mb-4">
-        <p className="font-black mb-3">Kişisel Bilgiler</p>
-        <div className="grid gap-3">
-          <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ad Soyad" className="bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm" />
-          <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Şirket / Marka adı" className="bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm" />
-          <input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Görev / Ünvan" className="bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm" />
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon" className="bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm" />
+      <section className="v-card p-4 mb-4">
+        <p className="font-extrabold tracking-tight mb-3">Kişisel Bilgiler</p>
+        <div className="grid gap-2.5">
+          <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ad Soyad" className="v-input" />
+          <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Şirket / Marka adı" className="v-input" />
+          <div className="grid grid-cols-2 gap-2.5">
+            <input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Görev / Ünvan" className="v-input" />
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon" className="v-input" />
+          </div>
         </div>
       </section>
 
       {/* Fatura bilgileri */}
-      <section className="bg-white rounded-[28px] p-5 shadow-sm mb-4">
-        <p className="font-black mb-1">Fatura & Ödeme Bilgileri</p>
-        <p className="text-xs text-slate-400 mb-3">Fatura oluşturulurken otomatik kullanılır</p>
-        <div className="grid gap-3">
-          <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Banka adı" className="bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm" />
-          <input value={iban} onChange={(e) => setIban(e.target.value)} placeholder="IBAN (TR...)" className="bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm font-mono" />
+      <section className="v-card p-4 mb-4">
+        <p className="font-extrabold tracking-tight mb-0.5">Fatura & Ödeme Bilgileri</p>
+        <p className="text-xs text-mute font-medium mb-3">Fatura oluşturulurken otomatik kullanılır</p>
+        <div className="grid gap-2.5">
+          <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Banka adı" className="v-input" />
+          <input value={iban} onChange={(e) => setIban(e.target.value)} placeholder="IBAN (TR...)" className="v-input font-mono" />
         </div>
       </section>
 
       {/* E-posta bilgisi */}
-      <section className="bg-white rounded-[28px] p-4 shadow-sm mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs text-slate-400">E-posta</p>
-          <p className="font-black text-sm">{email}</p>
+      <section className="v-card p-4 mb-4 flex items-center justify-between">
+        <div className="min-w-0">
+          <p className="v-overline mb-0.5">E-posta</p>
+          <p className="font-bold text-sm truncate">{email}</p>
         </div>
-        <span className="text-xs font-black px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-600">Doğrulandı</span>
+        <span className="v-chip v-chip-mint shrink-0"><ICheckCircle size={13} /> Doğrulandı</span>
       </section>
 
       {/* Kaydet */}
-      <button
-        onClick={save}
-        disabled={saving}
-        className="w-full bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-white rounded-2xl py-4 font-black mb-3 disabled:opacity-60"
-      >
-        {saving ? "Kaydediliyor..." : saved ? "✅ Kaydedildi" : "Kaydet"}
+      <button onClick={save} disabled={saving} className="v-btn v-btn-dark w-full mb-3">
+        {saving ? "Kaydediliyor..." : saved ? <><ICheck size={17} /> Kaydedildi</> : "Kaydet"}
       </button>
 
       {role === "superadmin" && (
-        <Link href="/admin" className="block w-full bg-white text-slate-700 rounded-2xl py-4 font-black text-center shadow-sm mb-3">
-          Admin Panel
+        <Link href="/admin" className="v-btn v-btn-white w-full mb-3">
+          <IShield size={17} /> Admin Panel
         </Link>
       )}
 
-      <button onClick={logout} className="w-full bg-red-50 text-red-500 rounded-2xl py-4 font-black">
-        Çıkış Yap
+      <button onClick={logout} className="v-btn v-btn-rose w-full">
+        <ILogout size={17} /> Çıkış Yap
       </button>
     </main>
   );

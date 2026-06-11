@@ -76,7 +76,7 @@ function PrimaryBtn({
     <motion.button
       onClick={onClick}
       disabled={disabled}
-      className="w-full bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-slate-950 rounded-2xl p-4 font-black disabled:opacity-50"
+      className="w-full v-btn v-btn-dark disabled:opacity-50"
       whileTap={{ scale: 0.97 }}
       whileHover={{ scale: 1.015 }}
     >
@@ -89,7 +89,7 @@ function SecondaryBtn({ onClick, children }: { onClick: () => void; children: Re
   return (
     <motion.button
       onClick={onClick}
-      className="w-full bg-slate-100 text-slate-700 rounded-2xl p-4 font-black"
+      className="w-full v-btn v-btn-soft"
       whileTap={{ scale: 0.97 }}
     >
       {children}
@@ -132,16 +132,16 @@ function PhoneIcon() {
 function AnimatedCheck() {
   return (
     <div className="relative flex items-center justify-center h-24">
-      <motion.div className="absolute rounded-[30px] bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c]"
+      <motion.div className="absolute rounded-[30px] bg-gradient-to-br from-[#2da3c7] to-[#e8a33d]"
         initial={{ width: 80, height: 80, opacity: 0.7 }}
         animate={{ width: 104, height: 104, opacity: 0 }}
         transition={{ duration: 1.3, repeat: Infinity, ease: "easeOut" }} />
-      <motion.div className="absolute rounded-[28px] bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c]"
+      <motion.div className="absolute rounded-[28px] bg-gradient-to-br from-[#2da3c7] to-[#e8a33d]"
         initial={{ width: 80, height: 80, opacity: 0.4 }}
         animate={{ width: 96, height: 96, opacity: 0 }}
         transition={{ duration: 1.3, repeat: Infinity, ease: "easeOut", delay: 0.4 }} />
       <motion.div
-        className="relative z-10 h-20 w-20 rounded-[24px] bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] flex items-center justify-center shadow-[0_8px_32px_rgba(97,174,189,0.5)]"
+        className="relative z-10 h-20 w-20 rounded-[24px] bg-gradient-to-br from-[#2da3c7] to-[#e8a33d] flex items-center justify-center shadow-[0_8px_32px_rgba(97,174,189,0.5)]"
         initial={{ scale: 0, rotate: -15 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ ...SOFT, delay: 0.1 }}
@@ -200,8 +200,8 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onPaste={handlePaste}
-          className={`h-14 w-12 rounded-2xl text-center text-2xl font-black outline-none border-2 transition-all ${
-            d ? "border-[#3fa7c9] bg-[#3fa7c9]/8 text-slate-950" : "border-slate-200 bg-slate-100 text-slate-400"
+          className={`h-14 w-12 rounded-2xl text-center text-2xl font-extrabold outline-none border-2 transition-all ${
+            d ? "border-[#2da3c7] bg-[#2da3c7]/8 text-slate-950" : "border-slate-200 bg-slate-100 text-slate-400"
           }`}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -310,11 +310,11 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] px-6 py-10 flex flex-col justify-center overflow-x-hidden overflow-y-auto">
+    <main className="min-h-screen bg-[#f3f5fa] px-6 py-10 flex flex-col justify-center overflow-x-hidden overflow-y-auto">
 
       <motion.div className="relative h-20 w-full mb-6"
         initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
-        <Image src="/valkea-logo.png" alt="Valkea" fill className="object-contain" priority />
+        <Image src="/valkea-logo.png" alt="Valkea" fill sizes="200px" className="object-contain" priority />
       </motion.div>
 
       <div className="relative overflow-hidden">
@@ -326,7 +326,7 @@ export default function LoginPage() {
               className="bg-white rounded-[36px] p-6 shadow-[0_20px_70px_rgba(15,23,42,0.10)]">
 
               <Field delay={0}>
-                <h1 className="text-4xl font-black text-slate-950">Hoş geldin 👋</h1>
+                <h1 className="text-4xl font-extrabold text-slate-950">Hoş geldin 👋</h1>
                 <p className="text-slate-500 mt-1 mb-6">Hesabına giriş yap.</p>
               </Field>
 
@@ -335,7 +335,7 @@ export default function LoginPage() {
                   <input type="email" placeholder="E-posta" value={email}
                     onChange={(e) => { setEmail(e.target.value); setError(""); }}
                     onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                    className="bg-slate-100 rounded-2xl p-4 outline-none w-full" />
+                    className="v-input w-full" />
                 </Field>
 
                 <Field delay={0.11}>
@@ -343,10 +343,10 @@ export default function LoginPage() {
                     <input type="password" placeholder="Şifre" value={password}
                       onChange={(e) => { setPassword(e.target.value); setError(""); }}
                       onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                      className="bg-slate-100 rounded-2xl p-4 outline-none w-full pr-36" />
+                      className="v-input w-full pr-36" />
                     <button
                       onClick={() => goTo("forgot-password", 1)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#3fa7c9] font-black whitespace-nowrap"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#2da3c7] font-extrabold whitespace-nowrap"
                     >
                       Şifremi unuttum
                     </button>
@@ -366,7 +366,7 @@ export default function LoginPage() {
                 {/* Google */}
                 <Field delay={0.23}>
                   <motion.button onClick={handleGoogle}
-                    className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 font-black flex items-center justify-center gap-3 text-slate-700 hover:border-slate-200 transition-colors"
+                    className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 font-extrabold flex items-center justify-center gap-3 text-slate-700 hover:border-slate-200 transition-colors"
                     whileTap={{ scale: 0.97 }}>
                     <GoogleIcon />
                     Google ile Giriş Yap
@@ -376,7 +376,7 @@ export default function LoginPage() {
                 {/* Telefon */}
                 <Field delay={0.27}>
                   <motion.button onClick={() => goTo("phone", 1)}
-                    className="w-full bg-slate-100 rounded-2xl p-4 font-black flex items-center justify-center gap-3 text-slate-700"
+                    className="w-full bg-slate-100 rounded-2xl p-4 font-extrabold flex items-center justify-center gap-3 text-slate-700"
                     whileTap={{ scale: 0.97 }}>
                     <PhoneIcon />
                     Telefon ile Giriş Yap
@@ -400,7 +400,7 @@ export default function LoginPage() {
               className="bg-white rounded-[36px] p-6 shadow-[0_20px_70px_rgba(15,23,42,0.10)]">
 
               <Field delay={0}>
-                <h1 className="text-4xl font-black text-slate-950">Hesap oluştur</h1>
+                <h1 className="text-4xl font-extrabold text-slate-950">Hesap oluştur</h1>
                 <p className="text-slate-500 mt-1 mb-6">Valkea Assistant'a kayıt ol.</p>
               </Field>
 
@@ -414,7 +414,7 @@ export default function LoginPage() {
                     <input type={type} placeholder={ph} value={val}
                       onChange={(e) => { set(e.target.value); setError(""); }}
                       onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-                      className="bg-slate-100 rounded-2xl p-4 outline-none w-full" />
+                      className="v-input w-full" />
                   </Field>
                 ))}
 
@@ -430,7 +430,7 @@ export default function LoginPage() {
 
                 <Field delay={0.27}>
                   <motion.button onClick={handleGoogle}
-                    className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 font-black flex items-center justify-center gap-3 text-slate-700"
+                    className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 font-extrabold flex items-center justify-center gap-3 text-slate-700"
                     whileTap={{ scale: 0.97 }}>
                     <GoogleIcon />
                     Google ile Kayıt Ol
@@ -454,8 +454,8 @@ export default function LoginPage() {
               className="bg-white rounded-[36px] p-6 shadow-[0_20px_70px_rgba(15,23,42,0.10)]">
 
               <Field delay={0}>
-                <div className="h-14 w-14 rounded-2xl bg-[#3fa7c9]/10 grid place-items-center text-3xl mb-4">🔑</div>
-                <h1 className="text-3xl font-black text-slate-950">Şifremi unuttum</h1>
+                <div className="h-14 w-14 rounded-2xl bg-[#2da3c7]/10 grid place-items-center text-3xl mb-4">🔑</div>
+                <h1 className="text-3xl font-extrabold text-slate-950">Şifremi unuttum</h1>
                 <p className="text-slate-500 mt-1 mb-6">
                   E-postanı gir, şifre sıfırlama bağlantısı gönderelim.
                 </p>
@@ -466,7 +466,7 @@ export default function LoginPage() {
                   <input type="email" placeholder="E-posta" value={email}
                     onChange={(e) => { setEmail(e.target.value); setError(""); }}
                     onKeyDown={(e) => e.key === "Enter" && handleForgotPassword()}
-                    className="bg-slate-100 rounded-2xl p-4 outline-none w-full" />
+                    className="v-input w-full" />
                 </Field>
 
                 <ErrorBox msg={error} />
@@ -496,7 +496,7 @@ export default function LoginPage() {
                 <AnimatedCheck />
               </motion.div>
 
-              <motion.h1 className="text-2xl font-black text-slate-950 mb-2"
+              <motion.h1 className="text-2xl font-extrabold text-slate-950 mb-2"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ ...SOFT, delay: 0.5 }}>
                 Mail gönderildi
@@ -505,7 +505,7 @@ export default function LoginPage() {
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.58 }}>
                 <p className="text-slate-500 mb-1">
-                  <span className="font-black text-slate-700">{email}</span> adresine
+                  <span className="font-extrabold text-slate-700">{email}</span> adresine
                 </p>
                 <p className="text-slate-500 mb-5">şifre sıfırlama bağlantısı gönderdik.</p>
                 <p className="text-xs text-slate-400 mb-7">
@@ -530,7 +530,7 @@ export default function LoginPage() {
                 <AnimatedCheck />
               </motion.div>
 
-              <motion.h1 className="text-2xl font-black text-slate-950 mb-2"
+              <motion.h1 className="text-2xl font-extrabold text-slate-950 mb-2"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ ...SOFT, delay: 0.5 }}>
                 E-postanı kontrol et
@@ -539,7 +539,7 @@ export default function LoginPage() {
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.58 }}>
                 <p className="text-slate-500 mb-1">
-                  <span className="font-black text-slate-700">{email}</span> adresine
+                  <span className="font-extrabold text-slate-700">{email}</span> adresine
                 </p>
                 <p className="text-slate-500 mb-5">bir doğrulama bağlantısı gönderdik.</p>
                 <p className="text-xs text-slate-400 mb-7">
@@ -560,10 +560,10 @@ export default function LoginPage() {
               className="bg-white rounded-[36px] p-6 shadow-[0_20px_70px_rgba(15,23,42,0.10)]">
 
               <Field delay={0}>
-                <div className="h-14 w-14 rounded-2xl bg-[#3fa7c9]/10 grid place-items-center text-2xl mb-4">
+                <div className="h-14 w-14 rounded-2xl bg-[#2da3c7]/10 grid place-items-center text-2xl mb-4">
                   <PhoneIcon />
                 </div>
-                <h1 className="text-3xl font-black text-slate-950">Telefon ile giriş</h1>
+                <h1 className="text-3xl font-extrabold text-slate-950">Telefon ile giriş</h1>
                 <p className="text-slate-500 mt-1 mb-6">
                   Numarana SMS kodu gönderelim.
                 </p>
@@ -572,13 +572,13 @@ export default function LoginPage() {
               <div className="grid gap-3">
                 <Field delay={0.08}>
                   <div className="flex gap-2">
-                    <div className="bg-slate-100 rounded-2xl px-4 flex items-center font-black text-slate-600 whitespace-nowrap">
+                    <div className="bg-slate-100 rounded-2xl px-4 flex items-center font-extrabold text-slate-600 whitespace-nowrap">
                       🇹🇷 +90
                     </div>
                     <input type="tel" placeholder="5XX XXX XX XX" value={phone}
                       onChange={(e) => { setPhone(e.target.value.replace(/\D/g, "")); setError(""); }}
                       onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
-                      className="bg-slate-100 rounded-2xl p-4 outline-none flex-1" />
+                      className="v-input flex-1" />
                   </div>
                 </Field>
 
@@ -605,9 +605,9 @@ export default function LoginPage() {
               className="bg-white rounded-[36px] p-6 shadow-[0_20px_70px_rgba(15,23,42,0.10)]">
 
               <Field delay={0}>
-                <h1 className="text-3xl font-black text-slate-950">Kodu gir</h1>
+                <h1 className="text-3xl font-extrabold text-slate-950">Kodu gir</h1>
                 <p className="text-slate-500 mt-1 mb-2">
-                  <span className="font-black text-slate-700">+90 {phone}</span> numarasına
+                  <span className="font-extrabold text-slate-700">+90 {phone}</span> numarasına
                 </p>
                 <p className="text-slate-500 mb-6">6 haneli doğrulama kodu gönderdik.</p>
               </Field>
@@ -626,7 +626,7 @@ export default function LoginPage() {
                 <Field delay={0.45}>
                   <div className="text-center">
                     <button onClick={() => { setOtp(""); handleSendOtp(); }}
-                      className="text-[#3fa7c9] font-black text-sm">
+                      className="text-[#2da3c7] font-extrabold text-sm">
                       Kodu tekrar gönder
                     </button>
                   </div>

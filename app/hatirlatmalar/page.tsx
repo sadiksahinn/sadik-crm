@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import Link from "next/link";
+import { PageHeader, EmptyState, today } from "@/components/ui";
+import { ICheck, ITrash, ICheckCircle, IPlus } from "@/components/Icons";
 
 const supabase = createClient();
-
-function today() { return new Date().toISOString().slice(0, 10); }
 
 type Item = { id: string; title: string; date: string; status: string; priority?: string; description?: string; source: "followup" | "reminder" };
 
@@ -84,43 +83,36 @@ export default function HatirlatmalarPage() {
   const pendingCount = items.filter(i => i.status === "bekliyor").length;
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
-      <header className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-[#3fa7c9] text-xs font-black tracking-wide">VALKEA TASKS</p>
-          <h1 className="text-3xl font-black">Hatırlatmalar</h1>
-          <p className="text-slate-500">{pendingCount} bekleyen görev</p>
-        </div>
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
-      </header>
+    <main className="v-enter min-h-screen px-4 pt-5 pb-36 max-w-[520px] mx-auto">
+      <PageHeader overline="Valkea Görevler" title="Hatırlatmalar" subtitle={`${pendingCount} bekleyen görev`} />
 
       {/* Yeni hatırlatma */}
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
-        <h2 className="text-xl font-black mb-4">Yeni Hatırlatma</h2>
-        <div className="grid gap-3">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Başlık" className="bg-slate-100 rounded-2xl p-4 outline-none text-sm" />
-          <textarea value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="Açıklama (isteğe bağlı)" rows={2} className="bg-slate-100 rounded-2xl p-4 outline-none text-sm" />
-          <div className="grid grid-cols-2 gap-3">
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="bg-slate-100 rounded-2xl p-4 outline-none text-sm" />
-            <select value={priority} onChange={(e) => setPriority(e.target.value)} className="bg-slate-100 rounded-2xl p-4 outline-none text-sm">
+      <section className="v-card p-4 mb-5">
+        <h2 className="font-extrabold tracking-tight mb-3">Yeni Hatırlatma</h2>
+        <div className="grid gap-2.5">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Başlık" className="v-input" />
+          <textarea value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="Açıklama (isteğe bağlı)" rows={2} className="v-input resize-none" />
+          <div className="grid grid-cols-2 gap-2.5">
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="v-input" />
+            <select value={priority} onChange={(e) => setPriority(e.target.value)} className="v-input">
               <option value="normal">Normal</option>
               <option value="önemli">Önemli</option>
               <option value="acil">Acil</option>
             </select>
           </div>
-          <button onClick={saveReminder} className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-white rounded-2xl p-4 font-black">
-            Kaydet
+          <button onClick={saveReminder} className="v-btn v-btn-dark w-full">
+            <IPlus size={17} /> Kaydet
           </button>
         </div>
       </section>
 
       {/* Filtre */}
-      <div className="flex gap-2 mb-4">
+      <div className="v-seg mb-4">
         {(["bekliyor", "tamamlandı", "tümü"] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`flex-1 rounded-2xl py-2.5 text-xs font-black transition-colors ${filter === f ? "bg-[#3fa7c9] text-white" : "bg-white text-slate-500 shadow-sm"}`}
+            className={`v-seg-btn ${filter === f ? "active" : ""}`}
           >
             {f === "bekliyor" ? `Bekliyor (${pendingCount})` : f === "tamamlandı" ? "Tamamlandı" : "Tümü"}
           </button>
@@ -128,34 +120,34 @@ export default function HatirlatmalarPage() {
       </div>
 
       {/* Liste */}
-      <section className="grid gap-3">
+      <section className="grid gap-2.5">
         {filtered.map((item: any) => (
-          <div key={item.id} className="bg-white rounded-[24px] p-4 shadow-sm">
+          <div key={item.id} className="v-card p-4">
             <div className="flex items-start justify-between gap-2 mb-3">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="text-xs font-black text-[#3fa7c9]">{item.date}</p>
+                  <p className="v-num text-xs font-extrabold text-teal-deep">{item.date}</p>
                   {item.priority && item.priority !== "normal" && (
-                    <span className={`text-xs font-black px-2 py-0.5 rounded-full ${item.priority === "acil" ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"}`}>
+                    <span className={`v-chip !text-[10px] !px-2 !py-0.5 ${item.priority === "acil" ? "v-chip-rose" : "v-chip-amber"}`}>
                       {item.priority}
                     </span>
                   )}
                 </div>
-                <h3 className="font-black">{item.title}</h3>
-                {item.description && <p className="text-slate-500 text-sm mt-1">{item.description}</p>}
+                <h3 className="font-bold text-[15px]">{item.title}</h3>
+                {item.description && <p className="text-sub text-sm font-medium mt-1">{item.description}</p>}
               </div>
-              <span className={`text-xs font-black px-2 py-1 rounded-xl ${item.status === "tamamlandı" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+              <span className={`v-chip shrink-0 ${item.status === "tamamlandı" ? "v-chip-mint" : "v-chip-amber"}`}>
                 {item.status}
               </span>
             </div>
 
             {item.status !== "tamamlandı" && (
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => completeItem(item)} className="bg-emerald-50 text-emerald-600 rounded-2xl py-2.5 font-black text-sm">
-                  ✅ Tamamlandı
+              <div className="flex gap-2">
+                <button onClick={() => completeItem(item)} className="v-btn v-btn-mint flex-1 !py-2.5 !text-[13px]">
+                  <ICheck size={15} /> Tamamlandı
                 </button>
-                <button onClick={() => deleteItem(item)} className="bg-red-50 text-red-500 rounded-2xl py-2.5 font-black text-sm">
-                  Sil
+                <button onClick={() => deleteItem(item)} className="v-btn v-btn-rose !py-2.5 !px-4 !text-[13px]">
+                  <ITrash size={15} />
                 </button>
               </div>
             )}
@@ -163,9 +155,10 @@ export default function HatirlatmalarPage() {
         ))}
 
         {filtered.length === 0 && (
-          <div className="bg-white rounded-[24px] p-5 shadow-sm text-slate-500 text-sm">
-            {filter === "bekliyor" ? "Bekleyen hatırlatma yok." : "Bu kategoride kayıt yok."}
-          </div>
+          <EmptyState
+            icon={<ICheckCircle size={24} />}
+            title={filter === "bekliyor" ? "Bekleyen hatırlatma yok" : "Bu kategoride kayıt yok"}
+          />
         )}
       </section>
     </main>

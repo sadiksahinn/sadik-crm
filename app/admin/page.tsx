@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 
 const supabase = createClient();
 import Link from "next/link";
+import { PageHeader } from "@/components/ui";
 
 
 function money(value:number){
@@ -83,67 +84,51 @@ export default function AdminPage(){
 
   if(loading){
     return (
-      <main className="min-h-screen bg-[#f7f8fc] grid place-items-center">
-        <p className="font-black text-slate-500">Yükleniyor...</p>
+      <main className="min-h-screen bg-[#f3f5fa] grid place-items-center">
+        <p className="font-extrabold text-slate-500">Yükleniyor...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] px-4 pt-5 pb-28">
+    <main className="v-enter min-h-screen px-4 pt-5 pb-36 max-w-[520px] mx-auto">
 
-      <header className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-[#3fa7c9] text-xs font-black tracking-wide">
-            VALKEA CONTROL
-          </p>
-          <h1 className="text-3xl font-black">
-            Superadmin
-          </h1>
-        </div>
-
-        <Link
-          href="/"
-          className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black"
-        >
-          Ana Sayfa
-        </Link>
-      </header>
+      <PageHeader overline="Valkea Control" title="Superadmin" subtitle="Sistem geneli özet" back="/profil" />
 
       <section className="grid grid-cols-2 gap-3 mb-5">
 
-        <div className="bg-white rounded-[28px] p-5 shadow-sm">
-          <p className="text-slate-500 text-sm">Kullanıcı</p>
-          <h2 className="text-3xl font-black">{totals.users}</h2>
+        <div className="v-card p-5">
+          <p className="v-overline">Kullanıcı</p>
+          <h2 className="v-num text-3xl font-extrabold mt-0.5">{totals.users}</h2>
         </div>
 
-        <div className="bg-white rounded-[28px] p-5 shadow-sm">
-          <p className="text-slate-500 text-sm">Bekleyen Tahsilat</p>
-          <h2 className="text-2xl font-black text-[#e0a23c]">
+        <div className="v-card p-5">
+          <p className="v-overline">Bekleyen Tahsilat</p>
+          <h2 className="text-2xl font-extrabold text-[#e8a33d]">
             {money(totals.payments)}
           </h2>
         </div>
 
-        <div className="bg-white rounded-[28px] p-5 shadow-sm">
-          <p className="text-slate-500 text-sm">Toplam Gelir</p>
-          <h2 className="text-2xl font-black text-emerald-600">
+        <div className="v-card p-5">
+          <p className="v-overline">Toplam Gelir</p>
+          <h2 className="text-2xl font-extrabold text-emerald-600">
             {money(totals.income)}
           </h2>
         </div>
 
-        <div className="bg-white rounded-[28px] p-5 shadow-sm">
-          <p className="text-slate-500 text-sm">Toplam Gider</p>
-          <h2 className="text-2xl font-black text-red-500">
+        <div className="v-card p-5">
+          <p className="v-overline">Toplam Gider</p>
+          <h2 className="text-2xl font-extrabold text-red-500">
             {money(totals.expense)}
           </h2>
         </div>
 
       </section>
 
-      <section className="bg-white rounded-[30px] p-5 shadow-sm">
+      <section className="v-card p-5">
 
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-black">
+          <h2 className="text-xl font-extrabold">
             Kullanıcılar
           </h2>
 
@@ -159,11 +144,11 @@ export default function AdminPage(){
             <Link
               key={user.id}
               href={`/admin/users/${user.id}`}
-              className="border border-slate-100 rounded-2xl p-4 flex items-center justify-between"
+              className="v-card v-press p-4 flex items-center justify-between"
             >
 
               <div>
-                <p className="font-black">
+                <p className="font-extrabold">
                   {user.full_name || "İsimsiz Kullanıcı"}
                 </p>
 
@@ -173,16 +158,16 @@ export default function AdminPage(){
 
                 <div className="flex items-center gap-2 mt-2">
 
-                  <span className={`text-xs px-2 py-1 rounded-full font-black ${
+                  <span className={`text-xs px-2 py-1 rounded-full font-extrabold ${
                     user.role === "superadmin"
-                    ? "bg-[#3fa7c9]/10 text-[#3fa7c9]"
+                    ? "bg-[#2da3c7]/10 text-[#2da3c7]"
                     : "bg-slate-100 text-slate-600"
                   }`}>
                     {user.role || "user"}
                   </span>
 
                   {user.verified && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-black">
+                    <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-extrabold">
                       doğrulandı
                     </span>
                   )}
@@ -195,7 +180,7 @@ export default function AdminPage(){
                   kayıt tarihi
                 </p>
 
-                <p className="text-sm font-black">
+                <p className="text-sm font-extrabold">
                   {String(user.created_at || "").slice(0,10)}
                 </p>
               </div>

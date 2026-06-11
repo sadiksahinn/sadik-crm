@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
+import { money } from "@/components/ui";
+import { IArrowLeft, ISparkle, ITrash, ICamera, IMic, ISend, ICheck } from "@/components/Icons";
 
 const supabase = createClient();
 
@@ -23,20 +25,24 @@ const QUICK_ACTIONS = [
   "Tasarruf önerisi",
 ];
 
-function money(value: number) {
-  return new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-    maximumFractionDigits: 0,
-  }).format(value || 0);
+function recordStyle(type: string) {
+  if (type === "gelir") return "bg-[#e8f7f1] border-[#bfe8d8] text-[#065f46]";
+  if (type === "gider") return "bg-[#fdeef1] border-[#f8cdd6] text-[#9f1239]";
+  if (type === "iş") return "bg-[rgba(45,163,199,0.1)] border-[rgba(45,163,199,0.25)] text-[#186e8d]";
+  if (type === "hatırlatma") return "bg-[rgba(232,163,61,0.12)] border-[rgba(232,163,61,0.3)] text-[#a16a14]";
+  return "bg-canvas border-line text-ink";
 }
 
-function recordStyle(type: string) {
-  if (type === "gelir") return "bg-emerald-50 border-emerald-200 text-emerald-900";
-  if (type === "gider") return "bg-red-50 border-red-200 text-red-900";
-  if (type === "iş") return "bg-[#3fa7c9]/10 border-[#3fa7c9]/20 text-slate-950";
-  if (type === "hatırlatma") return "bg-amber-50 border-amber-200 text-amber-900";
-  return "bg-slate-50 border-slate-200 text-slate-950";
+/* Asistan avatarı — degrade orb */
+function AiOrb({ size = 34 }: { size?: number }) {
+  return (
+    <div
+      className="rounded-full grid place-items-center text-white shrink-0 shadow-[0_4px_14px_rgba(45,163,199,0.4)]"
+      style={{ width: size, height: size, background: "linear-gradient(135deg, #2da3c7, #e8a33d)" }}
+    >
+      <ISparkle size={size * 0.52} />
+    </div>
+  );
 }
 
 export default function AsistanPage() {
@@ -110,9 +116,9 @@ export default function AsistanPage() {
       const todayTotal = (todayIncome || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
 
       const urgentLines: string[] = [];
-      if ((payments || []).length > 0) urgentLines.push(`💰 ${payments!.length} gecikmiş tahsilat — ${money(paymentTotal)}`);
-      if ((contents || []).length > 0) urgentLines.push(`📲 ${contents!.length} yayınlanmayı bekleyen içerik`);
-      if ((followups || []).length > 0) urgentLines.push(`✅ ${followups!.length} bekleyen görev`);
+      if ((payments || []).length > 0) urgentLines.push(`• ${payments!.length} gecikmiş tahsilat — ${money(paymentTotal)}`);
+      if ((contents || []).length > 0) urgentLines.push(`• ${contents!.length} yayınlanmayı bekleyen içerik`);
+      if ((followups || []).length > 0) urgentLines.push(`• ${followups!.length} bekleyen görev`);
 
       const weekLines = (weekPayments || []).map((p: any) => `  · ${p.title} — ${money(Number(p.amount))} (${p.due_date})`);
 
@@ -124,7 +130,7 @@ export default function AsistanPage() {
         intro += `Bugün için acil bir şey yok.`;
       }
 
-      if (todayTotal > 0) intro += `\n\n🎉 Bugün ${money(todayTotal)} gelir aldın.`;
+      if (todayTotal > 0) intro += `\n\nBugün ${money(todayTotal)} gelir aldın. 🎉`;
 
       if (weekLines.length > 0) {
         intro += `\n\nBu hafta yaklaşan tahsilatlar:\n${weekLines.join("\n")}`;
@@ -228,10 +234,10 @@ export default function AsistanPage() {
     const total = analysis.items.reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
 
     const summary = save.ok
-      ? `🧾 Belge kaydedildi · ${analysis.items.length} kalem\n` +
-        (giderler.length ? `❤️ ${giderler.length} gider` : "") +
+      ? `Belge kaydedildi · ${analysis.items.length} kalem\n` +
+        (giderler.length ? `${giderler.length} gider` : "") +
         (giderler.length && gelirler.length ? " · " : "") +
-        (gelirler.length ? `💚 ${gelirler.length} gelir` : "") +
+        (gelirler.length ? `${gelirler.length} gelir` : "") +
         `\nToplam: ${money(total)}`
       : save.message || "Kayıt sırasında hata oluştu.";
 
@@ -300,110 +306,126 @@ export default function AsistanPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-36">
-      <header className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-[#3fa7c9] text-xs font-black tracking-wide">VALKEA AI</p>
-          <h1 className="text-3xl font-black">Asistan</h1>
-          <p className="text-slate-500">Konuşarak işlerini yönet.</p>
-        </div>
-        <div className="flex gap-2">
+    <main className="min-h-screen max-w-[520px] mx-auto flex flex-col">
+
+      {/* Üst bar — sabit cam header */}
+      <header className="sticky top-0 z-[100] bg-canvas/85 backdrop-blur-xl px-4 pt-4 pb-3">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="v-press h-11 w-11 rounded-2xl bg-white border border-line shadow-sm grid place-items-center shrink-0" aria-label="Ana sayfa">
+            <IArrowLeft size={19} />
+          </Link>
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <AiOrb size={38} />
+            <div className="min-w-0">
+              <h1 className="text-[17px] font-extrabold tracking-tight leading-tight">Valkea Asistan</h1>
+              <p className="text-[11px] font-semibold flex items-center gap-1.5">
+                <span className={`h-1.5 w-1.5 rounded-full ${recording ? "bg-rose animate-pulse" : loading ? "bg-amber animate-pulse" : "bg-mint"}`} />
+                <span className="text-mute">{recording ? "Dinliyor..." : loading ? "Düşünüyor..." : "Çevrimiçi"}</span>
+              </p>
+            </div>
+          </div>
           {messages.length > 1 && (
             <button
               onClick={() => { setMessages([]); localStorage.removeItem(STORAGE_KEY); setShowQuick(true); }}
-              className="bg-white rounded-2xl px-3 py-3 shadow-sm font-black text-slate-400 text-sm"
+              className="v-press h-11 w-11 rounded-2xl bg-white border border-line shadow-sm grid place-items-center text-mute"
               title="Sohbeti temizle"
             >
-              🗑
+              <ITrash size={17} />
             </button>
           )}
-          <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
         </div>
       </header>
 
-      {showQuick && messages.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-          {QUICK_ACTIONS.map((action) => (
-            <button
-              key={action}
-              onClick={() => sendMessage(action)}
-              className="whitespace-nowrap rounded-2xl bg-white border border-[#3fa7c9]/20 px-4 py-2 text-sm font-black text-[#3fa7c9] shadow-sm flex-shrink-0"
-            >
-              {action}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Mesajlar */}
+      <section className="flex-1 px-4 pb-44 pt-2 grid gap-3 content-start">
 
-      <section className="grid gap-3">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`max-w-[88%] rounded-[24px] p-4 shadow-sm ${
-              msg.role === "user"
-                ? "ml-auto bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] text-white"
-                : "mr-auto bg-white text-slate-950"
-            }`}
-          >
-            {msg.image && (
-              <img
-                src={msg.image}
-                alt="Yüklenen görsel"
-                className="rounded-2xl max-h-52 w-full object-cover mb-2"
-              />
-            )}
-            {msg.text && (
-              <p className="whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
-            )}
+        {showQuick && messages.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
+            {QUICK_ACTIONS.map((action) => (
+              <button
+                key={action}
+                onClick={() => sendMessage(action)}
+                className="v-press whitespace-nowrap rounded-full bg-white border border-line px-4 py-2.5 text-[13px] font-bold text-teal-deep shadow-sm shrink-0"
+              >
+                {action}
+              </button>
+            ))}
+          </div>
+        )}
 
-            {/* Kısa onay kartı — sadece iki buton */}
-            {msg.proposal && (
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={() => approveProposal(msg.proposal)}
-                  disabled={loading}
-                  className="flex-1 bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-white rounded-2xl py-3 text-sm font-black disabled:opacity-50"
-                >
-                  ✅ Evet, kaydet
-                </button>
-                <button
-                  onClick={() =>
-                    setMessages((prev) => [
-                      ...prev,
-                      { role: "assistant", text: "Tamam, kaydedmedim. Başka bir şey var mı?" },
-                    ])
-                  }
-                  disabled={loading}
-                  className="flex-1 bg-slate-100 text-slate-600 rounded-2xl py-3 text-sm font-black disabled:opacity-50"
-                >
-                  ❌ Hayır
-                </button>
-              </div>
-            )}
+        {messages.map((msg, index) => {
+          const isUser = msg.role === "user";
+          return (
+            <div key={index} className={`v-enter flex gap-2 items-end ${isUser ? "justify-end" : "justify-start"}`}>
+              {!isUser && <AiOrb size={28} />}
+              <div
+                className={`max-w-[82%] p-4 ${
+                  isUser
+                    ? "rounded-[22px] rounded-br-lg bg-ink text-white shadow-[0_8px_24px_rgba(11,16,32,0.22)]"
+                    : "rounded-[22px] rounded-bl-lg bg-white border border-line shadow-sm text-ink"
+                }`}
+              >
+                {msg.image && (
+                  <img
+                    src={msg.image}
+                    alt="Yüklenen görsel"
+                    className="rounded-2xl max-h-52 w-full object-cover mb-2"
+                  />
+                )}
+                {msg.text && (
+                  <p className="whitespace-pre-line text-sm leading-relaxed font-medium">{msg.text}</p>
+                )}
 
-            {msg.record && (
-              <div className={`mt-3 rounded-2xl border p-3 ${recordStyle(msg.record.type)}`}>
-                <p className="text-xs font-black mb-1">
-                  {String(msg.record.type || "KAYIT").toUpperCase()} KAYDI
-                </p>
-                <h3 className="font-black">{msg.record.title}</h3>
-                {typeof msg.record.amount === "number" && (
-                  <p className="text-2xl font-black">{money(msg.record.amount)}</p>
+                {/* Onay kartı */}
+                {msg.proposal && (
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={() => approveProposal(msg.proposal)}
+                      disabled={loading}
+                      className="v-btn v-btn-dark flex-1 !py-2.5 !text-[13px]"
+                    >
+                      <ICheck size={15} /> Evet, kaydet
+                    </button>
+                    <button
+                      onClick={() =>
+                        setMessages((prev) => [
+                          ...prev,
+                          { role: "assistant", text: "Tamam, kaydetmedim. Başka bir şey var mı?" },
+                        ])
+                      }
+                      disabled={loading}
+                      className="v-btn v-btn-soft flex-1 !py-2.5 !text-[13px]"
+                    >
+                      Hayır
+                    </button>
+                  </div>
+                )}
+
+                {msg.record && (
+                  <div className={`mt-3 rounded-2xl border p-3 ${recordStyle(msg.record.type)}`}>
+                    <p className="text-[10px] font-extrabold tracking-[0.1em] uppercase mb-1 opacity-70">
+                      {String(msg.record.type || "kayıt")} kaydı
+                    </p>
+                    <h3 className="font-extrabold text-sm">{msg.record.title}</h3>
+                    {typeof msg.record.amount === "number" && (
+                      <p className="v-num text-[22px] font-extrabold mt-0.5">{money(msg.record.amount)}</p>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
 
         {loading && (
-          <div className="mr-auto bg-white rounded-[24px] p-4 shadow-sm">
-            <div className="flex items-center gap-2 text-slate-400">
-              <span className="inline-flex gap-1">
-                <span className="w-2 h-2 bg-[#3fa7c9] rounded-full animate-bounce [animation-delay:0ms]" />
-                <span className="w-2 h-2 bg-[#3fa7c9] rounded-full animate-bounce [animation-delay:150ms]" />
-                <span className="w-2 h-2 bg-[#3fa7c9] rounded-full animate-bounce [animation-delay:300ms]" />
+          <div className="flex gap-2 items-end">
+            <AiOrb size={28} />
+            <div className="rounded-[22px] rounded-bl-lg bg-white border border-line shadow-sm px-5 py-4">
+              <span className="inline-flex gap-1.5">
+                <span className="w-2 h-2 bg-teal rounded-full animate-bounce [animation-delay:0ms]" />
+                <span className="w-2 h-2 bg-teal rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-2 h-2 bg-teal rounded-full animate-bounce [animation-delay:300ms]" />
               </span>
-              <span className="text-sm">{recording ? "Dinliyor..." : "Düşünüyor..."}</span>
             </div>
           </div>
         )}
@@ -424,19 +446,20 @@ export default function AsistanPage() {
         }}
       />
 
-      <section className="fixed bottom-4 left-4 right-4 bg-white rounded-[28px] p-3 shadow-[0_18px_60px_rgba(15,23,42,0.18)] z-[9999]">
+      {/* Giriş barı */}
+      <section
+        className="fixed left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[496px] z-[9999] rounded-[26px] border border-line bg-white/95 backdrop-blur-xl p-2.5 shadow-[0_20px_60px_rgba(11,16,32,0.18)]"
+        style={{ bottom: "max(14px, env(safe-area-inset-bottom))" }}
+      >
         <div className="flex gap-2 items-center">
           {/* Kamera */}
           <button
             onClick={() => imageInputRef.current?.click()}
             disabled={loading || recording}
-            className="h-12 w-12 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center flex-shrink-0 disabled:opacity-40 active:scale-95 transition-transform"
+            className="v-press h-11 w-11 rounded-full bg-canvas text-sub grid place-items-center shrink-0 disabled:opacity-40"
             title="Fiş veya belge fotoğrafı"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+            <ICamera size={19} />
           </button>
 
           {/* Metin */}
@@ -446,32 +469,32 @@ export default function AsistanPage() {
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
             }}
-            placeholder={recording ? "Dinliyor..." : "Örn: Suite Halı 20.000₺ ödedi"}
+            placeholder={recording ? "Dinliyor..." : "Mesaj yaz veya söyle..."}
             disabled={recording}
-            className="flex-1 bg-slate-100 rounded-2xl px-4 py-3 outline-none text-sm disabled:opacity-50"
+            className="flex-1 bg-canvas rounded-full px-4 py-3 outline-none text-sm font-medium disabled:opacity-50 min-w-0"
           />
 
           {/* Mikrofon */}
           <button
             onClick={toggleRecording}
             disabled={loading && !recording}
-            className={`h-12 w-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all active:scale-95 ${
-              recording ? "bg-red-500 text-white animate-pulse" : "bg-slate-100 text-slate-500 disabled:opacity-40"
+            className={`v-press h-11 w-11 rounded-full grid place-items-center shrink-0 transition-colors ${
+              recording ? "bg-rose text-white animate-pulse" : "bg-canvas text-sub disabled:opacity-40"
             }`}
             title={recording ? "Kaydı durdur" : "Sesli komut"}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
+            <IMic size={19} />
           </button>
 
           {/* Gönder */}
           <button
             onClick={() => sendMessage()}
             disabled={loading || !command.trim() || recording}
-            className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] text-white font-black text-xl disabled:opacity-40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
+            className="v-press h-11 w-11 rounded-full grid place-items-center shrink-0 text-white disabled:opacity-40 shadow-[0_8px_20px_rgba(45,163,199,0.4)]"
+            style={{ background: "linear-gradient(135deg, #2da3c7, #e8a33d)" }}
+            aria-label="Gönder"
           >
-            →
+            <ISend size={17} />
           </button>
         </div>
       </section>

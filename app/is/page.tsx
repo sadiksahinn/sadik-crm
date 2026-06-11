@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
+import { PageHeader, EmptyState, money, today } from "@/components/ui";
+import {
+  IUsers, IAlert, ICheck, IMessage, IPlus, IPlayCircle, IBriefcase, IClock, ICheckCircle,
+} from "@/components/Icons";
 
 const supabase = createClient();
-const C = { primary:"#3fa7c9", secondary:"#e0a23c", dark:"#1c2b4d", bg:"#f7f8fc", card:"#ffffff", border:"#e2e8f0", textMain:"#0f172a", textSub:"#64748b", error:"#ef4444" };
-
-function money(v: number) { return new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY",maximumFractionDigits:0}).format(v||0); }
-function today() { return new Date().toISOString().slice(0,10); }
 
 export default function IsPage() {
   const [customers, setCustomers]   = useState<any[]>([]);
@@ -61,181 +61,211 @@ export default function IsPage() {
   },0);
 
   return (
-    <main style={{minHeight:"100vh",background:C.bg,fontFamily:"'Manrope',sans-serif",paddingBottom:100}}>
-      <header style={{position:"sticky",top:0,zIndex:50,background:C.card,borderBottom:`1px solid ${C.border}`,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div>
-          <h1 style={{fontWeight:700,fontSize:18,margin:0,color:C.textMain}}>İş Alanı</h1>
-          <p style={{fontSize:12,color:C.textSub,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>Müşteriler, tahsilatlar, görevler, içerik</p>
+    <main className="v-enter min-h-screen px-4 pt-5 pb-36 max-w-[520px] mx-auto">
+      <PageHeader
+        overline="Valkea İş"
+        title="İş Alanı"
+        subtitle="Müşteriler, tahsilatlar, görevler"
+        actions={
+          <Link href="/musteriler" className="v-btn v-btn-dark !py-2.5 !px-3.5 !text-xs">
+            <IPlus size={14} /> Müşteri
+          </Link>
+        }
+      />
+
+      {/* Özet hero */}
+      <section className="v-hero p-5 mb-5">
+        <div className="relative z-10">
+          <p className="v-overline !text-white/50 mb-1">Aylık tekrarlı gelir</p>
+          <p className="v-num text-[34px] font-extrabold leading-none text-emerald-300 mb-4">{money(monthlyRevenue)}</p>
+          <div className="flex gap-5 flex-wrap">
+            <div>
+              <p className="v-overline !text-white/40">Aktif müşteri</p>
+              <p className="v-num font-extrabold text-emerald-300 text-sm mt-0.5">{activeCustomers.length}</p>
+            </div>
+            <div>
+              <p className="v-overline !text-white/40">Toplam</p>
+              <p className="v-num font-extrabold text-sky-300 text-sm mt-0.5">{customers.length}</p>
+            </div>
+            <div>
+              <p className="v-overline !text-white/40">Tahsilat</p>
+              <p className="v-num font-extrabold text-amber-300 text-sm mt-0.5">{money(colTotal)}</p>
+            </div>
+            <div>
+              <p className="v-overline !text-white/40">Görev</p>
+              <p className="v-num font-extrabold text-violet-300 text-sm mt-0.5">{tasks.length}</p>
+            </div>
+          </div>
         </div>
-        <div style={{display:"flex",gap:8}}>
-          <Link href="/musteriler" style={{padding:"8px 12px",borderRadius:10,background:C.primary,fontSize:12,fontWeight:700,color:"#fff",textDecoration:"none",fontFamily:"'Hanken Grotesk',sans-serif"}}>+ Müşteri</Link>
-          <Link href="/" style={{padding:"8px 12px",borderRadius:10,border:`1px solid ${C.border}`,fontSize:12,fontWeight:600,color:C.textSub,textDecoration:"none"}}>Ana</Link>
-        </div>
-      </header>
+      </section>
 
-      <div style={{padding:"16px",maxWidth:480,margin:"0 auto"}}>
-
-        {/* Özet kartı */}
-        <section style={{borderRadius:12,padding:20,marginBottom:16,background:C.dark,position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",top:0,right:0,width:100,height:100,borderRadius:"50%",opacity:0.15,background:`radial-gradient(circle,${C.primary},transparent)`,transform:"translate(30%,-30%)"}} />
-          <p style={{fontSize:10,letterSpacing:"0.08em",color:"rgba(255,255,255,0.5)",marginBottom:4,fontFamily:"'Hanken Grotesk',sans-serif"}}>AYLIK TEKRARLI GELİR</p>
-          <p style={{fontSize:36,fontWeight:700,color:"#4ade80",margin:"0 0 12px",letterSpacing:"-0.02em"}}>{money(monthlyRevenue)}</p>
-          <div style={{display:"flex",gap:16}}>
-            <div><p style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Hanken Grotesk',sans-serif"}}>AKTİF MÜŞTERİ</p><p style={{fontWeight:700,fontSize:14,color:"#4ade80"}}>{activeCustomers.length}</p></div>
-            <div><p style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Hanken Grotesk',sans-serif"}}>TOPLAM MÜŞTERİ</p><p style={{fontWeight:700,fontSize:14,color:"#93c5fd"}}>{customers.length}</p></div>
-            <div><p style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Hanken Grotesk',sans-serif"}}>TAHSİLAT</p><p style={{fontWeight:700,fontSize:14,color:"#fbbf24"}}>{money(colTotal)}</p></div>
-            <div><p style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Hanken Grotesk',sans-serif"}}>GÖREV</p><p style={{fontWeight:700,fontSize:14,color:"#a78bfa"}}>{tasks.length}</p></div>
-          </div>
-        </section>
-
-        {/* Tabs */}
-        <div style={{display:"flex",gap:6,marginBottom:14}}>
-          {([["ozet","Özet"],["musteriler","Müşteriler"],["tahsilat","Tahsilat"],["gorev","Görevler"]] as const).map(([k,l])=>(
-            <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"9px 0",borderRadius:8,fontWeight:700,fontSize:11,cursor:"pointer",border:"none",fontFamily:"'Hanken Grotesk',sans-serif",background:tab===k?C.primary:"#f3f4f5",color:tab===k?"#fff":C.textSub}}>
-              {l}
-            </button>
-          ))}
-        </div>
-
-        {/* ÖZET */}
-        {tab==="ozet" && (
-          <div style={{display:"grid",gap:10}}>
-            {/* Gecikmiş tahsilatlar */}
-            {overdueCollections.length > 0 && (
-              <div style={{borderRadius:12,padding:14,background:`linear-gradient(135deg,${C.error},${C.secondary})`,color:"#fff"}}>
-                <p style={{fontWeight:700,fontSize:14,margin:"0 0 4px"}}>⚠️ Gecikmiş Tahsilat</p>
-                <p style={{fontSize:12,opacity:0.85,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>{overdueCollections.length} müşterinin ödemesi gecikti</p>
-              </div>
-            )}
-            {/* Yaklaşan içerik */}
-            {contents.length > 0 && (
-              <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:14}}>
-                <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.06em",color:C.textSub,marginBottom:10,fontFamily:"'Hanken Grotesk',sans-serif"}}>BU HAFTA İÇERİK ({contents.length})</p>
-                {contents.slice(0,3).map((c:any)=>(
-                  <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-                    <p style={{fontSize:13,fontWeight:600,color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>◉ {c.content_title}</p>
-                    <span style={{fontSize:11,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>{c.publish_date}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {/* Son aktiviteler */}
-            {activities.length > 0 && (
-              <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:14}}>
-                <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.06em",color:C.textSub,marginBottom:10,fontFamily:"'Hanken Grotesk',sans-serif"}}>SON AKTİVİTELER</p>
-                {activities.slice(0,5).map((a:any)=>(
-                  <div key={a.id} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-                    <span style={{fontSize:18,flexShrink:0}}>{a.action_type==="iş"?"💼":a.action_type==="tamamlandı"?"✅":"📌"}</span>
-                    <div>
-                      <p style={{fontSize:13,fontWeight:600,color:C.textMain,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>{a.action_title}</p>
-                      {a.action_detail && <p style={{fontSize:11,color:C.textSub,margin:0}}>{a.action_detail}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* MÜŞTERİLER */}
-        {tab==="musteriler" && (
-          <div style={{display:"grid",gap:10}}>
-            {customers.map(c=>{
-              const svc = (c.client_services||[]).find((s:any)=>s.status==="devam ediyor");
-              return (
-                <Link key={c.id} href={`/musteriler/${c.id}`} style={{borderRadius:12,border:`1px solid ${C.border}`,borderLeft:`4px solid ${svc?C.primary:C.border}`,background:C.card,padding:14,textDecoration:"none",display:"block"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                      <div style={{width:44,height:44,borderRadius:"50%",background:`${C.primary}18`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:14,color:C.primary,flexShrink:0}}>
-                        {(c.brand_name||c.name||"?")[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <p style={{fontWeight:700,fontSize:14,color:C.textMain,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>{c.brand_name||c.name}</p>
-                        <p style={{fontSize:12,color:C.textSub,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>{c.phone||"—"}</p>
-                      </div>
-                    </div>
-                    <div style={{textAlign:"right"}}>
-                      {svc && <p style={{fontWeight:700,fontSize:13,color:C.primary,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>{money(svc.monthly_fee)}/ay</p>}
-                      <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:svc?`${C.primary}18`:"#f3f4f5",color:svc?C.primary:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>{svc?"aktif":"pasif"}</span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-            {customers.length===0 && (
-              <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:32,textAlign:"center"}}>
-                <p style={{fontSize:28,marginBottom:8}}>👥</p>
-                <p style={{fontSize:13,color:C.textSub}}>Henüz müşteri yok.</p>
-                <Link href="/musteriler" style={{display:"inline-block",marginTop:10,padding:"8px 16px",borderRadius:8,background:C.primary,color:"#fff",fontSize:13,fontWeight:700,textDecoration:"none",fontFamily:"'Hanken Grotesk',sans-serif"}}>Müşteri Ekle</Link>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAHSİLAT */}
-        {tab==="tahsilat" && (
-          <div style={{display:"grid",gap:10}}>
-            {collections.map(item=>{
-              const isOvr = item.due_date < today();
-              const init = item.title.split(" ").map((w:string)=>w[0]).join("").slice(0,2).toUpperCase();
-              return (
-                <div key={item.id} style={{borderRadius:12,border:`1px solid ${C.border}`,borderLeft:`4px solid ${isOvr?C.error:C.primary}`,background:C.card,padding:14}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                    <div style={{width:40,height:40,borderRadius:"50%",background:`${isOvr?C.error:C.primary}18`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:isOvr?C.error:C.primary,flexShrink:0}}>{init}</div>
-                    <div style={{flex:1}}>
-                      <p style={{fontWeight:700,fontSize:14,color:C.textMain,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>{item.title}</p>
-                      <p style={{fontSize:12,color:isOvr?C.error:C.textSub,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>{isOvr?"Gecikmiş":"Vade"}: {item.due_date}</p>
-                    </div>
-                    <p style={{fontWeight:700,fontSize:15,color:isOvr?C.error:C.primary,margin:0,fontFamily:"'Manrope',sans-serif"}}>{money(Number(item.amount))}</p>
-                  </div>
-                  <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>markCollectionPaid(item)} style={{flex:1,padding:"9px 0",borderRadius:8,background:C.primary,color:"#fff",fontWeight:700,fontSize:12,border:"none",cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif"}}>✓ Ödendi</button>
-                    <button onClick={()=>{
-                      const msg=`Merhaba, ${item.title} için ${money(Number(item.amount))} tutarındaki ödeme günümüz gelmiştir. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.`;
-                      navigator.clipboard.writeText(msg).catch(()=>{});
-                      alert("WhatsApp mesajı kopyalandı");
-                    }} style={{padding:"9px 14px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",fontSize:12,cursor:"pointer",color:C.primary}}>💬</button>
-                  </div>
-                </div>
-              );
-            })}
-            {collections.length===0 && (
-              <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:32,textAlign:"center"}}>
-                <p style={{fontSize:28,marginBottom:8}}>✅</p>
-                <p style={{fontSize:13,color:C.textSub}}>Bekleyen tahsilat yok.</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* GÖREVLER */}
-        {tab==="gorev" && (
-          <div style={{display:"grid",gap:10}}>
-            {tasks.map(task=>{
-              const isOvr = task.followup_date < today();
-              return (
-                <div key={task.id} style={{borderRadius:12,border:`1px solid ${C.border}`,borderLeft:`4px solid ${isOvr?C.error:C.secondary}`,background:C.card,padding:14}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                    <div style={{flex:1}}>
-                      <p style={{fontWeight:700,fontSize:14,color:C.textMain,margin:"0 0 4px",fontFamily:"'Hanken Grotesk',sans-serif"}}>{task.title}</p>
-                      <p style={{fontSize:12,color:isOvr?C.error:C.textSub,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>{task.followup_date}{isOvr?" (gecikti)":""}</p>
-                      {task.message_suggestion && <p style={{fontSize:11,color:C.textSub,margin:"4px 0 0",fontStyle:"italic",fontFamily:"'Hanken Grotesk',sans-serif"}}>"{task.message_suggestion}"</p>}
-                    </div>
-                    {task.priority && task.priority!=="normal" && <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:4,background:task.priority==="acil"?`${C.error}20`:`${C.secondary}20`,color:task.priority==="acil"?C.error:C.secondary,fontFamily:"'Hanken Grotesk',sans-serif"}}>{task.priority}</span>}
-                  </div>
-                  <button onClick={()=>markTaskDone(task.id)} style={{width:"100%",padding:"9px 0",borderRadius:8,background:C.primary,color:"#fff",fontWeight:700,fontSize:12,border:"none",cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif"}}>✓ Tamamlandı</button>
-                </div>
-              );
-            })}
-            {tasks.length===0 && (
-              <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:32,textAlign:"center"}}>
-                <p style={{fontSize:28,marginBottom:8}}>✅</p>
-                <p style={{fontSize:13,color:C.textSub}}>Bekleyen görev yok.</p>
-              </div>
-            )}
-          </div>
-        )}
+      {/* Tabs */}
+      <div className="v-seg mb-4">
+        {([["ozet","Özet"],["musteriler","Müşteriler"],["tahsilat","Tahsilat"],["gorev","Görevler"]] as const).map(([k,l])=>(
+          <button key={k} onClick={()=>setTab(k)} className={`v-seg-btn ${tab===k ? "active" : ""}`}>
+            {l}
+          </button>
+        ))}
       </div>
+
+      {/* ÖZET */}
+      {tab==="ozet" && (
+        <div className="grid gap-3">
+          {overdueCollections.length > 0 && (
+            <button onClick={()=>setTab("tahsilat")} className="text-left rounded-[22px] p-4 text-white shadow-[0_12px_32px_rgba(225,29,72,0.28)] v-press"
+              style={{ background: "linear-gradient(140deg, #e11d48, #be123c)" }}>
+              <div className="flex items-center gap-2 mb-0.5">
+                <IAlert size={16} />
+                <p className="font-extrabold text-sm">Gecikmiş Tahsilat</p>
+              </div>
+              <p className="text-xs text-white/80 font-medium">{overdueCollections.length} müşterinin ödemesi gecikti — incele</p>
+            </button>
+          )}
+
+          {contents.length > 0 && (
+            <div className="v-card p-4">
+              <p className="v-overline mb-3">Bu hafta içerik ({contents.length})</p>
+              {contents.slice(0,3).map((c:any)=>(
+                <div key={c.id} className="flex justify-between items-center py-2.5 border-b border-line last:border-0">
+                  <span className="flex items-center gap-2.5 text-[13px] font-bold min-w-0">
+                    <span className="text-teal-deep shrink-0"><IPlayCircle size={16} /></span>
+                    <span className="truncate">{c.content_title}</span>
+                  </span>
+                  <span className="text-[11px] text-mute font-semibold shrink-0 ml-2">{c.publish_date}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activities.length > 0 && (
+            <div className="v-card p-4">
+              <p className="v-overline mb-3">Son aktiviteler</p>
+              {activities.slice(0,5).map((a:any)=>(
+                <div key={a.id} className="flex gap-3 py-2.5 border-b border-line last:border-0">
+                  <span className={`h-8 w-8 rounded-xl grid place-items-center shrink-0 ${
+                    a.action_type==="tamamlandı" ? "bg-[#e8f7f1] text-mint" : "bg-[rgba(45,163,199,0.12)] text-teal-deep"
+                  }`}>
+                    {a.action_type==="iş" ? <IBriefcase size={15} /> : a.action_type==="tamamlandı" ? <ICheckCircle size={15} /> : <IClock size={15} />}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-bold truncate">{a.action_title}</p>
+                    {a.action_detail && <p className="text-[11px] text-mute font-medium truncate">{a.action_detail}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {overdueCollections.length === 0 && contents.length === 0 && activities.length === 0 && (
+            <EmptyState icon={<IBriefcase size={24} />} title="Her şey yolunda" hint="Bekleyen iş yok. Yeni müşteri ekleyerek başlayabilirsin." />
+          )}
+        </div>
+      )}
+
+      {/* MÜŞTERİLER */}
+      {tab==="musteriler" && (
+        <div className="grid gap-2.5">
+          {customers.map(c=>{
+            const svc = (c.client_services||[]).find((s:any)=>s.status==="devam ediyor");
+            return (
+              <Link key={c.id} href={`/musteriler/${c.id}`} className="v-card v-press p-4 block">
+                <div className="flex justify-between items-center gap-3">
+                  <div className="flex gap-3 items-center min-w-0">
+                    <div className={`h-11 w-11 rounded-2xl grid place-items-center font-extrabold text-sm shrink-0 ${
+                      svc ? "bg-[rgba(45,163,199,0.12)] text-teal-deep" : "bg-canvas text-mute"
+                    }`}>
+                      {(c.brand_name||c.name||"?")[0].toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm truncate">{c.brand_name||c.name}</p>
+                      <p className="text-xs text-mute font-medium">{c.phone||"—"}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {svc && <p className="v-num font-extrabold text-[13px] text-teal-deep">{money(svc.monthly_fee)}/ay</p>}
+                    <span className={`v-chip mt-1 ${svc ? "v-chip-teal" : "v-chip-mute"}`}>{svc?"aktif":"pasif"}</span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+          {customers.length===0 && (
+            <EmptyState
+              icon={<IUsers size={24} />}
+              title="Henüz müşteri yok"
+              action={<Link href="/musteriler" className="v-btn v-btn-dark !py-2.5 !px-5 !text-[13px]"><IPlus size={15} /> Müşteri Ekle</Link>}
+            />
+          )}
+        </div>
+      )}
+
+      {/* TAHSİLAT */}
+      {tab==="tahsilat" && (
+        <div className="grid gap-2.5">
+          {collections.map(item=>{
+            const isOvr = item.due_date < today();
+            const init = item.title.split(" ").map((w:string)=>w[0]).join("").slice(0,2).toUpperCase();
+            return (
+              <div key={item.id} className="v-card p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`h-10 w-10 rounded-2xl grid place-items-center font-extrabold text-xs shrink-0 ${
+                    isOvr ? "bg-[#fdeef1] text-rose" : "bg-[rgba(45,163,199,0.12)] text-teal-deep"
+                  }`}>{init}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm truncate">{item.title}</p>
+                    <p className={`text-xs font-medium ${isOvr ? "text-rose" : "text-mute"}`}>{isOvr?"Gecikmiş":"Vade"}: {item.due_date}</p>
+                  </div>
+                  <p className={`v-num font-extrabold text-[15px] shrink-0 ${isOvr ? "text-rose" : "text-ink"}`}>{money(Number(item.amount))}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={()=>markCollectionPaid(item)} className="v-btn v-btn-mint flex-1 !py-2.5 !text-[13px]">
+                    <ICheck size={15} /> Ödendi
+                  </button>
+                  <button onClick={()=>{
+                    const msg=`Merhaba, ${item.title} için ${money(Number(item.amount))} tutarındaki ödeme günümüz gelmiştir. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.`;
+                    navigator.clipboard.writeText(msg).catch(()=>{});
+                    alert("WhatsApp mesajı kopyalandı");
+                  }} className="v-btn v-btn-soft !py-2.5 !px-4 !text-[13px] !text-teal-deep">
+                    <IMessage size={15} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          {collections.length===0 && (
+            <EmptyState icon={<ICheckCircle size={24} />} title="Bekleyen tahsilat yok" />
+          )}
+        </div>
+      )}
+
+      {/* GÖREVLER */}
+      {tab==="gorev" && (
+        <div className="grid gap-2.5">
+          {tasks.map(task=>{
+            const isOvr = task.followup_date < today();
+            return (
+              <div key={task.id} className="v-card p-4">
+                <div className="flex justify-between items-start gap-2 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm">{task.title}</p>
+                    <p className={`text-xs font-medium mt-0.5 ${isOvr ? "text-rose" : "text-mute"}`}>{task.followup_date}{isOvr?" · gecikti":""}</p>
+                    {task.message_suggestion && <p className="text-[11px] text-mute font-medium italic mt-1">"{task.message_suggestion}"</p>}
+                  </div>
+                  {task.priority && task.priority!=="normal" && (
+                    <span className={`v-chip shrink-0 ${task.priority==="acil" ? "v-chip-rose" : "v-chip-amber"}`}>{task.priority}</span>
+                  )}
+                </div>
+                <button onClick={()=>markTaskDone(task.id)} className="v-btn v-btn-mint w-full !py-2.5 !text-[13px]">
+                  <ICheck size={15} /> Tamamlandı
+                </button>
+              </div>
+            );
+          })}
+          {tasks.length===0 && (
+            <EmptyState icon={<ICheckCircle size={24} />} title="Bekleyen görev yok" />
+          )}
+        </div>
+      )}
     </main>
   );
 }

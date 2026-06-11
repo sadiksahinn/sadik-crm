@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import Link from "next/link";
+import { PageHeader, EmptyState } from "@/components/ui";
+import { IUsers, IPlus, IChevronRight } from "@/components/Icons";
 
 const supabase = createClient();
-import Link from "next/link";
-
 
 export default function MusterilerPage() {
   const [customers, setCustomers] = useState<any[]>([]);
@@ -66,60 +67,51 @@ export default function MusterilerPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
-      <header className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-4xl font-black">Müşteriler</h1>
-          <p className="text-slate-500">Ekle, düzenle ve takip et</p>
-        </div>
+    <main className="v-enter min-h-screen px-4 pt-5 pb-36 max-w-[520px] mx-auto">
+      <PageHeader overline="Valkea CRM" title="Müşteriler" subtitle="Ekle, düzenle ve takip et" back="/is" />
 
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">
-          Ana
-        </Link>
-      </header>
-
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
-        <h2 className="text-2xl font-black mb-4">Yeni Müşteri</h2>
-
-        <div className="grid gap-3">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Müşteri adı" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          <input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Marka adı" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-          <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Not" className="bg-slate-100 rounded-2xl p-4 outline-none" />
-
-          <button onClick={addCustomer} className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-slate-950 rounded-2xl p-4 font-black">
-            Müşteri Ekle
+      {/* Yeni müşteri */}
+      <section className="v-card p-4 mb-5">
+        <h2 className="font-extrabold tracking-tight mb-3">Yeni Müşteri</h2>
+        <div className="grid gap-2.5">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Müşteri adı" className="v-input" />
+          <div className="grid grid-cols-2 gap-2.5">
+            <input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Marka adı" className="v-input" />
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon" className="v-input" />
+          </div>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Not (isteğe bağlı)" rows={2} className="v-input resize-none" />
+          <button onClick={addCustomer} className="v-btn v-btn-dark w-full">
+            <IPlus size={17} /> Müşteri Ekle
           </button>
         </div>
       </section>
 
-      <section>
-        <h2 className="text-sm font-black tracking-wide text-slate-700 mb-3">AKTİF MÜŞTERİLER</h2>
-
-        <div className="grid gap-3">
-          {customers.map((c) => (
-            <Link key={c.id} href={`/musteriler/${c.id}`} className="bg-white rounded-[26px] p-4 shadow-sm block">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-2xl font-black">{c.brand_name || c.name}</h3>
-                  <p className="text-slate-500 mt-1">{c.phone || "Telefon yok"}</p>
-                  {c.notes && <p className="text-slate-500 text-sm mt-3 line-clamp-2">{c.notes}</p>}
-                </div>
-
-                <span className="bg-[#3fa7c9]/10 text-[#3fa7c9] rounded-full px-3 py-2 text-xs font-black">
-                  aktif
-                </span>
+      {/* Liste */}
+      <h2 className="v-overline mb-3">Müşteriler ({customers.length})</h2>
+      <div className="v-stagger grid gap-2.5">
+        {customers.map((c) => (
+          <Link key={c.id} href={`/musteriler/${c.id}`} className="v-card v-press p-4 block">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-2xl bg-[rgba(45,163,199,0.12)] text-teal-deep grid place-items-center font-extrabold text-sm shrink-0">
+                {(c.brand_name || c.name || "?")[0].toUpperCase()}
               </div>
-            </Link>
-          ))}
-
-          {customers.length === 0 && (
-            <div className="bg-white rounded-2xl p-4 shadow-sm text-slate-500">
-              Henüz müşteri yok.
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-[15px] truncate">{c.brand_name || c.name}</h3>
+                <p className="text-mute text-xs font-medium">{c.phone || "Telefon yok"}</p>
+                {c.notes && <p className="text-mute text-xs font-medium mt-1 line-clamp-1">{c.notes}</p>}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="v-chip v-chip-teal">aktif</span>
+                <span className="text-mute"><IChevronRight size={15} /></span>
+              </div>
             </div>
-          )}
-        </div>
-      </section>
+          </Link>
+        ))}
+
+        {customers.length === 0 && (
+          <EmptyState icon={<IUsers size={24} />} title="Henüz müşteri yok" hint="İlk müşterini yukarıdan ekle." />
+        )}
+      </div>
     </main>
   );
 }

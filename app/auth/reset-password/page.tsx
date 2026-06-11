@@ -11,12 +11,12 @@ const SOFT = { type: "spring", stiffness: 300, damping: 24 } as const;
 function AnimatedCheck() {
   return (
     <div className="relative flex items-center justify-center h-24">
-      <motion.div className="absolute rounded-[30px] bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c]"
+      <motion.div className="absolute rounded-[30px] bg-gradient-to-br from-[#2da3c7] to-[#e8a33d]"
         initial={{ width: 80, height: 80, opacity: 0.7 }}
         animate={{ width: 104, height: 104, opacity: 0 }}
         transition={{ duration: 1.3, repeat: Infinity, ease: "easeOut" }} />
       <motion.div
-        className="relative z-10 h-20 w-20 rounded-[24px] bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] flex items-center justify-center shadow-[0_8px_32px_rgba(97,174,189,0.5)]"
+        className="relative z-10 h-20 w-20 rounded-[24px] bg-gradient-to-br from-[#2da3c7] to-[#e8a33d] flex items-center justify-center shadow-[0_8px_32px_rgba(97,174,189,0.5)]"
         initial={{ scale: 0, rotate: -15 }} animate={{ scale: 1, rotate: 0 }}
         transition={{ ...SOFT, delay: 0.1 }}>
         <svg viewBox="0 0 40 40" className="w-10 h-10">
@@ -59,10 +59,10 @@ export default function ResetPasswordPage() {
   if (!hasSession) return null;
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] px-6 py-10 flex flex-col justify-center overflow-hidden">
+    <main className="min-h-screen bg-[#f3f5fa] px-6 py-10 flex flex-col justify-center overflow-hidden">
       <motion.div className="relative h-20 w-full mb-6"
         initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
-        <Image src="/valkea-logo.png" alt="Valkea" fill className="object-contain" priority />
+        <Image src="/valkea-logo.png" alt="Valkea" fill sizes="200px" className="object-contain" priority />
       </motion.div>
 
       <AnimatePresence mode="wait">
@@ -72,8 +72,8 @@ export default function ResetPasswordPage() {
             exit={{ opacity: 0, y: -16 }} transition={SOFT}
             className="bg-white rounded-[36px] p-6 shadow-[0_20px_70px_rgba(15,23,42,0.10)]">
 
-            <div className="h-14 w-14 rounded-2xl bg-[#3fa7c9]/10 grid place-items-center text-3xl mb-4">🔒</div>
-            <h1 className="text-3xl font-black text-slate-950 mb-1">Yeni şifre</h1>
+            <div className="h-14 w-14 rounded-2xl bg-[#2da3c7]/10 grid place-items-center text-3xl mb-4">🔒</div>
+            <h1 className="text-3xl font-extrabold text-slate-950 mb-1">Yeni şifre</h1>
             <p className="text-slate-500 mb-6">Hesabın için yeni bir şifre belirle.</p>
 
             <div className="grid gap-3">
@@ -81,13 +81,13 @@ export default function ResetPasswordPage() {
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(""); }}
                 onKeyDown={(e) => e.key === "Enter" && handleReset()}
-                className="bg-slate-100 rounded-2xl p-4 outline-none" />
+                className="v-input" />
 
               <input type="password" placeholder="Şifreyi tekrar gir"
                 value={confirm}
                 onChange={(e) => { setConfirm(e.target.value); setError(""); }}
                 onKeyDown={(e) => e.key === "Enter" && handleReset()}
-                className="bg-slate-100 rounded-2xl p-4 outline-none" />
+                className="v-input" />
 
               <AnimatePresence>
                 {error && (
@@ -100,7 +100,7 @@ export default function ResetPasswordPage() {
               </AnimatePresence>
 
               <motion.button onClick={handleReset} disabled={loading}
-                className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-slate-950 rounded-2xl p-4 font-black disabled:opacity-50"
+                className="v-btn v-btn-dark disabled:opacity-50"
                 whileTap={{ scale: 0.97 }}>
                 {loading ? "Kaydediliyor..." : "Şifremi Güncelle"}
               </motion.button>
@@ -114,7 +114,7 @@ export default function ResetPasswordPage() {
             <div className="flex justify-center mb-5">
               <AnimatedCheck />
             </div>
-            <motion.h1 className="text-2xl font-black text-slate-950 mb-2"
+            <motion.h1 className="text-2xl font-extrabold text-slate-950 mb-2"
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               transition={{ ...SOFT, delay: 0.5 }}>
               Şifre güncellendi

@@ -2,22 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { PageHeader, EmptyState, money, today } from "@/components/ui";
+import { IBell, ILira, ICheck, IPlayCircle, ICheckCircle } from "@/components/Icons";
 
 const supabase = createClient();
-import Link from "next/link";
-
-
-function money(v: number) {
-  return new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-    maximumFractionDigits: 0,
-  }).format(v || 0);
-}
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export default function BildirimlerPage() {
   const [items, setItems] = useState<any[]>([]);
@@ -60,7 +48,6 @@ export default function BildirimlerPage() {
         ...x,
         itemType: "payment",
         type: "Tahsilat",
-        icon: "₺",
         title: x.title,
         desc: `${money(Number(x.amount || 0))} bekleyen ödeme`,
         date: x.due_date,
@@ -69,7 +56,6 @@ export default function BildirimlerPage() {
         ...x,
         itemType: "followup",
         type: "Takip",
-        icon: "□",
         title: x.title,
         desc: "Bekleyen takip görevi",
         date: x.followup_date,
@@ -78,7 +64,6 @@ export default function BildirimlerPage() {
         ...x,
         itemType: "content",
         type: "İçerik",
-        icon: "◉",
         title: x.content_title,
         desc: "Paylaşım kontrolü gerekiyor",
         date: x.publish_date,
@@ -144,48 +129,51 @@ export default function BildirimlerPage() {
     load();
   }
 
+  const itemIcon = (t: string) =>
+    t === "payment" ? <ILira size={18} /> : t === "content" ? <IPlayCircle size={18} /> : <ICheck size={18} />;
+
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
-      <header className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-[#3fa7c9] text-xs font-black tracking-wide">VALKEA ALERTS</p>
-          <h1 className="text-3xl font-black">Bildirimler</h1>
-          <p className="text-slate-500">Bugün dikkat etmen gerekenler</p>
+    <main className="v-enter min-h-screen px-4 pt-5 pb-36 max-w-[520px] mx-auto">
+      <PageHeader overline="Valkea Bildirim" title="Bildirimler" subtitle="Bugün dikkat etmen gerekenler" />
+
+      {/* Özet hero */}
+      <section className="v-hero p-5 mb-5">
+        <div className="relative z-10 flex items-center justify-between">
+          <div>
+            <p className="v-overline !text-white/50 mb-1">Bekleyen bildirim</p>
+            <h2 className="v-num text-[38px] font-extrabold leading-none">{items.length}</h2>
+          </div>
+          <div className="h-14 w-14 rounded-2xl bg-white/10 border border-white/10 grid place-items-center">
+            <IBell size={26} />
+          </div>
         </div>
-
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">
-          Ana
-        </Link>
-      </header>
-
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
-        <p className="text-slate-500 text-sm">Bekleyen bildirim</p>
-        <h2 className="text-4xl font-black">{items.length}</h2>
       </section>
 
-      <section className="grid gap-3">
+      <section className="v-stagger grid gap-2.5">
         {items.map((item, i) => (
-          <div key={`${item.itemType}-${item.id}-${i}`} className="bg-white rounded-[24px] p-4 shadow-sm">
+          <div key={`${item.itemType}-${item.id}-${i}`} className="v-card p-4">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-2xl bg-[#3fa7c9]/10 text-[#3fa7c9] grid place-items-center text-2xl font-black">
-                  {item.icon}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`h-11 w-11 rounded-2xl grid place-items-center shrink-0 ${
+                  item.itemType === "payment" ? "bg-[rgba(232,163,61,0.14)] text-[#a16a14]"
+                  : item.itemType === "content" ? "bg-[rgba(45,163,199,0.12)] text-teal-deep"
+                  : "bg-[#e8f7f1] text-mint"
+                }`}>
+                  {itemIcon(item.itemType)}
                 </div>
-
-                <div>
-                  <p className="text-xs font-black text-[#e0a23c]">{item.type} · {item.date}</p>
-                  <h3 className="font-black">{item.title}</h3>
-                  <p className="text-slate-500 text-sm">{item.desc}</p>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-extrabold text-mute">{item.type} · {item.date}</p>
+                  <h3 className="font-bold text-sm truncate">{item.title}</h3>
+                  <p className="text-mute text-xs font-medium truncate">{item.desc}</p>
                 </div>
               </div>
-
-              <span className="text-slate-400 font-black">›</span>
             </div>
 
             <button
               onClick={() => completeItem(item)}
-              className="mt-3 w-full bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-white rounded-2xl p-3 font-black"
+              className="v-btn v-btn-dark w-full mt-3 !py-3 !text-[13px]"
             >
+              <ICheck size={15} />
               {item.itemType === "payment"
                 ? "Ödendi Yap"
                 : item.itemType === "content"
@@ -196,9 +184,7 @@ export default function BildirimlerPage() {
         ))}
 
         {items.length === 0 && (
-          <div className="bg-white rounded-[24px] p-5 shadow-sm text-slate-500">
-            Bugün için bekleyen bildirim yok.
-          </div>
+          <EmptyState icon={<ICheckCircle size={24} />} title="Bugün için bekleyen bildirim yok" hint="Her şey kontrol altında." />
         )}
       </section>
     </main>

@@ -70,10 +70,10 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] px-5 py-10 flex items-center">
+    <main className="min-h-screen bg-[#f3f5fa] px-5 py-10 flex items-center">
       <section className="bg-white rounded-[34px] p-6 shadow-sm w-full">
         <div className="relative h-16 w-40 mb-6">
-          <Image src="/valkea-logo.png" alt="Valkea" fill className="object-contain object-left" priority />
+          <Image src="/valkea-logo.png" alt="Valkea" fill sizes="200px" className="object-contain object-left" priority />
         </div>
 
         <div className="flex gap-1.5 mb-6">
@@ -81,7 +81,7 @@ export default function OnboardingPage() {
             <div
               key={s}
               className={`h-1.5 flex-1 rounded-full transition-colors ${
-                s <= step ? "bg-[#3fa7c9]" : "bg-slate-100"
+                s <= step ? "bg-[#2da3c7]" : "bg-slate-100"
               }`}
             />
           ))}
@@ -89,8 +89,8 @@ export default function OnboardingPage() {
 
         {step === 1 && (
           <>
-            <p className="text-[#3fa7c9] font-black text-xs mb-2 tracking-wide">ADIM 1 / 2</p>
-            <h1 className="text-3xl font-black mb-1">Seni tanıyalım 👋</h1>
+            <p className="text-[#2da3c7] font-extrabold text-xs mb-2 tracking-wide">ADIM 1 / 2</p>
+            <h1 className="text-3xl font-extrabold mb-1">Seni tanıyalım 👋</h1>
             <p className="text-slate-500 mb-6">Karşılama ve kayıtlar sana özel görünsün.</p>
 
             <div className="grid gap-3">
@@ -98,7 +98,7 @@ export default function OnboardingPage() {
                 value={fullName}
                 onChange={(e) => { setFullName(e.target.value); setError(""); }}
                 placeholder="Ad Soyad"
-                className="bg-slate-100 rounded-2xl p-4 outline-none text-lg"
+                className="v-input text-lg"
               />
               <input
                 value={email}
@@ -118,7 +118,7 @@ export default function OnboardingPage() {
                   setError("");
                   setStep(2);
                 }}
-                className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-slate-950 rounded-2xl p-4 font-black"
+                className="v-btn v-btn-dark"
               >
                 Devam →
               </button>
@@ -128,8 +128,8 @@ export default function OnboardingPage() {
 
         {step === 2 && (
           <>
-            <p className="text-[#3fa7c9] font-black text-xs mb-2 tracking-wide">ADIM 2 / 2</p>
-            <h1 className="text-3xl font-black mb-1">İşini anlat 💼</h1>
+            <p className="text-[#2da3c7] font-extrabold text-xs mb-2 tracking-wide">ADIM 2 / 2</p>
+            <h1 className="text-3xl font-extrabold mb-1">İşini anlat 💼</h1>
             <p className="text-slate-500 mb-6">Asistan sana özel tavsiyeler üretsin.</p>
 
             <div className="grid gap-3">
@@ -137,7 +137,7 @@ export default function OnboardingPage() {
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Şirket / Marka adı (opsiyonel)"
-                className="bg-slate-100 rounded-2xl p-4 outline-none"
+                className="v-input"
               />
 
               <div className="grid grid-cols-2 gap-2">
@@ -145,9 +145,9 @@ export default function OnboardingPage() {
                   <button
                     key={p}
                     onClick={() => { setProfession(p); setError(""); }}
-                    className={`rounded-2xl p-3 text-sm font-black text-left transition-all ${
+                    className={`rounded-2xl p-3 text-sm font-extrabold text-left transition-all ${
                       profession === p
-                        ? "bg-[#3fa7c9] text-white"
+                        ? "bg-[#2da3c7] text-white"
                         : "bg-slate-100 text-slate-700"
                     }`}
                   >
@@ -161,7 +161,7 @@ export default function OnboardingPage() {
                   value={customProfession}
                   onChange={(e) => setCustomProfession(e.target.value)}
                   placeholder="Mesleğini yaz..."
-                  className="bg-slate-100 rounded-2xl p-4 outline-none"
+                  className="v-input"
                 />
               )}
 
@@ -174,14 +174,14 @@ export default function OnboardingPage() {
               <button
                 onClick={save}
                 disabled={loading}
-                className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-slate-950 rounded-2xl p-4 font-black disabled:opacity-50"
+                className="v-btn v-btn-dark disabled:opacity-50"
               >
                 {loading ? "Kaydediliyor..." : "Profilimi Tamamla ✓"}
               </button>
 
               <button
                 onClick={() => { setStep(1); setError(""); }}
-                className="text-slate-400 text-sm font-black text-center"
+                className="text-slate-400 text-sm font-extrabold text-center"
               >
                 ← Geri
               </button>

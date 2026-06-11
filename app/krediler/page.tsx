@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import Link from "next/link";
+import { PageHeader, EmptyState, money, Progress } from "@/components/ui";
+import { ICard, IBank, IPlus, ITrash, ICheck, ICar, IHomeAlt, IUser, IBriefcase } from "@/components/Icons";
 
 const supabase = createClient();
-const C = { primary:"#3fa7c9", secondary:"#e0a23c", dark:"#1c2b4d", bg:"#f7f8fc", card:"#ffffff", border:"#e2e8f0", textMain:"#0f172a", textSub:"#64748b", error:"#ef4444" };
-
-function money(v: number) { return new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY",maximumFractionDigits:0}).format(v||0); }
 
 const LOAN_TYPES = ["bireysel","konut","araç","ihtiyaç","taşıt"];
 const CARD_BANKS = ["Ziraat","Yapı Kredi","İş Bankası","Garanti","Akbank","Halkbank","Vakıfbank","QNB","ING","Diğer"];
@@ -107,237 +105,260 @@ export default function KredilerPage() {
     .filter(p => String(p.payment_date||"").slice(0,7) === THIS_MONTH)
     .reduce((t,p)=>t+Number(p.amount||0), 0);
 
-  const loanIcon = (type: string) => ({ konut:"🏠", araç:"🚗", taşıt:"🚗", bireysel:"👤", ihtiyaç:"💼" }[type] || "💳");
+  const loanIcon = (type: string) => {
+    if (type === "konut") return <IHomeAlt size={18} />;
+    if (type === "araç" || type === "taşıt") return <ICar size={18} />;
+    if (type === "ihtiyaç") return <IBriefcase size={18} />;
+    return <IUser size={18} />;
+  };
 
   return (
-    <main style={{minHeight:"100vh",background:C.bg,fontFamily:"'Manrope',sans-serif",paddingBottom:100}}>
-      <header style={{position:"sticky",top:0,zIndex:50,background:C.card,borderBottom:`1px solid ${C.border}`,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div>
-          <h1 style={{fontWeight:700,fontSize:18,margin:0,color:C.textMain}}>Krediler</h1>
-          <p style={{fontSize:12,color:C.textSub,margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>Kredi kartları, krediler, araç kredisi</p>
-        </div>
-        <Link href="/" style={{padding:"8px 14px",borderRadius:10,border:`1px solid ${C.border}`,fontSize:13,fontWeight:600,color:C.textSub,textDecoration:"none"}}>Ana</Link>
-      </header>
+    <main className="v-enter min-h-screen px-4 pt-5 pb-36 max-w-[520px] mx-auto">
+      <PageHeader overline="Valkea Finans" title="Krediler" subtitle="Kredi kartları ve krediler" />
 
-      <div style={{padding:"16px",maxWidth:480,margin:"0 auto"}}>
-
-        {/* Aylık yükümlülük özet kartı */}
-        <section style={{borderRadius:12,padding:20,marginBottom:16,background:C.dark,position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",top:0,right:0,width:100,height:100,borderRadius:"50%",opacity:0.15,background:`radial-gradient(circle,${C.primary},transparent)`,transform:"translate(30%,-30%)"}} />
-          <p style={{fontSize:10,letterSpacing:"0.08em",color:"rgba(255,255,255,0.5)",marginBottom:4,fontFamily:"'Hanken Grotesk',sans-serif"}}>AYLIK TOPLAM YÜKÜMLÜLÜK</p>
-          <p style={{fontSize:36,fontWeight:700,color:"#f87171",margin:"0 0 12px",letterSpacing:"-0.02em"}}>{money(totalMonthly)}</p>
-          <div style={{display:"flex",gap:20}}>
-            <div><p style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Hanken Grotesk',sans-serif"}}>K.KARTI MİNİMUM</p><p style={{fontWeight:700,fontSize:14,color:"#fbbf24"}}>{money(totalCardMinimum)}</p></div>
-            <div><p style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Hanken Grotesk',sans-serif"}}>KREDİ TAKSİT</p><p style={{fontWeight:700,fontSize:14,color:"#fb923c"}}>{money(totalLoanMonthly)}</p></div>
-            <div><p style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Hanken Grotesk',sans-serif"}}>K.KARTI BORÇ</p><p style={{fontWeight:700,fontSize:14,color:"#f87171"}}>{money(totalCardBalance)}</p></div>
+      {/* Aylık yükümlülük hero */}
+      <section className="v-hero p-5 mb-5">
+        <div className="relative z-10">
+          <p className="v-overline !text-white/50 mb-1">Aylık toplam yükümlülük</p>
+          <p className="v-num text-[34px] font-extrabold leading-none text-rose-300 mb-4">{money(totalMonthly)}</p>
+          <div className="flex gap-5 flex-wrap">
+            <div>
+              <p className="v-overline !text-white/40">K.kartı min.</p>
+              <p className="v-num font-extrabold text-amber-300 text-sm mt-0.5">{money(totalCardMinimum)}</p>
+            </div>
+            <div>
+              <p className="v-overline !text-white/40">Kredi taksit</p>
+              <p className="v-num font-extrabold text-orange-300 text-sm mt-0.5">{money(totalLoanMonthly)}</p>
+            </div>
+            <div>
+              <p className="v-overline !text-white/40">K.kartı borç</p>
+              <p className="v-num font-extrabold text-rose-300 text-sm mt-0.5">{money(totalCardBalance)}</p>
+            </div>
           </div>
           {totalPaidThisMonth > 0 && (
-            <div style={{marginTop:14,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:14}}>✅</span>
-              <p style={{fontSize:12,color:"rgba(255,255,255,0.7)",margin:0,fontFamily:"'Hanken Grotesk',sans-serif"}}>
-                Bu ay ödenen: <span style={{fontWeight:700,color:"#34d399"}}>{money(totalPaidThisMonth)}</span>
+            <div className="mt-4 pt-3 border-t border-white/10 flex items-center gap-2">
+              <span className="h-5 w-5 rounded-full bg-emerald-400/20 text-emerald-300 grid place-items-center"><ICheck size={12} /></span>
+              <p className="text-xs text-white/65 font-medium">
+                Bu ay ödenen: <span className="v-num font-extrabold text-emerald-300">{money(totalPaidThisMonth)}</span>
               </p>
             </div>
           )}
-        </section>
-
-        {/* ── KREDİ KARTLARI ── */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-          <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>KREDİ KARTLARI ({cards.length})</p>
-          <button onClick={()=>setAddingCard(v=>!v)} style={{padding:"6px 12px",borderRadius:8,background:C.primary,color:"#fff",fontSize:12,fontWeight:700,border:"none",cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif"}}>+ Ekle</button>
         </div>
+      </section>
 
-        {addingCard && (
-          <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:14,marginBottom:12}}>
-            <div style={{display:"grid",gap:8}}>
-              <select value={cardForm.bank_name} onChange={e=>setCardForm({...cardForm,bank_name:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none",fontFamily:"'Hanken Grotesk',sans-serif"}}>
-                <option value="">Banka Seç</option>
-                {CARD_BANKS.map(b=><option key={b}>{b}</option>)}
-              </select>
-              <input placeholder="Kart adı (örn: Bonus)" value={cardForm.card_name} onChange={e=>setCardForm({...cardForm,card_name:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                <input placeholder="Limit (₺)" type="number" value={cardForm.credit_limit} onChange={e=>setCardForm({...cardForm,credit_limit:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-                <input placeholder="Mevcut Borç (₺)" type="number" value={cardForm.current_balance} onChange={e=>setCardForm({...cardForm,current_balance:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-                <input placeholder="Son Ödeme Günü" type="number" min="1" max="31" value={cardForm.payment_day} onChange={e=>setCardForm({...cardForm,payment_day:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-                <input placeholder="Min. Ödeme (₺)" type="number" value={cardForm.min_payment} onChange={e=>setCardForm({...cardForm,min_payment:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-              </div>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={saveCard} style={{flex:1,padding:"10px 0",borderRadius:8,background:C.primary,color:"#fff",fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif"}}>Kaydet</button>
-                <button onClick={()=>setAddingCard(false)} style={{flex:1,padding:"10px 0",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",fontWeight:600,fontSize:13,cursor:"pointer",color:C.textSub}}>İptal</button>
-              </div>
+      {/* ── KREDİ KARTLARI ── */}
+      <div className="flex justify-between items-center mb-3">
+        <p className="v-overline">Kredi kartları ({cards.length})</p>
+        <button onClick={()=>setAddingCard(v=>!v)} className="v-btn v-btn-dark !py-2 !px-3.5 !text-xs">
+          <IPlus size={14} /> Ekle
+        </button>
+      </div>
+
+      {addingCard && (
+        <div className="v-card p-4 mb-3">
+          <div className="grid gap-2.5">
+            <select value={cardForm.bank_name} onChange={e=>setCardForm({...cardForm,bank_name:e.target.value})} className="v-input">
+              <option value="">Banka Seç</option>
+              {CARD_BANKS.map(b=><option key={b}>{b}</option>)}
+            </select>
+            <input placeholder="Kart adı (örn: Bonus)" value={cardForm.card_name} onChange={e=>setCardForm({...cardForm,card_name:e.target.value})} className="v-input" />
+            <div className="grid grid-cols-2 gap-2.5">
+              <input placeholder="Limit (₺)" type="number" value={cardForm.credit_limit} onChange={e=>setCardForm({...cardForm,credit_limit:e.target.value})} className="v-input" />
+              <input placeholder="Mevcut Borç (₺)" type="number" value={cardForm.current_balance} onChange={e=>setCardForm({...cardForm,current_balance:e.target.value})} className="v-input" />
+              <input placeholder="Son Ödeme Günü" type="number" min="1" max="31" value={cardForm.payment_day} onChange={e=>setCardForm({...cardForm,payment_day:e.target.value})} className="v-input" />
+              <input placeholder="Min. Ödeme (₺)" type="number" value={cardForm.min_payment} onChange={e=>setCardForm({...cardForm,min_payment:e.target.value})} className="v-input" />
+            </div>
+            <div className="flex gap-2.5">
+              <button onClick={saveCard} className="v-btn v-btn-dark flex-1">Kaydet</button>
+              <button onClick={()=>setAddingCard(false)} className="v-btn v-btn-soft flex-1">İptal</button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        <div style={{display:"grid",gap:10,marginBottom:20}}>
-          {loading && [1,2].map(i => <div key={i} className="skeleton" style={{height:150}} />)}
-          {cards.map(card => {
-            const usage = card.credit_limit > 0 ? Math.round((card.current_balance/card.credit_limit)*100) : 0;
-            return (
-              <div key={card.id} style={{borderRadius:12,border:`1px solid ${C.border}`,borderLeft:`4px solid #f59e0b`,background:C.card,padding:16}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+      <div className="grid gap-3 mb-6">
+        {loading && [1,2].map(i => <div key={i} className="skeleton h-[170px]" />)}
+        {cards.map(card => {
+          const usage = card.credit_limit > 0 ? Math.round((card.current_balance/card.credit_limit)*100) : 0;
+          const paid = cardPaidThisMonth(card.id);
+          const last = cardLastPayment(card.id);
+          const isPaying = payingCardId === card.id;
+          return (
+            <div key={card.id} className="v-card overflow-hidden">
+              {/* Kart görünümlü üst kısım */}
+              <div className="relative p-4 text-white"
+                style={{ background: "linear-gradient(135deg, #1a2540 0%, #0d1426 60%, #14304a 100%)" }}>
+                <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-teal/20 blur-2xl" />
+                <div className="relative z-10 flex items-start justify-between">
                   <div>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                      <span style={{fontSize:20}}>💳</span>
-                      <p style={{fontWeight:700,fontSize:15,color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>{card.bank_name} {card.card_name||""}</p>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <ICard size={17} />
+                      <p className="font-extrabold text-[15px]">{card.bank_name} {card.card_name||""}</p>
                     </div>
-                    {card.payment_day && <p style={{fontSize:12,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>Son ödeme: Her ayın {card.payment_day}. günü</p>}
+                    {card.payment_day ? <p className="text-xs text-white/50 font-medium">Son ödeme: her ayın {card.payment_day}. günü</p> : null}
                   </div>
-                  <button onClick={()=>deleteCard(card.id)} style={{padding:"4px 10px",borderRadius:8,border:`1px solid #fecaca`,background:"#fef2f2",fontSize:11,cursor:"pointer",color:C.error}}>Sil</button>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
-                  <div style={{textAlign:"center",padding:"8px",borderRadius:8,background:"#f3f4f5"}}>
-                    <p style={{fontSize:10,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>LİMİT</p>
-                    <p style={{fontWeight:700,fontSize:13,color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>{money(card.credit_limit)}</p>
-                  </div>
-                  <div style={{textAlign:"center",padding:"8px",borderRadius:8,background:"#fef2f2"}}>
-                    <p style={{fontSize:10,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>BORÇ</p>
-                    <p style={{fontWeight:700,fontSize:13,color:C.error,fontFamily:"'Hanken Grotesk',sans-serif"}}>{money(card.current_balance)}</p>
-                  </div>
-                  <div style={{textAlign:"center",padding:"8px",borderRadius:8,background:"#fffbeb"}}>
-                    <p style={{fontSize:10,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>MİNİMUM</p>
-                    <p style={{fontWeight:700,fontSize:13,color:"#d97706",fontFamily:"'Hanken Grotesk',sans-serif"}}>{money(card.min_payment)}</p>
-                  </div>
+                  <button onClick={()=>deleteCard(card.id)} className="v-press h-8 w-8 rounded-xl bg-white/10 grid place-items-center text-white/70">
+                    <ITrash size={14} />
+                  </button>
                 </div>
                 {card.credit_limit > 0 && (
-                  <div>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                      <span style={{fontSize:11,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>Kullanım</span>
-                      <span style={{fontSize:11,fontWeight:700,color:usage>80?C.error:"#d97706",fontFamily:"'Hanken Grotesk',sans-serif"}}>%{usage}</span>
+                  <div className="relative z-10 mt-3.5">
+                    <div className="flex justify-between mb-1.5">
+                      <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Kullanım</span>
+                      <span className={`v-num text-[11px] font-extrabold ${usage>80?"text-rose-300":"text-amber-300"}`}>%{usage}</span>
                     </div>
-                    <div style={{height:6,borderRadius:4,background:"#e5e7eb",overflow:"hidden"}}>
-                      <div style={{height:"100%",borderRadius:4,background:usage>80?C.error:usage>60?"#f59e0b":"#10b981",width:`${usage}%`}} />
+                    <div className="h-1.5 rounded-full bg-white/15 overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width:`${usage}%`, background: usage>80?"#fb7185":usage>60?"#fbbf24":"#34d399" }} />
                     </div>
                   </div>
                 )}
+              </div>
 
-                {/* ── Ödeme takibi ── */}
-                {(() => {
-                  const paid = cardPaidThisMonth(card.id);
-                  const last = cardLastPayment(card.id);
-                  const isPaying = payingCardId === card.id;
-                  const chip = (a:boolean) => ({ padding:"7px 10px", borderRadius:8, border:`1px solid ${a?C.primary:C.border}`, background:a?"#eef7f9":"#fff", color:a?C.primary:C.textSub, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"'Hanken Grotesk',sans-serif" } as const);
-                  return (
-                    <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
-                        <div>
-                          {paid > 0
-                            ? <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:12,fontWeight:700,color:"#059669",background:"#ecfdf5",borderRadius:8,padding:"4px 9px"}}>✓ Bu ay {money(paid)} ödendi</span>
-                            : <span style={{fontSize:12,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>Bu ay henüz ödeme yok</span>}
-                          {last && <p style={{fontSize:11,color:C.textSub,margin:"4px 0 0",fontFamily:"'Hanken Grotesk',sans-serif"}}>Son ödeme: {last.payment_date} · {money(last.amount)}</p>}
-                        </div>
-                        <button onClick={()=>openPay(card)} style={{padding:"8px 14px",borderRadius:9,background:isPaying?"#f3f4f5":C.primary,color:isPaying?C.textSub:"#fff",fontSize:12,fontWeight:700,border:"none",cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif",whiteSpace:"nowrap"}}>{isPaying?"Kapat":"Ödeme Yap"}</button>
-                      </div>
+              <div className="p-4">
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="text-center py-2 rounded-xl bg-canvas">
+                    <p className="v-overline !text-[9px]">Limit</p>
+                    <p className="v-num font-extrabold text-[13px]">{money(card.credit_limit)}</p>
+                  </div>
+                  <div className="text-center py-2 rounded-xl bg-[#fdeef1]">
+                    <p className="v-overline !text-[9px] !text-rose/70">Borç</p>
+                    <p className="v-num font-extrabold text-[13px] text-rose">{money(card.current_balance)}</p>
+                  </div>
+                  <div className="text-center py-2 rounded-xl bg-[rgba(232,163,61,0.12)]">
+                    <p className="v-overline !text-[9px] !text-[#a16a14]/70">Minimum</p>
+                    <p className="v-num font-extrabold text-[13px] text-[#a16a14]">{money(card.min_payment)}</p>
+                  </div>
+                </div>
 
-                      {isPaying && (
-                        <div style={{marginTop:10,display:"grid",gap:8}}>
-                          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                            {Number(card.min_payment)>0 && <button onClick={()=>{setPayType("min");setPayAmount(String(Number(card.min_payment)));}} style={chip(payType==="min")}>Min: {money(card.min_payment)}</button>}
-                            {Number(card.current_balance)>0 && <button onClick={()=>{setPayType("full");setPayAmount(String(Number(card.current_balance)));}} style={chip(payType==="full")}>Tüm borç: {money(card.current_balance)}</button>}
-                          </div>
-                          <input type="number" placeholder="Tutar (₺)" value={payAmount} onChange={e=>{setPayAmount(e.target.value);setPayType("custom");}} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-                          <div style={{display:"flex",gap:8}}>
-                            <button onClick={()=>saveCardPayment(card)} style={{flex:1,padding:"10px 0",borderRadius:8,background:"#059669",color:"#fff",fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif"}}>Ödemeyi Kaydet</button>
-                            <button onClick={()=>setPayingCardId(null)} style={{flex:1,padding:"10px 0",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",fontWeight:600,fontSize:13,cursor:"pointer",color:C.textSub}}>İptal</button>
-                          </div>
-                        </div>
+                {/* Ödeme takibi */}
+                <div className="flex justify-between items-center gap-2">
+                  <div className="min-w-0">
+                    {paid > 0
+                      ? <span className="v-chip v-chip-mint"><ICheck size={12} /> Bu ay {money(paid)} ödendi</span>
+                      : <span className="text-xs text-mute font-medium">Bu ay henüz ödeme yok</span>}
+                    {last && <p className="text-[11px] text-mute font-medium mt-1">Son ödeme: {last.payment_date} · {money(last.amount)}</p>}
+                  </div>
+                  <button onClick={()=>openPay(card)} className={`v-btn !py-2 !px-3.5 !text-xs whitespace-nowrap ${isPaying ? "v-btn-soft" : "v-btn-teal"}`}>
+                    {isPaying?"Kapat":"Ödeme Yap"}
+                  </button>
+                </div>
+
+                {isPaying && (
+                  <div className="mt-3 grid gap-2.5">
+                    <div className="flex gap-2 flex-wrap">
+                      {Number(card.min_payment)>0 && (
+                        <button onClick={()=>{setPayType("min");setPayAmount(String(Number(card.min_payment)));}}
+                          className={`v-chip v-press cursor-pointer ${payType==="min" ? "v-chip-teal !ring-1 !ring-teal" : "v-chip-mute"}`}>
+                          Min: {money(card.min_payment)}
+                        </button>
+                      )}
+                      {Number(card.current_balance)>0 && (
+                        <button onClick={()=>{setPayType("full");setPayAmount(String(Number(card.current_balance)));}}
+                          className={`v-chip v-press cursor-pointer ${payType==="full" ? "v-chip-teal !ring-1 !ring-teal" : "v-chip-mute"}`}>
+                          Tüm borç: {money(card.current_balance)}
+                        </button>
                       )}
                     </div>
-                  );
-                })()}
-              </div>
-            );
-          })}
-          {!loading && cards.length===0 && !addingCard && (
-            <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:24,textAlign:"center"}}>
-              <p style={{fontSize:28,marginBottom:8}}>💳</p>
-              <p style={{fontSize:13,color:C.textSub}}>Henüz kredi kartı eklenmedi.</p>
-            </div>
-          )}
-        </div>
-
-        {/* ── KREDİLER ── */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-          <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>KREDİLER ({loans.length})</p>
-          <button onClick={()=>setAddingLoan(v=>!v)} style={{padding:"6px 12px",borderRadius:8,background:C.primary,color:"#fff",fontSize:12,fontWeight:700,border:"none",cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif"}}>+ Ekle</button>
-        </div>
-
-        {addingLoan && (
-          <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:14,marginBottom:12}}>
-            <div style={{display:"grid",gap:8}}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                <input placeholder="Banka adı" value={loanForm.bank_name} onChange={e=>setLoanForm({...loanForm,bank_name:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-                <select value={loanForm.loan_type} onChange={e=>setLoanForm({...loanForm,loan_type:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none",fontFamily:"'Hanken Grotesk',sans-serif"}}>
-                  {LOAN_TYPES.map(t=><option key={t}>{t}</option>)}
-                </select>
-              </div>
-              <input placeholder="Açıklama (örn: Araç kredisi - Toyota)" value={loanForm.title} onChange={e=>setLoanForm({...loanForm,title:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                <input placeholder="Toplam tutar (₺)" type="number" value={loanForm.total_amount} onChange={e=>setLoanForm({...loanForm,total_amount:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-                <input placeholder="Kalan borç (₺)" type="number" value={loanForm.remaining_amount} onChange={e=>setLoanForm({...loanForm,remaining_amount:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-                <input placeholder="Aylık taksit (₺)" type="number" value={loanForm.monthly_payment} onChange={e=>setLoanForm({...loanForm,monthly_payment:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-                <input placeholder="Ödeme günü" type="number" min="1" max="31" value={loanForm.payment_day} onChange={e=>setLoanForm({...loanForm,payment_day:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-                <input placeholder="Kalan ay" type="number" value={loanForm.remaining_months} onChange={e=>setLoanForm({...loanForm,remaining_months:e.target.value})} style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",fontSize:14,outline:"none"}} />
-              </div>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={saveLoan} style={{flex:1,padding:"10px 0",borderRadius:8,background:C.primary,color:"#fff",fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"'Hanken Grotesk',sans-serif"}}>Kaydet</button>
-                <button onClick={()=>setAddingLoan(false)} style={{flex:1,padding:"10px 0",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",fontWeight:600,fontSize:13,cursor:"pointer",color:C.textSub}}>İptal</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div style={{display:"grid",gap:10}}>
-          {loading && <div className="skeleton" style={{height:150}} />}
-          {loans.map(loan => {
-            const progress = loan.total_amount > 0 ? Math.round(((loan.total_amount - loan.remaining_amount)/loan.total_amount)*100) : 0;
-            return (
-              <div key={loan.id} style={{borderRadius:12,border:`1px solid ${C.border}`,borderLeft:`4px solid ${C.error}`,background:C.card,padding:16}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                  <div>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                      <span style={{fontSize:20}}>{loanIcon(loan.loan_type)}</span>
-                      <p style={{fontWeight:700,fontSize:15,color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>{loan.bank_name}</p>
-                    </div>
-                    <p style={{fontSize:12,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>{loan.title||loan.loan_type} {loan.payment_day?`· Her ayın ${loan.payment_day}. günü`:""}</p>
-                  </div>
-                  <button onClick={()=>deleteLoan(loan.id)} style={{padding:"4px 10px",borderRadius:8,border:`1px solid #fecaca`,background:"#fef2f2",fontSize:11,cursor:"pointer",color:C.error}}>Sil</button>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
-                  <div style={{textAlign:"center",padding:"8px",borderRadius:8,background:"#fef2f2"}}>
-                    <p style={{fontSize:10,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>KALAN BORÇ</p>
-                    <p style={{fontWeight:700,fontSize:13,color:C.error,fontFamily:"'Hanken Grotesk',sans-serif"}}>{money(loan.remaining_amount)}</p>
-                  </div>
-                  <div style={{textAlign:"center",padding:"8px",borderRadius:8,background:"#fffbeb"}}>
-                    <p style={{fontSize:10,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>AYLIK TAKSİT</p>
-                    <p style={{fontWeight:700,fontSize:13,color:"#d97706",fontFamily:"'Hanken Grotesk',sans-serif"}}>{money(loan.monthly_payment)}</p>
-                  </div>
-                  <div style={{textAlign:"center",padding:"8px",borderRadius:8,background:"#f3f4f5"}}>
-                    <p style={{fontSize:10,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>KALAN AY</p>
-                    <p style={{fontWeight:700,fontSize:13,color:C.textMain,fontFamily:"'Hanken Grotesk',sans-serif"}}>{loan.remaining_months||"—"}</p>
-                  </div>
-                </div>
-                {loan.total_amount > 0 && (
-                  <div>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                      <span style={{fontSize:11,color:C.textSub,fontFamily:"'Hanken Grotesk',sans-serif"}}>Ödenen</span>
-                      <span style={{fontSize:11,fontWeight:700,color:"#10b981",fontFamily:"'Hanken Grotesk',sans-serif"}}>%{progress}</span>
-                    </div>
-                    <div style={{height:6,borderRadius:4,background:"#e5e7eb",overflow:"hidden"}}>
-                      <div style={{height:"100%",borderRadius:4,background:"#10b981",width:`${progress}%`}} />
+                    <input type="number" placeholder="Tutar (₺)" value={payAmount} onChange={e=>{setPayAmount(e.target.value);setPayType("custom");}} className="v-input" />
+                    <div className="flex gap-2.5">
+                      <button onClick={()=>saveCardPayment(card)} className="v-btn v-btn-mint flex-1 !py-2.5 !text-[13px]">
+                        <ICheck size={15} /> Ödemeyi Kaydet
+                      </button>
+                      <button onClick={()=>setPayingCardId(null)} className="v-btn v-btn-soft flex-1 !py-2.5 !text-[13px]">İptal</button>
                     </div>
                   </div>
                 )}
               </div>
-            );
-          })}
-          {!loading && loans.length===0 && !addingLoan && (
-            <div style={{borderRadius:12,border:`1px solid ${C.border}`,background:C.card,padding:24,textAlign:"center"}}>
-              <p style={{fontSize:28,marginBottom:8}}>🏦</p>
-              <p style={{fontSize:13,color:C.textSub}}>Henüz kredi eklenmedi.</p>
             </div>
-          )}
+          );
+        })}
+        {!loading && cards.length===0 && !addingCard && (
+          <EmptyState icon={<ICard size={24} />} title="Henüz kredi kartı eklenmedi" hint="Kartlarını ekleyip borç ve ödeme takibini buradan yap." />
+        )}
+      </div>
+
+      {/* ── KREDİLER ── */}
+      <div className="flex justify-between items-center mb-3">
+        <p className="v-overline">Krediler ({loans.length})</p>
+        <button onClick={()=>setAddingLoan(v=>!v)} className="v-btn v-btn-dark !py-2 !px-3.5 !text-xs">
+          <IPlus size={14} /> Ekle
+        </button>
+      </div>
+
+      {addingLoan && (
+        <div className="v-card p-4 mb-3">
+          <div className="grid gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5">
+              <input placeholder="Banka adı" value={loanForm.bank_name} onChange={e=>setLoanForm({...loanForm,bank_name:e.target.value})} className="v-input" />
+              <select value={loanForm.loan_type} onChange={e=>setLoanForm({...loanForm,loan_type:e.target.value})} className="v-input">
+                {LOAN_TYPES.map(t=><option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <input placeholder="Açıklama (örn: Araç kredisi - Toyota)" value={loanForm.title} onChange={e=>setLoanForm({...loanForm,title:e.target.value})} className="v-input" />
+            <div className="grid grid-cols-2 gap-2.5">
+              <input placeholder="Toplam tutar (₺)" type="number" value={loanForm.total_amount} onChange={e=>setLoanForm({...loanForm,total_amount:e.target.value})} className="v-input" />
+              <input placeholder="Kalan borç (₺)" type="number" value={loanForm.remaining_amount} onChange={e=>setLoanForm({...loanForm,remaining_amount:e.target.value})} className="v-input" />
+              <input placeholder="Aylık taksit (₺)" type="number" value={loanForm.monthly_payment} onChange={e=>setLoanForm({...loanForm,monthly_payment:e.target.value})} className="v-input" />
+              <input placeholder="Ödeme günü" type="number" min="1" max="31" value={loanForm.payment_day} onChange={e=>setLoanForm({...loanForm,payment_day:e.target.value})} className="v-input" />
+              <input placeholder="Kalan ay" type="number" value={loanForm.remaining_months} onChange={e=>setLoanForm({...loanForm,remaining_months:e.target.value})} className="v-input" />
+            </div>
+            <div className="flex gap-2.5">
+              <button onClick={saveLoan} className="v-btn v-btn-dark flex-1">Kaydet</button>
+              <button onClick={()=>setAddingLoan(false)} className="v-btn v-btn-soft flex-1">İptal</button>
+            </div>
+          </div>
         </div>
+      )}
+
+      <div className="grid gap-3">
+        {loading && <div className="skeleton h-[150px]" />}
+        {loans.map(loan => {
+          const progress = loan.total_amount > 0 ? Math.round(((loan.total_amount - loan.remaining_amount)/loan.total_amount)*100) : 0;
+          return (
+            <div key={loan.id} className="v-card p-4">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-[rgba(45,163,199,0.12)] text-teal-deep grid place-items-center shrink-0">
+                    {loanIcon(loan.loan_type)}
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-[15px]">{loan.bank_name}</p>
+                    <p className="text-xs text-mute font-medium">{loan.title||loan.loan_type}{loan.payment_day?` · her ayın ${loan.payment_day}. günü`:""}</p>
+                  </div>
+                </div>
+                <button onClick={()=>deleteLoan(loan.id)} className="v-press h-8 w-8 rounded-xl bg-[#fdeef1] text-rose grid place-items-center">
+                  <ITrash size={14} />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="text-center py-2 rounded-xl bg-[#fdeef1]">
+                  <p className="v-overline !text-[9px] !text-rose/70">Kalan borç</p>
+                  <p className="v-num font-extrabold text-[13px] text-rose">{money(loan.remaining_amount)}</p>
+                </div>
+                <div className="text-center py-2 rounded-xl bg-[rgba(232,163,61,0.12)]">
+                  <p className="v-overline !text-[9px] !text-[#a16a14]/70">Aylık taksit</p>
+                  <p className="v-num font-extrabold text-[13px] text-[#a16a14]">{money(loan.monthly_payment)}</p>
+                </div>
+                <div className="text-center py-2 rounded-xl bg-canvas">
+                  <p className="v-overline !text-[9px]">Kalan ay</p>
+                  <p className="v-num font-extrabold text-[13px]">{loan.remaining_months||"—"}</p>
+                </div>
+              </div>
+              {loan.total_amount > 0 && (
+                <div>
+                  <div className="flex justify-between mb-1.5">
+                    <span className="text-[11px] text-mute font-semibold">Ödenen</span>
+                    <span className="v-num text-[11px] font-extrabold text-mint">%{progress}</span>
+                  </div>
+                  <Progress pct={progress} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {!loading && loans.length===0 && !addingLoan && (
+          <EmptyState icon={<IBank size={24} />} title="Henüz kredi eklenmedi" hint="Konut, araç veya ihtiyaç kredilerini buradan takip et." />
+        )}
       </div>
     </main>
   );

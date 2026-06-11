@@ -2,15 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import Link from "next/link";
+import { PageHeader, money } from "@/components/ui";
+import { IChevronLeft, IChevronRight, IDownload, ILira, IPlayCircle, ICheck, IPlus } from "@/components/Icons";
 
 const supabase = createClient();
 
 type CalItem = { type: "icerik" | "tahsilat" | "takip"; title: string; date: string; status: string; amount?: number; id: string };
-
-function money(v: number) {
-  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(v || 0);
-}
 
 const DAYS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 
@@ -84,15 +81,15 @@ export default function TakvimPage() {
   const monthLabel = new Date(year, month, 1).toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
 
   function dotColor(type: CalItem["type"]) {
-    if (type === "tahsilat") return "bg-emerald-500";
-    if (type === "icerik") return "bg-[#3fa7c9]";
-    return "bg-amber-400";
+    if (type === "tahsilat") return "#059669";
+    if (type === "icerik") return "#2da3c7";
+    return "#e8a33d";
   }
 
-  function typeLabel(type: CalItem["type"]) {
-    if (type === "tahsilat") return "💰 TAHSİLAT";
-    if (type === "icerik") return "◉ İÇERİK";
-    return "✅ TAKİP";
+  function typeChip(type: CalItem["type"]) {
+    if (type === "tahsilat") return <span className="v-chip v-chip-mint"><ILira size={12} /> Tahsilat</span>;
+    if (type === "icerik") return <span className="v-chip v-chip-teal"><IPlayCircle size={12} /> İçerik</span>;
+    return <span className="v-chip v-chip-amber"><ICheck size={12} /> Takip</span>;
   }
 
   function googleCalLink(title: string, date: string) {
@@ -102,38 +99,37 @@ export default function TakvimPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
-      <header className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-[#3fa7c9] text-xs font-black tracking-wide">VALKEA CALENDAR</p>
-          <h1 className="text-3xl font-black">Takvim</h1>
-          <p className="text-slate-500">İş, ödeme ve içerik planı</p>
-        </div>
-        <div className="flex gap-2">
-          {token && (
-            <a
-              href={`/api/takvim/export?token=${token}`}
-              download="valkea-takvim.ics"
-              className="bg-white rounded-2xl px-3 py-3 shadow-sm font-black text-sm text-[#3fa7c9]"
-              title="Takvimi indir (.ics)"
-            >
-              📅
-            </a>
-          )}
-          <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
-        </div>
-      </header>
+    <main className="v-enter min-h-screen px-4 pt-5 pb-36 max-w-[520px] mx-auto">
+      <PageHeader
+        overline="Valkea Takvim"
+        title="Takvim"
+        subtitle="İş, ödeme ve içerik planı"
+        actions={token ? (
+          <a
+            href={`/api/takvim/export?token=${token}`}
+            download="valkea-takvim.ics"
+            className="v-press h-11 w-11 rounded-2xl bg-white border border-line shadow-sm grid place-items-center text-teal-deep"
+            title="Takvimi indir (.ics)"
+          >
+            <IDownload size={18} />
+          </a>
+        ) : undefined}
+      />
 
       {/* Ay navigasyonu + grid */}
-      <section className="bg-white rounded-[28px] p-4 shadow-sm mb-4">
+      <section className="v-card p-4 mb-4">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={prevMonth} className="h-10 w-10 bg-slate-100 rounded-2xl font-black flex items-center justify-center text-lg">‹</button>
-          <p className="font-black capitalize">{monthLabel}</p>
-          <button onClick={nextMonth} className="h-10 w-10 bg-slate-100 rounded-2xl font-black flex items-center justify-center text-lg">›</button>
+          <button onClick={prevMonth} className="v-press h-10 w-10 bg-canvas rounded-2xl grid place-items-center text-ink">
+            <IChevronLeft size={17} />
+          </button>
+          <p className="font-extrabold tracking-tight capitalize">{monthLabel}</p>
+          <button onClick={nextMonth} className="v-press h-10 w-10 bg-canvas rounded-2xl grid place-items-center text-ink">
+            <IChevronRight size={17} />
+          </button>
         </div>
 
         <div className="grid grid-cols-7 mb-2">
-          {DAYS.map((d) => <p key={d} className="text-center text-[10px] font-black text-slate-400">{d}</p>)}
+          {DAYS.map((d) => <p key={d} className="text-center text-[10px] font-extrabold text-mute">{d}</p>)}
         </div>
 
         <div className="grid grid-cols-7 gap-y-1">
@@ -150,16 +146,16 @@ export default function TakvimPage() {
               <button
                 key={day}
                 onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                className={`relative flex flex-col items-center py-1.5 rounded-2xl transition-colors ${
-                  isSelected ? "bg-[#3fa7c9] text-white" :
-                  isToday ? "bg-[#3fa7c9]/10" : "hover:bg-slate-50"
+                className={`relative flex flex-col items-center py-1.5 rounded-2xl transition-all ${
+                  isSelected ? "bg-ink text-white shadow-md" :
+                  isToday ? "bg-[rgba(45,163,199,0.12)]" : "hover:bg-canvas"
                 }`}
               >
-                <span className={`text-sm font-black ${isToday && !isSelected ? "text-[#3fa7c9]" : ""}`}>{day}</span>
+                <span className={`text-sm font-extrabold v-num ${isToday && !isSelected ? "text-teal-deep" : ""}`}>{day}</span>
                 {types.length > 0 && (
                   <div className="flex gap-0.5 mt-0.5">
                     {types.map((t) => (
-                      <span key={t} className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-white" : dotColor(t)}`} />
+                      <span key={t} className="w-1.5 h-1.5 rounded-full" style={{ background: isSelected ? "#fff" : dotColor(t) }} />
                     ))}
                   </div>
                 )}
@@ -168,33 +164,33 @@ export default function TakvimPage() {
           })}
         </div>
 
-        <div className="flex gap-4 mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 bg-emerald-500 rounded-full" /> Tahsilat</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[#3fa7c9] rounded-full" /> İçerik</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 bg-amber-400 rounded-full" /> Takip</span>
+        <div className="flex gap-4 mt-4 pt-3 border-t border-line text-xs font-semibold text-sub">
+          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: "#059669" }} /> Tahsilat</span>
+          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: "#2da3c7" }} /> İçerik</span>
+          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: "#e8a33d" }} /> Takip</span>
         </div>
       </section>
 
       {/* Seçili gün */}
       {selectedDate && (
         <section className="mb-4">
-          <p className="text-xs font-black tracking-wide text-slate-500 mb-2">
-            {new Date(selectedDate + "T12:00:00").toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" }).toUpperCase()}
+          <p className="v-overline mb-2">
+            {new Date(selectedDate + "T12:00:00").toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" })}
           </p>
           {selectedItems.length === 0 && (
-            <div className="bg-white rounded-[20px] p-4 shadow-sm text-slate-400 text-sm">Bu gün için kayıt yok.</div>
+            <div className="v-card p-4 text-mute text-sm font-medium">Bu gün için kayıt yok.</div>
           )}
           <div className="grid gap-2">
             {selectedItems.map((item) => (
-              <div key={item.id} className="bg-white rounded-[20px] p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <p className="text-[10px] font-black text-[#3fa7c9] mb-0.5">{typeLabel(item.type)}</p>
-                    <p className="font-black text-sm">{item.title}</p>
-                    {item.amount && item.amount > 0 && <p className="text-emerald-600 font-black text-sm">{money(item.amount)}</p>}
+              <div key={item.id} className="v-card p-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <div className="mb-1.5">{typeChip(item.type)}</div>
+                    <p className="font-bold text-sm truncate">{item.title}</p>
+                    {item.amount && item.amount > 0 ? <p className="v-num text-mint font-extrabold text-sm mt-0.5">{money(item.amount)}</p> : null}
                   </div>
-                  <span className={`text-xs rounded-xl px-3 py-1.5 font-black ${
-                    item.status === "tamamlandı" || item.status === "ödendi" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                  <span className={`v-chip shrink-0 ${
+                    item.status === "tamamlandı" || item.status === "ödendi" ? "v-chip-mint" : "v-chip-amber"
                   }`}>
                     {item.status}
                   </span>
@@ -203,9 +199,9 @@ export default function TakvimPage() {
                   href={googleCalLink(item.title, selectedDate!)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-[#3fa7c9] font-black"
+                  className="inline-flex items-center gap-1 text-xs text-teal-deep font-extrabold"
                 >
-                  + Google Takvim'e Ekle
+                  <IPlus size={13} /> Google Takvim'e Ekle
                 </a>
               </div>
             ))}
@@ -214,20 +210,20 @@ export default function TakvimPage() {
       )}
 
       {/* Ay özeti */}
-      <section className="bg-white rounded-[28px] p-4 shadow-sm">
-        <p className="font-black mb-3">Bu Ay Özet</p>
+      <section className="v-card p-4">
+        <p className="font-extrabold tracking-tight mb-3">Bu Ay Özet</p>
         <div className="grid grid-cols-3 gap-3 text-center">
-          <div>
-            <p className="text-2xl font-black text-[#3fa7c9]">{items.filter(i => i.type === "icerik").length}</p>
-            <p className="text-xs text-slate-400">İçerik</p>
+          <div className="py-2 rounded-2xl bg-[rgba(45,163,199,0.1)]">
+            <p className="v-num text-[22px] font-extrabold text-teal-deep">{items.filter(i => i.type === "icerik").length}</p>
+            <p className="text-xs text-mute font-semibold">İçerik</p>
           </div>
-          <div>
-            <p className="text-2xl font-black text-emerald-600">{items.filter(i => i.type === "tahsilat").length}</p>
-            <p className="text-xs text-slate-400">Tahsilat</p>
+          <div className="py-2 rounded-2xl bg-[#e8f7f1]">
+            <p className="v-num text-[22px] font-extrabold text-mint">{items.filter(i => i.type === "tahsilat").length}</p>
+            <p className="text-xs text-mute font-semibold">Tahsilat</p>
           </div>
-          <div>
-            <p className="text-2xl font-black text-amber-500">{items.filter(i => i.type === "takip").length}</p>
-            <p className="text-xs text-slate-400">Takip</p>
+          <div className="py-2 rounded-2xl bg-[rgba(232,163,61,0.12)]">
+            <p className="v-num text-[22px] font-extrabold text-[#a16a14]">{items.filter(i => i.type === "takip").length}</p>
+            <p className="text-xs text-mute font-semibold">Takip</p>
           </div>
         </div>
       </section>

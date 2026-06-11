@@ -2,22 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { PageHeader, EmptyState, money, today } from "@/components/ui";
+import { ILira, IAlert, ICheck, IMessage, ITrash, IPlus } from "@/components/Icons";
 
 const supabase = createClient();
-import Link from "next/link";
-
-
-function money(v: number) {
-  return new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-    maximumFractionDigits: 0,
-  }).format(v || 0);
-}
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export default function TahsilatlarPage() {
   const [items, setItems] = useState<any[]>([]);
@@ -125,123 +113,101 @@ export default function TahsilatlarPage() {
   const overdueTotal = overdue.reduce((t, i) => t + Number(i.amount || 0), 0);
 
   return (
-    <main className="v-enter min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
-      <header className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-3xl font-black">Tahsilatlar</h1>
-          <p className="text-slate-500">Bekleyen ödemeleri takip et</p>
-        </div>
+    <main className="v-enter min-h-screen px-4 pt-5 pb-36 max-w-[520px] mx-auto">
+      <PageHeader overline="Valkea Finans" title="Tahsilatlar" subtitle="Bekleyen ödemeleri takip et" />
 
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">
-          Ana
-        </Link>
-      </header>
-
+      {/* Gecikmiş uyarısı */}
       {overdue.length > 0 && (
-        <section className="bg-red-500 rounded-[24px] p-4 mb-4 text-white">
-          <p className="text-xs font-black opacity-80 mb-1">GECİKMİŞ TAHSİLAT</p>
-          <p className="text-3xl font-black">{money(overdueTotal)}</p>
-          <p className="text-sm opacity-90 mt-1">{overdue.length} ödeme vadesi geçti — hemen takip et</p>
+        <section className="relative overflow-hidden rounded-[24px] p-5 mb-4 text-white shadow-[0_14px_36px_rgba(225,29,72,0.3)]"
+          style={{ background: "linear-gradient(140deg, #e11d48, #be123c)" }}>
+          <div className="flex items-center gap-2 mb-1.5 opacity-90">
+            <IAlert size={15} />
+            <p className="v-overline !text-white/70">Gecikmiş tahsilat</p>
+          </div>
+          <p className="v-num text-[30px] font-extrabold leading-none">{money(overdueTotal)}</p>
+          <p className="text-white/80 text-xs font-medium mt-1.5">{overdue.length} ödeme vadesi geçti — hemen takip et</p>
         </section>
       )}
 
+      {/* Özet */}
       <section className="grid grid-cols-2 gap-3 mb-5">
-        <div className="bg-white rounded-[26px] p-4 shadow-sm">
-          <p className="text-slate-500 text-sm">Bekleyen</p>
-          <h2 className="text-2xl font-black text-red-600">{money(pendingTotal)}</h2>
+        <div className="v-card p-4">
+          <p className="v-overline">Bekleyen</p>
+          <h2 className="v-num text-[20px] font-extrabold text-[#a16a14] mt-0.5">{money(pendingTotal)}</h2>
+          <p className="text-mute text-xs font-medium mt-0.5">{pending.length} kayıt</p>
         </div>
-
-        <div className="bg-white rounded-[26px] p-4 shadow-sm">
-          <p className="text-slate-500 text-sm">Ödenen</p>
-          <h2 className="text-2xl font-black text-emerald-600">{paid.length}</h2>
+        <div className="v-card p-4">
+          <p className="v-overline">Tahsil edildi</p>
+          <h2 className="v-num text-[20px] font-extrabold text-mint mt-0.5">{paid.length}</h2>
+          <p className="text-mute text-xs font-medium mt-0.5">ödeme tamamlandı</p>
         </div>
       </section>
 
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-5">
-        <h2 className="text-xl font-black mb-4">Yeni Tahsilat</h2>
-
-        <div className="grid gap-3">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Örn: Suite Halı ödeme"
-            className="bg-slate-100 rounded-2xl p-4 outline-none"
-          />
-
-          <input
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            type="number"
-            placeholder="Tutar"
-            className="bg-slate-100 rounded-2xl p-4 outline-none"
-          />
-
-          <input
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            type="date"
-            className="bg-slate-100 rounded-2xl p-4 outline-none"
-          />
-
-          <button
-            onClick={addPayment}
-            className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-white rounded-2xl p-4 font-black"
-          >
-            Tahsilat Ekle
+      {/* Yeni tahsilat */}
+      <section className="v-card p-4 mb-5">
+        <h2 className="font-extrabold tracking-tight mb-3">Yeni Tahsilat</h2>
+        <div className="grid gap-2.5">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Örn: Suite Halı ödeme" className="v-input" />
+          <div className="grid grid-cols-2 gap-2.5">
+            <input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" placeholder="Tutar ₺" className="v-input" />
+            <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className="v-input" />
+          </div>
+          <button onClick={addPayment} className="v-btn v-btn-dark w-full">
+            <IPlus size={17} /> Tahsilat Ekle
           </button>
         </div>
       </section>
 
-      <section className="grid gap-3">
-        {loading && Array.from({ length: 3 }).map((_, i) => <div key={`sk-${i}`} className="skeleton h-[120px]" />)}
+      {/* Liste */}
+      <section className="grid gap-2.5">
+        {loading && Array.from({ length: 3 }).map((_, i) => <div key={`sk-${i}`} className="skeleton h-[110px]" />)}
         {!loading && items.map((item) => {
-          const isOverdue = item.status !== "ödendi" && item.due_date < today();
+          const isPaid = item.status === "ödendi";
+          const isOverdue = !isPaid && item.due_date < today();
           return (
-          <div key={item.id} className={`rounded-2xl p-4 shadow-sm ${isOverdue ? "bg-red-50 border border-red-200" : "bg-white"}`}>
-            <div className="flex justify-between gap-3">
-              <div>
+          <div key={item.id} className={`v-card p-4 ${isOverdue ? "!border-rose/30 !bg-[#fff7f8]" : ""}`}>
+            <div className="flex items-center gap-3">
+              <div className={`h-10 w-10 rounded-2xl grid place-items-center shrink-0 ${
+                isPaid ? "bg-[#e8f7f1] text-mint" : isOverdue ? "bg-[#fdeef1] text-rose" : "bg-[rgba(232,163,61,0.14)] text-[#a16a14]"
+              }`}>
+                <ILira size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className={`text-xs font-semibold ${isOverdue ? "text-red-500" : "text-slate-500"}`}>{item.due_date}</p>
-                  {isOverdue && <span className="text-[10px] font-black bg-red-500 text-white rounded-full px-2 py-0.5">GECİKMİŞ</span>}
+                  <h3 className="font-bold text-sm truncate">{item.title}</h3>
+                  {isOverdue && <span className="v-chip v-chip-rose !text-[9px] !px-2 !py-0.5">GECİKMİŞ</span>}
                 </div>
-                <h3 className="font-black">{item.title}</h3>
-                <p className={item.status === "ödendi" ? "text-emerald-600 font-black text-sm" : "text-red-500 font-black text-sm"}>
-                  {item.status}
+                <p className={`text-xs font-medium mt-0.5 ${isOverdue ? "text-rose" : "text-mute"}`}>
+                  Vade: {item.due_date} · {isPaid ? "ödendi" : "bekliyor"}
                 </p>
               </div>
-              <p className={`text-xl font-black ${isOverdue ? "text-red-600" : ""}`}>{money(Number(item.amount))}</p>
+              <p className={`v-num font-extrabold text-[15px] shrink-0 ${isPaid ? "text-mint" : isOverdue ? "text-rose" : "text-ink"}`}>
+                {money(Number(item.amount))}
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              {item.status !== "ödendi" ? (
-                <button
-                  onClick={() => markPaid(item)}
-                  className="bg-emerald-50 text-emerald-600 rounded-xl p-3 font-black"
-                >
-                  Ödendi
+            <div className="flex gap-2 mt-3">
+              {!isPaid ? (
+                <button onClick={() => markPaid(item)} className="v-btn v-btn-mint flex-1 !py-2.5 !text-[13px]">
+                  <ICheck size={15} /> Ödendi
                 </button>
               ) : (
-                <div className="bg-slate-100 rounded-xl p-3 font-black text-center">
-                  Tamam
+                <div className="v-btn v-btn-soft flex-1 !py-2.5 !text-[13px] pointer-events-none opacity-70">
+                  <ICheck size={15} /> Tamamlandı
                 </div>
               )}
-
               <button
                 onClick={() => {
                   const msg = `Merhaba, ${item.title} için ${money(Number(item.amount || 0))} tutarındaki ödeme günümüz gelmiştir. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.`;
                   navigator.clipboard.writeText(msg);
                   alert("WhatsApp mesajı kopyalandı.");
                 }}
-                className="bg-[#3fa7c9]/10 text-[#3fa7c9] rounded-xl p-3 font-black"
+                className="v-btn v-btn-soft !py-2.5 !px-4 !text-[13px] !text-teal-deep"
               >
-                Mesaj
+                <IMessage size={15} />
               </button>
-
-              <button
-                onClick={() => deletePayment(item)}
-                className="bg-red-50 text-red-600 rounded-xl p-3 font-black col-span-2"
-              >
-                Sil
+              <button onClick={() => deletePayment(item)} className="v-btn v-btn-rose !py-2.5 !px-4 !text-[13px]">
+                <ITrash size={15} />
               </button>
             </div>
           </div>
@@ -249,10 +215,7 @@ export default function TahsilatlarPage() {
         })}
 
         {!loading && items.length === 0 && (
-          <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
-            <p className="text-3xl mb-2">💸</p>
-            <p className="text-slate-400 text-sm font-black">Henüz tahsilat kaydı yok.</p>
-          </div>
+          <EmptyState icon={<ILira size={24} />} title="Henüz tahsilat kaydı yok" hint="Bekleyen ödemeleri buradan takip edebilirsin." />
         )}
       </section>
     </main>

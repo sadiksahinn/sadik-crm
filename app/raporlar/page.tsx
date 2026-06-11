@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import Link from "next/link";
 import { NetTrend, Donut } from "@/components/Charts";
+import { PageHeader, money } from "@/components/ui";
 
 const supabase = createClient();
 
-const CAT_COLORS = ["#3fa7c9", "#e0a23c", "#8b5cf6", "#f87171", "#34d399", "#f59e0b", "#64748b"];
+const CAT_COLORS = ["#2da3c7", "#e8a33d", "#8b5cf6", "#f43f5e", "#059669", "#f59e0b", "#64748b"];
 
 // Son 6 ayın etiketleri ve anahtarları
 function last6Months() {
@@ -18,10 +18,6 @@ function last6Months() {
     arr.push({ key: m.toISOString().slice(0, 7), label: m.toLocaleDateString("tr-TR", { month: "short" }) });
   }
   return arr;
-}
-
-function money(v: number) {
-  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(v || 0);
 }
 
 function monthRange(offset: number) {
@@ -130,28 +126,25 @@ export default function RaporlarPage() {
   const maxBar = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 1);
 
   return (
-    <main className="v-enter min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-5 pb-32">
-      <header className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-[#3fa7c9] text-xs font-black tracking-wide">VALKEA REPORT</p>
-          <h1 className="text-3xl font-black">Raporlar</h1>
-          <p className="text-slate-500">Son 3 ay analiz</p>
-        </div>
-        <Link href="/" className="bg-white rounded-2xl px-4 py-3 shadow-sm font-black">Ana</Link>
-      </header>
+    <main className="v-enter min-h-screen px-4 pt-5 pb-36 max-w-[520px] mx-auto">
+      <PageHeader overline="Valkea Rapor" title="Raporlar" subtitle="Son 3 ay analiz" />
 
-      {/* Net durum */}
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-4">
-        <p className="text-[#3fa7c9] text-xs font-black">BU AY NET DURUM</p>
-        <h2 className={`text-4xl font-black mt-1 ${cur.net >= 0 ? "text-emerald-600" : "text-red-500"}`}>{money(cur.net)}</h2>
-        <p className="text-slate-400 text-sm mt-1">Tahsilatlar kapanırsa → {money(cur.net + totalPending)}</p>
+      {/* Net durum hero */}
+      <section className="v-hero p-5 mb-4">
+        <div className="relative z-10">
+          <p className="v-overline !text-white/50 mb-1">Bu ay net durum</p>
+          <h2 className={`v-num text-[34px] font-extrabold leading-none ${cur.net >= 0 ? "text-emerald-300" : "text-rose-300"}`}>{money(cur.net)}</h2>
+          <p className="text-white/55 text-xs font-medium mt-2">
+            Tahsilatlar kapanırsa → <span className="v-num font-bold text-white/85">{money(cur.net + totalPending)}</span>
+          </p>
+        </div>
       </section>
 
       {/* Net trend — son 6 ay */}
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-4">
+      <section className="v-card p-5 mb-4">
         <div className="flex items-center justify-between mb-3">
-          <p className="font-black">Net Trend</p>
-          <span className="text-[10px] font-black tracking-wide text-slate-400">SON 6 AY</span>
+          <p className="font-extrabold tracking-tight">Net Trend</p>
+          <span className="v-overline">Son 6 ay</span>
         </div>
         {trend6.length > 0
           ? <NetTrend points={trend6} height={160} />
@@ -159,48 +152,48 @@ export default function RaporlarPage() {
       </section>
 
       {/* 3 aylık bar grafik */}
-      <section className="bg-white rounded-[30px] p-5 shadow-sm mb-4">
-        <p className="font-black mb-4">Son 3 Ay</p>
+      <section className="v-card p-5 mb-4">
+        <p className="font-extrabold tracking-tight mb-4">Son 3 Ay</p>
         <div className="flex items-end gap-3 h-32 mb-3">
           {months.map((m, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-1">
-              <div className="w-full flex gap-1 items-end h-28">
+              <div className="w-full flex gap-1.5 items-end h-28">
                 <div
-                  className="flex-1 bg-emerald-400 rounded-t-xl"
-                  style={{ height: `${(m.income / maxBar) * 100}%`, minHeight: m.income > 0 ? "8px" : "0" }}
+                  className="flex-1 rounded-t-lg"
+                  style={{ background: "#059669", height: `${(m.income / maxBar) * 100}%`, minHeight: m.income > 0 ? "8px" : "0", opacity: 0.85 }}
                 />
                 <div
-                  className="flex-1 bg-red-400 rounded-t-xl"
-                  style={{ height: `${(m.expense / maxBar) * 100}%`, minHeight: m.expense > 0 ? "8px" : "0" }}
+                  className="flex-1 rounded-t-lg"
+                  style={{ background: "#e11d48", height: `${(m.expense / maxBar) * 100}%`, minHeight: m.expense > 0 ? "8px" : "0", opacity: 0.75 }}
                 />
               </div>
-              <p className="text-[10px] text-slate-500 font-semibold text-center leading-tight">{m.label.split(" ")[0]}</p>
+              <p className="text-[10px] text-mute font-bold text-center leading-tight">{m.label.split(" ")[0]}</p>
             </div>
           ))}
         </div>
-        <div className="flex gap-4 text-xs">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-400 rounded" /> Gelir</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-400 rounded" /> Gider</span>
+        <div className="flex gap-4 text-xs font-semibold text-sub">
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: "#059669" }} /> Gelir</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: "#e11d48" }} /> Gider</span>
         </div>
-        <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100">
+        <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-line">
           {months.map((m, i) => (
             <div key={i} className="text-center">
-              <p className="text-[10px] text-slate-400">{m.label}</p>
-              <p className="text-xs font-black text-emerald-600">{money(m.income)}</p>
-              <p className="text-xs text-red-500">{money(m.expense)}</p>
-              <p className={`text-xs font-black ${m.net >= 0 ? "text-slate-700" : "text-red-500"}`}>{money(m.net)}</p>
+              <p className="text-[10px] text-mute font-semibold">{m.label}</p>
+              <p className="v-num text-xs font-extrabold text-mint">{money(m.income)}</p>
+              <p className="v-num text-xs font-semibold text-rose">{money(m.expense)}</p>
+              <p className={`v-num text-xs font-extrabold ${m.net >= 0 ? "text-ink" : "text-rose"}`}>{money(m.net)}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-4">
+      <div className="v-seg mb-4">
         {(["aylik", "musteriler", "kategoriler"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setSelectedTab(tab)}
-            className={`flex-1 rounded-2xl py-2.5 text-xs font-black transition-colors ${selectedTab === tab ? "bg-[#3fa7c9] text-white" : "bg-white text-slate-500 shadow-sm"}`}
+            className={`v-seg-btn ${selectedTab === tab ? "active" : ""}`}
           >
             {tab === "aylik" ? "Bu Ay" : tab === "musteriler" ? "Müşteriler" : "Kategoriler"}
           </button>
@@ -211,56 +204,56 @@ export default function RaporlarPage() {
       {selectedTab === "aylik" && (
         <section className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white rounded-[24px] p-4 shadow-sm">
-              <p className="text-xs text-slate-500">Gelir</p>
-              <p className="text-2xl font-black text-emerald-600">{money(cur.income)}</p>
-              <p className="text-xs text-slate-400">{currentIncome.length} kayıt</p>
+            <div className="v-card p-4">
+              <p className="v-overline">Gelir</p>
+              <p className="v-num text-[20px] font-extrabold text-mint mt-0.5">{money(cur.income)}</p>
+              <p className="text-mute text-xs font-medium">{currentIncome.length} kayıt</p>
             </div>
-            <div className="bg-white rounded-[24px] p-4 shadow-sm">
-              <p className="text-xs text-slate-500">Gider</p>
-              <p className="text-2xl font-black text-red-500">{money(cur.expense)}</p>
-              <p className="text-xs text-slate-400">{currentExpenses.length} kayıt</p>
+            <div className="v-card p-4">
+              <p className="v-overline">Gider</p>
+              <p className="v-num text-[20px] font-extrabold text-rose mt-0.5">{money(cur.expense)}</p>
+              <p className="text-mute text-xs font-medium">{currentExpenses.length} kayıt</p>
             </div>
           </div>
-          <div className="bg-white rounded-[24px] p-4 shadow-sm">
-            <p className="text-xs text-slate-500 mb-1">Bekleyen Tahsilat</p>
-            <p className="text-2xl font-black text-[#e0a23c]">{money(totalPending)}</p>
-            <p className="text-xs text-slate-400">{pendingPayments.length} kayıt</p>
+          <div className="v-card p-4">
+            <p className="v-overline mb-1">Bekleyen tahsilat</p>
+            <p className="v-num text-[20px] font-extrabold text-[#a16a14]">{money(totalPending)}</p>
+            <p className="text-mute text-xs font-medium">{pendingPayments.length} kayıt</p>
           </div>
-          <div className="bg-white rounded-[24px] p-4 shadow-sm">
-            <p className="font-black mb-3">Son Gelirler</p>
+          <div className="v-card p-4">
+            <p className="font-extrabold tracking-tight mb-3">Son Gelirler</p>
             {currentIncome.slice(0, 5).map((i) => (
-              <div key={i.id} className="flex justify-between py-2 border-b border-slate-50 text-sm">
-                <span className="text-slate-700 truncate pr-2">{i.title}</span>
-                <span className="font-black text-emerald-600 whitespace-nowrap">{money(Number(i.amount))}</span>
+              <div key={i.id} className="flex justify-between py-2 border-b border-line last:border-0 text-sm">
+                <span className="text-sub font-medium truncate pr-2">{i.title}</span>
+                <span className="v-num font-extrabold text-mint whitespace-nowrap">{money(Number(i.amount))}</span>
               </div>
             ))}
-            {currentIncome.length === 0 && <p className="text-slate-400 text-sm">Bu ay gelir kaydı yok.</p>}
+            {currentIncome.length === 0 && <p className="text-mute text-sm">Bu ay gelir kaydı yok.</p>}
           </div>
         </section>
       )}
 
       {/* Müşteriler */}
       {selectedTab === "musteriler" && (
-        <section className="bg-white rounded-[30px] p-5 shadow-sm">
-          <p className="font-black mb-3">Müşteri Bazlı Tahsilat</p>
-          {customerData.length === 0 && <p className="text-slate-400 text-sm">Henüz müşteri bazlı veri yok.</p>}
+        <section className="v-card p-5">
+          <p className="font-extrabold tracking-tight mb-3">Müşteri Bazlı Tahsilat</p>
+          {customerData.length === 0 && <p className="text-mute text-sm">Henüz müşteri bazlı veri yok.</p>}
           {customerData.map((c, i) => (
-            <div key={i} className="py-3 border-b border-slate-100 last:border-0">
+            <div key={i} className="py-3 border-b border-line last:border-0">
               <div className="flex justify-between mb-1">
-                <span className="font-black text-sm">{c.name}</span>
-                <span className="font-black text-emerald-600 text-sm">{money(c.paid)}</span>
+                <span className="font-bold text-sm">{c.name}</span>
+                <span className="v-num font-extrabold text-mint text-sm">{money(c.paid)}</span>
               </div>
               {c.pending > 0 && (
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Bekleyen</span>
-                  <span className="text-red-400 font-semibold">{money(c.pending)}</span>
+                  <span className="text-mute font-medium">Bekleyen</span>
+                  <span className="v-num text-rose font-bold">{money(c.pending)}</span>
                 </div>
               )}
-              <div className="mt-2 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              <div className="mt-2 bg-[#e8ecf4] rounded-full h-1.5 overflow-hidden">
                 <div
-                  className="bg-emerald-400 h-full rounded-full"
-                  style={{ width: `${Math.min((c.paid / (c.paid + c.pending || 1)) * 100, 100)}%` }}
+                  className="h-full rounded-full"
+                  style={{ background: "#059669", width: `${Math.min((c.paid / (c.paid + c.pending || 1)) * 100, 100)}%` }}
                 />
               </div>
             </div>
@@ -270,9 +263,9 @@ export default function RaporlarPage() {
 
       {/* Kategoriler */}
       {selectedTab === "kategoriler" && (
-        <section className="bg-white rounded-[30px] p-5 shadow-sm">
-          <p className="font-black mb-3">Bu Ay Gider Kategorileri</p>
-          {categoryBreakdown.length === 0 && <p className="text-slate-400 text-sm">Bu ay gider kaydı yok.</p>}
+        <section className="v-card p-5">
+          <p className="font-extrabold tracking-tight mb-3">Bu Ay Gider Kategorileri</p>
+          {categoryBreakdown.length === 0 && <p className="text-mute text-sm">Bu ay gider kaydı yok.</p>}
           {categoryBreakdown.length > 0 && (
             <div className="flex items-center gap-4 mb-4">
               <Donut
@@ -283,11 +276,11 @@ export default function RaporlarPage() {
               <div className="flex-1 grid gap-1.5">
                 {categoryBreakdown.slice(0, 6).map((c, i) => (
                   <div key={c.category} className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1.5 text-slate-600 font-semibold truncate">
+                    <span className="flex items-center gap-1.5 text-sub font-semibold truncate">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CAT_COLORS[i % CAT_COLORS.length] }} />
                       <span className="truncate">{c.category}</span>
                     </span>
-                    <span className="font-black text-slate-700 whitespace-nowrap ml-2">%{Math.round((c.total / cur.expense) * 100) || 0}</span>
+                    <span className="v-num font-extrabold text-ink whitespace-nowrap ml-2">%{Math.round((c.total / cur.expense) * 100) || 0}</span>
                   </div>
                 ))}
               </div>
@@ -296,15 +289,15 @@ export default function RaporlarPage() {
           {categoryBreakdown.map((c) => {
             const pct = Math.round((c.total / cur.expense) * 100) || 0;
             return (
-              <div key={c.category} className="py-3 border-b border-slate-100 last:border-0">
+              <div key={c.category} className="py-3 border-b border-line last:border-0">
                 <div className="flex justify-between mb-1">
-                  <span className="font-black text-sm">{c.category}</span>
-                  <span className="font-black text-red-500 text-sm">{money(c.total)}</span>
+                  <span className="font-bold text-sm">{c.category}</span>
+                  <span className="v-num font-extrabold text-rose text-sm">{money(c.total)}</span>
                 </div>
-                <div className="bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-red-400 h-full rounded-full" style={{ width: `${pct}%` }} />
+                <div className="bg-[#e8ecf4] rounded-full h-1.5 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ background: "#e11d48", opacity: 0.75, width: `${pct}%` }} />
                 </div>
-                <p className="text-xs text-slate-400 mt-1">%{pct}</p>
+                <p className="text-xs text-mute font-medium mt-1">%{pct}</p>
               </div>
             );
           })}

@@ -77,32 +77,32 @@ export default function FaturaPage() {
   return (
     <>
       {/* Kontrol paneli — yazdırılırken gizlenir */}
-      <div className="print:hidden bg-[#F5F6FA] px-4 py-4 flex gap-3 items-center border-b">
-        <button onClick={() => router.back()} className="h-10 px-4 bg-white rounded-2xl shadow-sm font-black text-sm">← Geri</button>
+      <div className="print:hidden bg-[#f3f5fa] px-4 py-4 flex gap-3 items-center border-b border-[#e7eaf2]">
+        <button onClick={() => router.back()} className="v-press h-10 px-4 bg-white border border-[#e7eaf2] rounded-2xl shadow-sm font-extrabold text-sm">← Geri</button>
         <div className="flex-1 grid grid-cols-2 gap-2">
           <input
             value={customTitle}
             onChange={(e) => setCustomTitle(e.target.value)}
             placeholder="Hizmet adı"
-            className="bg-white rounded-2xl px-3 py-2 text-sm outline-none shadow-sm"
+            className="v-input !py-2 !px-3 !text-sm !bg-white"
           />
           <input
             value={customAmount}
             onChange={(e) => setCustomAmount(e.target.value)}
             type="number"
             placeholder="Tutar (KDV hariç)"
-            className="bg-white rounded-2xl px-3 py-2 text-sm outline-none shadow-sm"
+            className="v-input !py-2 !px-3 !text-sm !bg-white"
           />
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Not (isteğe bağlı)"
-            className="bg-white rounded-2xl px-3 py-2 text-sm outline-none shadow-sm col-span-2"
+            className="v-input !py-2 !px-3 !text-sm !bg-white col-span-2"
           />
         </div>
         <button
           onClick={() => window.print()}
-          className="h-10 px-5 bg-gradient-to-r from-[#0B1437] to-[#1E3A5F] text-white rounded-2xl font-black text-sm whitespace-nowrap"
+          className="v-press h-10 px-5 bg-[#0b1020] text-white rounded-2xl font-extrabold text-sm whitespace-nowrap shadow-[0_8px_24px_rgba(11,16,32,0.25)]"
         >
           Yazdır / PDF
         </button>

@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
+import { CountUp, money } from "@/components/ui";
+import {
+  IBell, ISparkle, ITrendUp, ITrendDown, IClock, IUsers,
+  IBriefcase, ICard, IReceipt, IChart, IChevronRight, ILira, ICheck, IPlayCircle,
+} from "@/components/Icons";
 
 const supabase = createClient();
 
-function money(v: number) {
-  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(v || 0);
-}
 function firstName(name: string) { return (name || "Kullanıcı").trim().split(" ")[0]; }
 
 // Son N günün tarih dizisi: ["2026-05-26", ..., "2026-06-01"]
@@ -22,72 +24,23 @@ function lastNDays(n: number) {
 }
 
 // Mini bar chart — gerçek veriler
-function BarChart({ data, color, height = 36 }: { data: number[]; color: string; height?: number }) {
+function BarChart({ data, color, height = 32 }: { data: number[]; color: string; height?: number }) {
   const max = Math.max(...data, 1);
-  const bw = 8; const gap = 3;
+  const bw = 8; const gap = 4;
   const W = data.length * (bw + gap) - gap;
   return (
     <svg width={W} height={height} viewBox={`0 0 ${W} ${height}`} className="overflow-visible">
       {data.map((v, i) => {
-        const h = Math.max(Math.round((v / max) * (height - 4)), 2);
+        const h = Math.max(Math.round((v / max) * (height - 4)), 3);
         const x = i * (bw + gap);
         const isToday = i === data.length - 1;
         return (
           <rect key={i} x={x} y={height - h} width={bw} height={h} rx={3}
-            fill={color} opacity={isToday ? 1 : 0.35 + (i / data.length) * 0.5} />
+            fill={color} opacity={isToday ? 1 : 0.22 + (i / data.length) * 0.4} />
         );
       })}
     </svg>
   );
-}
-
-// İki renkli bar chart (gelir vs gider yan yana)
-function DualBarChart({ income, expense, height = 48 }: { income: number[]; expense: number[]; height?: number }) {
-  const max = Math.max(...income, ...expense, 1);
-  const bw = 6; const gap = 2; const pairGap = 5;
-  const pairW = bw * 2 + gap;
-  const W = income.length * (pairW + pairGap) - pairGap;
-  const DAYS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
-  const today = new Date().getDay(); // 0=pazar, 1=pzt...
-  return (
-    <svg width={W} height={height + 14} viewBox={`0 0 ${W} ${height + 14}`}>
-      {income.map((inc, i) => {
-        const exp = expense[i] || 0;
-        const ih = Math.max(Math.round((inc / max) * height), 2);
-        const eh = Math.max(Math.round((exp / max) * height), 2);
-        const x = i * (pairW + pairGap);
-        const isToday = i === income.length - 1;
-        return (
-          <g key={i}>
-            <rect x={x} y={height - ih} width={bw} height={ih} rx={2}
-              fill="#3fa7c9" opacity={isToday ? 1 : 0.4 + (i / income.length) * 0.4} />
-            <rect x={x + bw + gap} y={height - eh} width={bw} height={eh} rx={2}
-              fill="#e0a23c" opacity={isToday ? 1 : 0.4 + (i / income.length) * 0.4} />
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-// Sayı 0'dan hedefe yumuşakça akar (premium his)
-function CountUp({ value, format }: { value: number; format: (n: number) => string }) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    let raf = 0;
-    const from = 0;
-    const dur = 700;
-    const start = performance.now();
-    const tick = (t: number) => {
-      const p = Math.min((t - start) / dur, 1);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setDisplay(from + (value - from) * eased);
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [value]);
-  return <>{format(display)}</>;
 }
 
 export default function HomePage() {
@@ -151,15 +104,10 @@ export default function HomePage() {
       (inc7 || []).forEach((r: any) => { if (incByDay[r.income_date] !== undefined) incByDay[r.income_date] += Number(r.amount || 0); });
       (exp7 || []).forEach((r: any) => { if (expByDay[r.expense_date] !== undefined) expByDay[r.expense_date] += Number(r.amount || 0); });
 
-      const wi = days7.map(d => incByDay[d]);
-      const we = days7.map(d => expByDay[d]);
-      setWeekIncome(wi);
-      setWeekExpense(we);
-
-      const todayInc = incByDay[today] || 0;
-      const todayExp = expByDay[today] || 0;
-      setTodayIncome(todayInc);
-      setTodayExpense(todayExp);
+      setWeekIncome(days7.map(d => incByDay[d]));
+      setWeekExpense(days7.map(d => expByDay[d]));
+      setTodayIncome(incByDay[today] || 0);
+      setTodayExpense(expByDay[today] || 0);
 
       setMonthIncome((incMonth || []).reduce((a, b: any) => a + Number(b.amount || 0), 0));
       setMonthExpense((expMonth || []).reduce((a, b: any) => a + Number(b.amount || 0), 0));
@@ -171,9 +119,9 @@ export default function HomePage() {
       setNotifCount((cols || []).length + (fols || []).length + (conts || []).length);
 
       setAgenda([
-        ...(pays || []).map((x: any) => ({ icon: "₺", title: x.title, sub: `${money(Number(x.amount || 0))} tahsilat`, type: "Tahsilat", href: "/tahsilatlar" })),
-        ...(fols || []).map((x: any) => ({ icon: "✓", title: x.title, sub: "Bekliyor", type: "Görev", href: "/hatirlatmalar" })),
-        ...(conts || []).map((x: any) => ({ icon: "▶", title: x.content_title, sub: "Paylaşım", type: "İçerik", href: "/takvim" })),
+        ...(pays || []).map((x: any) => ({ kind: "pay", title: x.title, sub: `${money(Number(x.amount || 0))} tahsilat`, type: "Tahsilat", href: "/tahsilatlar" })),
+        ...(fols || []).map((x: any) => ({ kind: "task", title: x.title, sub: "Bekliyor", type: "Görev", href: "/hatirlatmalar" })),
+        ...(conts || []).map((x: any) => ({ kind: "content", title: x.content_title, sub: "Paylaşım", type: "İçerik", href: "/takvim" })),
       ].slice(0, 4));
 
       setLoading(false);
@@ -187,86 +135,92 @@ export default function HomePage() {
   const hour = new Date().getHours();
   const greet = hour < 12 ? "Günaydın" : hour < 18 ? "İyi günler" : "İyi akşamlar";
   const dayLabels = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
-  const todayIdx = (new Date().getDay() + 6) % 7;
-  const week7Labels = lastNDays(7).map((d, i) => i === 6 ? "Bug." : dayLabels[(new Date(d).getDay() + 6) % 7]);
+  const week7Labels = lastNDays(7).map((d, i) => i === 6 ? "Bugün" : dayLabels[(new Date(d).getDay() + 6) % 7]);
+
+  const agendaIcon = (kind: string) =>
+    kind === "pay" ? <ILira size={17} /> : kind === "task" ? <ICheck size={17} /> : <IPlayCircle size={17} />;
 
   return (
-    <main className="min-h-screen bg-[#f7f8fc] text-slate-950 px-4 pt-4 pb-32">
+    <main className="min-h-screen px-4 pt-4 pb-36 max-w-[520px] mx-auto">
 
       {/* Header */}
-      <header className="flex items-center justify-between mb-4">
-        <div className="relative w-36 h-14">
-          <Image src="/valkea-logo.png" alt="Valkea" fill className="object-contain object-left" priority />
+      <header className="flex items-center justify-between mb-5">
+        <div className="relative w-32 h-12">
+          <Image src="/valkea-logo.png" alt="Valkea" fill sizes="200px" className="object-contain object-left" priority />
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/bildirimler" className="h-12 w-12 rounded-2xl bg-white shadow-sm grid place-items-center text-xl relative">
-            🔔
+          <Link href="/bildirimler" className="v-press relative h-11 w-11 rounded-2xl bg-white border border-line shadow-sm grid place-items-center text-ink">
+            <IBell size={19} />
             {notifCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-[#e0a23c] text-white text-[10px] font-black grid place-items-center">
+              <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-rose text-white text-[10px] font-extrabold grid place-items-center border-2 border-canvas">
                 {notifCount}
               </span>
             )}
           </Link>
-          <Link href="/profil" className="h-12 w-12 rounded-full overflow-hidden bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] shadow grid place-items-center font-black text-lg">
-            {avatar ? <img src={avatar} className="h-full w-full object-cover" alt="" /> : <span className="text-slate-950">{firstName(fullName)[0]}</span>}
+          <Link href="/profil" className="v-press h-11 w-11 rounded-2xl overflow-hidden bg-gradient-to-br from-teal to-amber shadow-sm grid place-items-center">
+            {avatar
+              ? <img src={avatar} className="h-full w-full object-cover" alt="" />
+              : <span className="text-white font-extrabold text-base">{firstName(fullName)[0]}</span>}
           </Link>
         </div>
       </header>
 
       {/* Selamlama */}
-      <div className="mb-4">
-        <h1 className="text-2xl font-black">{greet}, {firstName(fullName)} 👋</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Gününü birlikte planlayalım.</p>
+      <div className="mb-5">
+        <h1 className="text-[26px] font-extrabold tracking-tight leading-tight">{greet}, {firstName(fullName)}</h1>
+        <p className="text-sub text-sm font-medium mt-0.5">Gününü birlikte planlayalım.</p>
       </div>
 
-      {/* ── HERO KART — Aylık Net + 7 Günlük Bar Grafik ── */}
-      <section className="v-enter relative overflow-hidden rounded-[28px] p-5 mb-5 shadow-lg"
-        style={{ background: "linear-gradient(135deg, #3fa7c9 0%, #1c2b4d 40%, #e0a23c 100%)" }}>
-
-        {/* Dekoratif daireler */}
-        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10" />
-        <div className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full bg-white/10" />
-
+      {/* ── HERO — Aylık net + 7 günlük grafik ── */}
+      <section className="v-hero v-enter p-5 mb-5">
         <div className="relative z-10">
-          <p className="text-white/70 text-[10px] font-black tracking-widest mb-1">BU AY NET DURUM</p>
-          <p className={`text-4xl font-black text-white mb-1 leading-none`} style={{ letterSpacing: "-0.02em" }}>
-            <CountUp value={monthNet} format={money} />
-          </p>
-          <p className="text-white/60 text-xs mb-4">
-            {monthNet >= 0 ? `↑ Kârdayız` : `↓ Zarardayız`} · Gelir {money(monthIncome)} · Gider {money(monthExpense)}
+          <div className="flex items-center justify-between mb-1">
+            <p className="v-overline !text-white/50">Bu ay net durum</p>
+            <span className={`v-chip ${monthNet >= 0 ? "bg-white/10 text-emerald-300" : "bg-white/10 text-rose-300"}`}>
+              {monthNet >= 0 ? <ITrendUp size={13} /> : <ITrendDown size={13} />}
+              {monthNet >= 0 ? "Kârda" : "Zararda"}
+            </span>
+          </div>
+          {loading
+            ? <div className="skeleton h-10 w-40 !bg-white/10 mb-2" />
+            : <p className="v-num text-[38px] font-extrabold leading-none mb-2"><CountUp value={monthNet} format={money} /></p>}
+          <p className="text-white/55 text-xs font-medium mb-5">
+            Gelir <span className="v-num text-emerald-300 font-bold">{money(monthIncome)}</span>
+            <span className="mx-1.5 text-white/25">·</span>
+            Gider <span className="v-num text-rose-300 font-bold">{money(monthExpense)}</span>
           </p>
 
-          {/* Bar grafik */}
-          <div className="bg-white/15 rounded-2xl p-3">
-            <p className="text-white/60 text-[10px] font-black tracking-widest mb-2">SON 7 GÜN</p>
+          {/* 7 günlük bar grafik */}
+          <div className="rounded-2xl bg-white/[0.07] border border-white/[0.06] p-3.5">
+            <p className="v-overline !text-white/40 mb-3">Son 7 gün</p>
             <div className="flex items-end gap-1.5 h-12">
               {weekIncome.map((inc, i) => {
                 const exp = weekExpense[i] || 0;
                 const maxVal = Math.max(...weekIncome, ...weekExpense, 1);
-                const incH = Math.max(Math.round((inc / maxVal) * 44), 2);
-                const expH = Math.max(Math.round((exp / maxVal) * 44), 2);
+                const incH = Math.max(Math.round((inc / maxVal) * 44), 3);
+                const expH = Math.max(Math.round((exp / maxVal) * 44), 3);
                 const isToday = i === 6;
                 return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-                    <div className="w-full flex gap-0.5 items-end h-11">
-                      <div className="flex-1 rounded-t-sm transition-all"
-                        style={{ height: `${incH}px`, background: "rgba(255,255,255,0.9)", opacity: isToday ? 1 : 0.45 + (i / 7) * 0.4 }} />
-                      <div className="flex-1 rounded-t-sm transition-all"
-                        style={{ height: `${expH}px`, background: "rgba(255,255,255,0.5)", opacity: isToday ? 0.8 : 0.3 + (i / 7) * 0.3 }} />
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full flex gap-[3px] items-end h-11">
+                      <div className="flex-1 rounded-full transition-all"
+                        style={{ height: `${incH}px`, background: "#5fc4e4", opacity: isToday ? 1 : 0.4 + (i / 7) * 0.35 }} />
+                      <div className="flex-1 rounded-full transition-all"
+                        style={{ height: `${expH}px`, background: "#e8a33d", opacity: isToday ? 0.9 : 0.3 + (i / 7) * 0.3 }} />
                     </div>
-                    <span className={`text-[8px] font-black ${isToday ? "text-white" : "text-white/50"}`}>
+                    <span className={`text-[8px] font-bold ${isToday ? "text-white" : "text-white/40"}`}>
                       {week7Labels[i]}
                     </span>
                   </div>
                 );
               })}
             </div>
-            <div className="flex gap-3 mt-2">
-              <span className="flex items-center gap-1 text-[9px] text-white/60">
-                <span className="w-2 h-2 rounded bg-white/90 inline-block" /> Gelir
+            <div className="flex gap-4 mt-2.5">
+              <span className="flex items-center gap-1.5 text-[10px] font-semibold text-white/50">
+                <span className="w-2 h-2 rounded-full bg-[#5fc4e4] inline-block" /> Gelir
               </span>
-              <span className="flex items-center gap-1 text-[9px] text-white/60">
-                <span className="w-2 h-2 rounded bg-white/50 inline-block" /> Gider
+              <span className="flex items-center gap-1.5 text-[10px] font-semibold text-white/50">
+                <span className="w-2 h-2 rounded-full bg-[#e8a33d] inline-block" /> Gider
               </span>
             </div>
           </div>
@@ -276,82 +230,80 @@ export default function HomePage() {
       {/* ── 4 STAT KARTI ── */}
       <section className="v-stagger grid grid-cols-2 gap-3 mb-5">
 
-        <Link href="/gelir-gider" className="bg-white rounded-[24px] p-4 shadow-sm block">
+        <Link href="/gelir-gider" className="v-card v-press p-4 block">
           <div className="flex items-center justify-between mb-3">
-            <div className="h-10 w-10 bg-emerald-50 rounded-2xl grid place-items-center text-lg">💚</div>
-            <span className="text-xs font-black text-emerald-500">+bugün</span>
+            <div className="h-10 w-10 bg-[#e8f7f1] text-mint rounded-2xl grid place-items-center"><ITrendUp size={19} /></div>
+            <span className="v-chip v-chip-mint">bugün</span>
           </div>
-          <p className="text-xs text-slate-500 font-black">BUGÜN GELİR</p>
-          <p className="text-2xl font-black text-emerald-600 mt-0.5">{money(todayIncome)}</p>
-          <div className="mt-2">
-            <BarChart data={weekIncome} color="#22c55e" height={28} />
-          </div>
+          <p className="v-overline">Bugün gelir</p>
+          <p className="v-num text-[22px] font-extrabold text-mint mt-0.5">{money(todayIncome)}</p>
+          <div className="mt-2.5"><BarChart data={weekIncome} color="#059669" height={26} /></div>
         </Link>
 
-        <Link href="/gelir-gider" className="bg-white rounded-[24px] p-4 shadow-sm block">
+        <Link href="/gelir-gider" className="v-card v-press p-4 block">
           <div className="flex items-center justify-between mb-3">
-            <div className="h-10 w-10 bg-red-50 rounded-2xl grid place-items-center text-lg">❤️</div>
-            <span className="text-xs font-black text-red-400">bugün</span>
+            <div className="h-10 w-10 bg-[#fdeef1] text-rose rounded-2xl grid place-items-center"><ITrendDown size={19} /></div>
+            <span className="v-chip v-chip-rose">bugün</span>
           </div>
-          <p className="text-xs text-slate-500 font-black">BUGÜN GİDER</p>
-          <p className="text-2xl font-black text-red-500 mt-0.5">{money(todayExpense)}</p>
-          <div className="mt-2">
-            <BarChart data={weekExpense} color="#ef4444" height={28} />
-          </div>
+          <p className="v-overline">Bugün gider</p>
+          <p className="v-num text-[22px] font-extrabold text-rose mt-0.5">{money(todayExpense)}</p>
+          <div className="mt-2.5"><BarChart data={weekExpense} color="#e11d48" height={26} /></div>
         </Link>
 
-        <Link href="/tahsilatlar" className="bg-white rounded-[24px] p-4 shadow-sm block">
+        <Link href="/tahsilatlar" className="v-card v-press p-4 block">
           <div className="flex items-center justify-between mb-3">
-            <div className="h-10 w-10 bg-amber-50 rounded-2xl grid place-items-center text-lg">⏳</div>
+            <div className="h-10 w-10 bg-[rgba(232,163,61,0.14)] text-[#a16a14] rounded-2xl grid place-items-center"><IClock size={19} /></div>
             {overdueCount > 0
-              ? <span className="text-xs font-black text-red-500">{overdueCount} gecikmiş</span>
-              : collectionCount > 0 && <span className="text-xs font-black text-amber-500">{collectionCount} bekleyen</span>}
+              ? <span className="v-chip v-chip-rose">{overdueCount} gecikmiş</span>
+              : collectionCount > 0 && <span className="v-chip v-chip-amber">{collectionCount} bekleyen</span>}
           </div>
-          <p className="text-xs text-slate-500 font-black">BEKLEYEN TAHSİLAT</p>
-          <p className="text-2xl font-black text-amber-500 mt-0.5">{money(collectionTotal)}</p>
-          <p className="text-xs text-slate-400 mt-1">{collectionCount > 0 ? `${collectionCount} ödeme · ${overdueCount} gecikmiş` : "Bekleyen yok"}</p>
+          <p className="v-overline">Bekleyen tahsilat</p>
+          <p className="v-num text-[22px] font-extrabold text-[#a16a14] mt-0.5">{money(collectionTotal)}</p>
+          <p className="text-mute text-xs font-medium mt-1.5">{collectionCount > 0 ? `${collectionCount} ödeme · ${overdueCount} gecikmiş` : "Bekleyen yok"}</p>
         </Link>
 
-        <Link href="/musteriler" className="bg-white rounded-[24px] p-4 shadow-sm block">
+        <Link href="/musteriler" className="v-card v-press p-4 block">
           <div className="flex items-center justify-between mb-3">
-            <div className="h-10 w-10 bg-[#3fa7c9]/10 rounded-2xl grid place-items-center text-lg">👥</div>
-            <span className="text-xs font-black text-[#3fa7c9]">aktif</span>
+            <div className="h-10 w-10 bg-[rgba(45,163,199,0.12)] text-teal-deep rounded-2xl grid place-items-center"><IUsers size={19} /></div>
+            <span className="v-chip v-chip-teal">aktif</span>
           </div>
-          <p className="text-xs text-slate-500 font-black">MÜŞTERİLER</p>
-          <p className="text-2xl font-black mt-0.5">{customerCount}</p>
-          <p className="text-xs text-slate-400 mt-1">{taskCount > 0 ? `${taskCount} görev bekliyor` : "Görev yok"}</p>
+          <p className="v-overline">Müşteriler</p>
+          <p className="v-num text-[22px] font-extrabold mt-0.5">{customerCount}</p>
+          <p className="text-mute text-xs font-medium mt-1.5">{taskCount > 0 ? `${taskCount} görev bekliyor` : "Görev yok"}</p>
         </Link>
 
       </section>
 
-      {/* ── NET DURUM şerit ── */}
-      <section className="bg-white rounded-[24px] px-5 py-4 shadow-sm mb-5 flex items-center justify-between">
+      {/* ── GÜNLÜK NET şerit ── */}
+      <section className="v-card px-5 py-4 mb-6 flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-black text-slate-400 tracking-widest">GÜNLÜK NET</p>
-          <p className={`text-2xl font-black mt-0.5 ${net >= 0 ? "text-emerald-600" : "text-red-500"}`}><CountUp value={net} format={money} /></p>
+          <p className="v-overline">Günlük net</p>
+          <p className={`v-num text-[22px] font-extrabold mt-0.5 ${net >= 0 ? "text-mint" : "text-rose"}`}>
+            <CountUp value={net} format={money} />
+          </p>
         </div>
-        <Link href="/gelir-gider" className="bg-gradient-to-r from-[#3fa7c9] to-[#e0a23c] text-slate-950 font-black rounded-2xl px-4 py-2.5 text-sm">
-          Detay ›
+        <Link href="/gelir-gider" className="v-btn v-btn-dark !py-2.5 !px-4 !text-[13px]">
+          Detay <IChevronRight size={15} />
         </Link>
       </section>
 
       {/* ── HIZLI ERİŞİM ── */}
       <section className="mb-6">
-        <h2 className="text-[10px] font-black tracking-widest text-slate-400 mb-3">HIZLI ERİŞİM</h2>
+        <h2 className="v-overline mb-3">Hızlı erişim</h2>
         <div className="grid grid-cols-5 gap-2">
           {([
-            ["💼", "İş\nAlanı",  "/is"],
-            ["💳", "Krediler",   "/krediler"],
-            ["🧾", "Sabit\nGider", "/sabit-giderler"],
-            ["📊", "Raporlar",   "/raporlar"],
-            ["✦",  "Asistan",   "/asistan"],
-          ] as [string, string, string][]).map(([icon, label, href]) => (
+            [<IBriefcase key="b" size={19} />, "İş Alanı", "/is"],
+            [<ICard key="c" size={19} />, "Krediler", "/krediler"],
+            [<IReceipt key="r" size={19} />, "Faturalar", "/sabit-giderler"],
+            [<IChart key="g" size={19} />, "Raporlar", "/raporlar"],
+            [<ISparkle key="s" size={19} />, "Asistan", "/asistan"],
+          ] as [React.ReactNode, string, string][]).map(([icon, label, href]) => (
             <Link key={label} href={href}
-              className="bg-white rounded-[20px] p-2.5 shadow-sm text-center flex flex-col items-center justify-center min-h-[72px]">
-              <div className="text-xl bg-slate-50 h-9 w-9 rounded-xl grid place-items-center mb-1.5 text-[#3fa7c9] font-black">
+              className="v-card v-press p-2 text-center flex flex-col items-center justify-center min-h-[74px] !rounded-[20px]">
+              <div className="h-9 w-9 rounded-xl bg-canvas text-teal-deep grid place-items-center mb-1.5">
                 {icon}
               </div>
-              <p className="text-[10px] font-black whitespace-pre-line leading-tight text-slate-600">{label}</p>
+              <p className="text-[10px] font-bold leading-tight text-sub">{label}</p>
             </Link>
           ))}
         </div>
@@ -360,33 +312,37 @@ export default function HomePage() {
       {/* ── AJANDA ── */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[10px] font-black tracking-widest text-slate-400">BUGÜNÜN AJANDASI</h2>
-          <Link href="/hatirlatmalar" className="text-[#3fa7c9] font-black text-xs">Tümü →</Link>
+          <h2 className="v-overline">Bugünün ajandası</h2>
+          <Link href="/hatirlatmalar" className="text-teal-deep font-extrabold text-xs flex items-center gap-0.5">
+            Tümü <IChevronRight size={13} />
+          </Link>
         </div>
 
         {agenda.length === 0 ? (
-          <div className="bg-white rounded-[22px] p-5 shadow-sm text-center">
-            <p className="text-3xl mb-2">✨</p>
-            <p className="text-slate-400 text-sm font-black">Bugün temiz!</p>
-            <Link href="/asistan" className="mt-2 inline-block text-[#3fa7c9] font-black text-sm">Asistan'a sor →</Link>
+          <div className="v-card p-6 text-center">
+            <div className="mx-auto mb-2 h-12 w-12 rounded-2xl bg-canvas grid place-items-center text-teal-deep">
+              <ISparkle size={22} />
+            </div>
+            <p className="text-sub text-sm font-bold">Bugün temiz!</p>
+            <Link href="/asistan" className="mt-1 inline-flex items-center gap-1 text-teal-deep font-extrabold text-sm">
+              Asistan'a sor <IChevronRight size={14} />
+            </Link>
           </div>
         ) : (
-          <div className="relative pl-8">
-            <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#3fa7c9] to-[#e0a23c] rounded-full" />
+          <div className="grid gap-2.5">
             {agenda.map((item, i) => (
               <Link key={i} href={item.href}
-                className="relative bg-white rounded-[22px] p-4 shadow-sm mb-3 flex items-center justify-between block">
-                <span className="absolute -left-[31px] h-3 w-3 rounded-full bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c]" />
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-[#3fa7c9]/10 grid place-items-center text-lg font-black text-[#3fa7c9]">
-                    {item.icon}
+                className="v-card v-press p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-2xl bg-[rgba(45,163,199,0.12)] grid place-items-center text-teal-deep shrink-0">
+                    {agendaIcon(item.kind)}
                   </div>
-                  <div>
-                    <h3 className="font-black text-sm">{item.title}</h3>
-                    <p className="text-slate-500 text-xs">{item.sub}</p>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-sm truncate">{item.title}</h3>
+                    <p className="text-mute text-xs font-medium">{item.sub}</p>
                   </div>
                 </div>
-                <span className="text-xs text-[#3fa7c9] font-black">{item.type} ›</span>
+                <span className="v-chip v-chip-teal shrink-0">{item.type}</span>
               </Link>
             ))}
           </div>
@@ -395,8 +351,8 @@ export default function HomePage() {
 
       {/* FAB */}
       <Link href="/asistan"
-        className="fixed bottom-28 right-5 h-14 w-14 rounded-full bg-gradient-to-br from-[#3fa7c9] to-[#e0a23c] shadow-[0_12px_40px_rgba(97,174,189,0.5)] grid place-items-center text-slate-950 text-2xl font-black z-[9998]">
-        ✦
+        className="v-press fixed bottom-28 right-5 h-14 w-14 rounded-full bg-gradient-to-br from-teal to-amber shadow-[0_14px_40px_rgba(45,163,199,0.45)] grid place-items-center text-white z-[9998]">
+        <ISparkle size={24} />
       </Link>
     </main>
   );
