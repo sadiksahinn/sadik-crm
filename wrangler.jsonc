@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sadik-crm",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-06-16",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "workers_dev": true,
+  "kv_namespaces": [
+    {
+      "binding": "NEXT_INC_CACHE_KV",
+      "id": "5d4eff5b36404dc3bfe547cb08629ee8"
+    }
+  ]
+}
