@@ -3,17 +3,20 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Image from "next/image";
+import { connectionErrorMessage, withTimeout } from "@/utils/async";
+import { getValidSession } from "@/utils/auth-client";
 
 const supabase = createClient();
 
 const PROFESSIONS = [
+  "Kişisel kullanım",
+  "İş sahibi / girişimci",
+  "Çalışan",
+  "Öğrenci",
+  "Serbest çalışan",
   "Sosyal Medya Yöneticisi",
   "İçerik Üreticisi",
-  "Dijital Pazarlama Uzmanı",
-  "Grafik Tasarımcı",
-  "Video Editör",
-  "Fotoğrafçı",
-  "Serbest Danışman",
+  "Danışman",
   "Diğer",
 ];
 
@@ -27,21 +30,25 @@ export default function OnboardingPage() {
   const [userId, setUserId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      if (!user) { window.location.href = "/login"; return; }
-      setUserId(user.id);
-      setEmail(user.email || "");
-      // Trigger'dan gelen full_name varsa prefill et
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .single();
-      if (profile?.full_name) setFullName(profile.full_name);
+      try {
+        const session = await getValidSession(supabase);
+        const user = session?.user;
+        if (!user) { window.location.href = "/login"; return; }
+        setUserId(user.id);
+        setEmail(user.email || "");
+        const { data: profile, error: profileError } = await withTimeout(supabase
+          .from("profiles").select("full_name").eq("id", user.id).maybeSingle());
+        if (profileError) throw profileError;
+        if (profile?.full_name) setFullName(profile.full_name);
+      } catch (loadError) {
+        setError(connectionErrorMessage(loadError));
+      } finally {
+        setInitialLoading(false);
+      }
     }
     load();
   }, []);
@@ -50,28 +57,31 @@ export default function OnboardingPage() {
     const finalProfession = profession === "Diğer" ? customProfession.trim() : profession;
 
     if (!fullName.trim()) { setError("Ad soyad gir."); return; }
-    if (!finalProfession) { setError("Mesleğini seç."); return; }
+    if (!finalProfession) { setError("Kullanım şeklini seç."); return; }
     setError("");
     setLoading(true);
 
-    const { error: err } = await supabase
-      .from("profiles")
-      .update({
-        full_name: fullName.trim(),
-        company_name: companyName.trim() || null,
-        profession: finalProfession,
-        onboarding_completed: true,
-      })
-      .eq("id", userId);
-
-    setLoading(false);
-    if (err) { setError(err.message); return; }
-    window.location.href = "/";
+    if (!userId) { setError("Oturum bilgisi yüklenemedi. Tekrar giriş yap."); setLoading(false); return; }
+    try {
+      const { error: err } = await withTimeout(supabase.from("profiles").upsert({
+          id: userId,
+          full_name: fullName.trim(),
+          company_name: companyName.trim() || null,
+          profession: finalProfession,
+          onboarding_completed: true,
+        }, { onConflict: "id" }));
+      if (err) throw err;
+      window.location.href = "/";
+    } catch (saveError) {
+      setError(connectionErrorMessage(saveError));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <main className="min-h-screen bg-[#f3f5fa] px-5 py-10 flex items-center">
-      <section className="bg-white rounded-[34px] p-6 shadow-sm w-full">
+    <main className="min-h-svh bg-[#f3f5fa] px-5 py-6 sm:py-10 flex items-start sm:items-center">
+      <section className="bg-white rounded-[34px] p-6 shadow-sm w-full max-w-[520px] mx-auto">
         <div className="relative h-16 w-40 mb-6">
           <Image src="/valkea-logo.png" alt="Valkea" fill sizes="200px" className="object-contain object-left" priority />
         </div>
@@ -87,11 +97,13 @@ export default function OnboardingPage() {
           ))}
         </div>
 
-        {step === 1 && (
+        {initialLoading && <div className="grid gap-3"><div className="skeleton h-14"/><div className="skeleton h-14"/><div className="skeleton h-14"/></div>}
+
+        {!initialLoading && step === 1 && (
           <>
             <p className="text-[#2da3c7] font-extrabold text-xs mb-2 tracking-wide">ADIM 1 / 2</p>
             <h1 className="text-3xl font-extrabold mb-1">Seni tanıyalım 👋</h1>
-            <p className="text-slate-500 mb-6">Karşılama ve kayıtlar sana özel görünsün.</p>
+            <p className="text-slate-500 mb-6">Asistanın sana adıyla seslensin ve kayıtlarını sana özel hazırlasın.</p>
 
             <div className="grid gap-3">
               <input
@@ -126,17 +138,17 @@ export default function OnboardingPage() {
           </>
         )}
 
-        {step === 2 && (
+        {!initialLoading && step === 2 && (
           <>
             <p className="text-[#2da3c7] font-extrabold text-xs mb-2 tracking-wide">ADIM 2 / 2</p>
-            <h1 className="text-3xl font-extrabold mb-1">İşini anlat 💼</h1>
-            <p className="text-slate-500 mb-6">Asistan sana özel tavsiyeler üretsin.</p>
+            <h1 className="text-3xl font-extrabold mb-1">Nasıl kullanacaksın? ✨</h1>
+            <p className="text-slate-500 mb-6">Sana uygun ana ekranı ve önerileri hazırlayalım. Bunu daha sonra değiştirebilirsin.</p>
 
             <div className="grid gap-3">
               <input
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="Şirket / Marka adı (opsiyonel)"
+                placeholder="Şirket / marka adı (varsa)"
                 className="v-input"
               />
 
@@ -176,7 +188,7 @@ export default function OnboardingPage() {
                 disabled={loading}
                 className="v-btn v-btn-dark disabled:opacity-50"
               >
-                {loading ? "Kaydediliyor..." : "Profilimi Tamamla ✓"}
+                  {loading ? "Asistanın hazırlanıyor..." : "Asistanımı Hazırla ✓"}
               </button>
 
               <button

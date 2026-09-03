@@ -1,23 +1,19 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-);
+import { dateKey, monthInfo } from "@/utils/date";
+import { profitLossExpenses } from "@/utils/finance";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  return dateKey();
 }
 
 function monthStart() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  return monthInfo().start;
 }
 
 function money(v: number) {
@@ -32,8 +28,17 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const question = String(body.question || body.command || "").trim();
+    const accessToken = String(body.access_token || "");
+    if (!accessToken) {
+      return NextResponse.json({ ok: false, message: "Oturum bulunamadı." }, { status: 401 });
+    }
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+    );
 
-    const { data: userData } = await supabase.auth.getUser(body.access_token);
+    const { data: userData } = await supabase.auth.getUser(accessToken);
     const user = userData.user;
 
     if (!user) {
@@ -100,7 +105,9 @@ export async function POST(req: Request) {
       0
     );
 
-    const totalExpense = (expenses || []).reduce(
+    const bookedExpenses = profitLossExpenses(expenses);
+    const pendingExpenses: any[] = [];
+    const totalExpense = bookedExpenses.reduce(
       (t: number, i: any) => t + Number(i.amount || 0),
       0
     );
@@ -110,7 +117,7 @@ export async function POST(req: Request) {
       0
     );
 
-    const expenseByCategory = (expenses || []).reduce((acc: any, item: any) => {
+    const expenseByCategory = bookedExpenses.reduce((acc: any, item: any) => {
       const key = item.category || "Genel";
       acc[key] = (acc[key] || 0) + Number(item.amount || 0);
       return acc;
@@ -140,7 +147,8 @@ export async function POST(req: Request) {
         pending_collections: payments?.length || 0,
       },
       recent_income: (incomes || []).slice(0, 8),
-      recent_expenses: (expenses || []).slice(0, 8),
+      recent_expenses: bookedExpenses.slice(0, 8),
+      pending_card_expenses: pendingExpenses.slice(0, 8),
       pending_collections: (payments || []).slice(0, 8),
       upcoming_tasks: (followups || []).slice(0, 8),
       calendar: (contents || []).slice(0, 8),
@@ -200,9 +208,10 @@ ${question || "Bugünkü durumu analiz et."}
         pending_collection: money(totalPayment),
       },
     });
-  } catch (err: any) {
+  } catch (error) {
+    console.error("Core AI request failed", error);
     return NextResponse.json(
-      { ok: false, message: "Core AI hata: " + err.message },
+      { ok: false, message: "Finans analizi şu anda oluşturulamadı. Lütfen tekrar dene." },
       { status: 500 }
     );
   }

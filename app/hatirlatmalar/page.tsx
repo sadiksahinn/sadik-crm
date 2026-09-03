@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { PageHeader, EmptyState, today } from "@/components/ui";
 import { ICheck, ITrash, ICheckCircle, IPlus } from "@/components/Icons";
+import { getValidSession } from "@/utils/auth-client";
 
 const supabase = createClient();
 
@@ -18,8 +19,7 @@ export default function HatirlatmalarPage() {
   const [priority, setPriority] = useState("normal");
 
   async function load() {
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
+    const user = (await getValidSession(supabase))?.user;
     if (!user) { window.location.href = "/login"; return; }
 
     const [{ data: followups }, { data: reminders }] = await Promise.all([
@@ -56,8 +56,7 @@ export default function HatirlatmalarPage() {
 
   async function saveReminder() {
     if (!title.trim()) return;
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
+    const user = (await getValidSession(supabase))?.user;
     if (!user) return;
 
     await supabase.from("followups").insert({ user_id: user.id, title, description: detail, followup_date: date, status: "bekliyor", priority });

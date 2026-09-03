@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { connectionErrorMessage, withTimeout } from "@/utils/async";
 
 const supabase = createClient();
 const SOFT = { type: "spring", stiffness: 300, damping: 24 } as const;
@@ -37,29 +39,49 @@ export default function ResetPasswordPage() {
   const [loading, setLoading]         = useState(false);
   const [done, setDone]               = useState(false);
   const [hasSession, setHasSession]   = useState(false);
+  const [checking, setChecking]       = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) window.location.href = "/login";
-      else setHasSession(true);
-    });
+    withTimeout(supabase.auth.getSession())
+      .then(({ data, error: sessionError }) => {
+        if (sessionError) throw sessionError;
+        if (!data.session) window.location.href = "/login?error=sifre_baglantisi_gecersiz";
+        else setHasSession(true);
+      })
+      .catch((sessionError) => setError(connectionErrorMessage(sessionError)))
+      .finally(() => setChecking(false));
   }, []);
 
   async function handleReset() {
     if (!password || password.length < 6) { setError("Şifre en az 6 karakter olmalı."); return; }
     if (password !== confirm)             { setError("Şifreler eşleşmiyor."); return; }
     setError(""); setLoading(true);
-    const { error: err } = await supabase.auth.updateUser({ password });
-    setLoading(false);
-    if (err) { setError(err.message); return; }
-    setDone(true);
-    setTimeout(() => { window.location.href = "/"; }, 2000);
+    try {
+      const { error: err } = await withTimeout(supabase.auth.updateUser({ password }));
+      if (err) throw err;
+      setDone(true);
+      setTimeout(() => { window.location.href = "/"; }, 2000);
+    } catch (resetError) {
+      setError(connectionErrorMessage(resetError));
+    } finally {
+      setLoading(false);
+    }
   }
 
-  if (!hasSession) return null;
+  if (checking) return <main className="min-h-svh bg-[#f3f5fa] px-6 grid place-items-center"><div className="skeleton h-48 w-full max-w-[472px]" /></main>;
+  if (!hasSession) return (
+    <main className="min-h-svh bg-[#f3f5fa] px-6 grid place-items-center">
+      <section className="bg-white rounded-[32px] p-6 w-full max-w-[472px] text-center shadow-sm">
+        <div className="text-3xl mb-3">🔒</div>
+        <h1 className="text-xl font-extrabold">Bağlantı doğrulanamadı</h1>
+        <p className="text-sm text-slate-500 mt-2 mb-5">{error || "Şifre yenileme bağlantısının süresi dolmuş olabilir."}</p>
+        <Link href="/login" className="v-btn v-btn-dark w-full">Giriş ekranına dön</Link>
+      </section>
+    </main>
+  );
 
   return (
-    <main className="min-h-screen bg-[#f3f5fa] px-6 py-10 flex flex-col justify-center overflow-hidden">
+    <main className="min-h-svh w-full max-w-[520px] mx-auto bg-[#f3f5fa] px-5 py-6 sm:px-6 sm:py-10 flex flex-col justify-start sm:justify-center overflow-x-hidden">
       <motion.div className="relative h-20 w-full mb-6"
         initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
         <Image src="/valkea-logo.png" alt="Valkea" fill sizes="200px" className="object-contain" priority />

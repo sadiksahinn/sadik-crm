@@ -1,11 +1,39 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { createClient } from "@/utils/supabase/client";
 import { PageHeader, EmptyState, money, today } from "@/components/ui";
 import { IReceipt, ITrendUp, ITrendDown, IEdit, ITrash } from "@/components/Icons";
+import { confirmedExpenses } from "@/utils/finance";
 
 const supabase = createClient();
+const CHANNELS = [
+  ["qr", "QR"],
+  ["temassiz", "Temassız"],
+  ["fiziksel_kart", "Fiziksel kart"],
+  ["internet", "İnternet"],
+  ["bilinmiyor", "Bilinmiyor"],
+] as const;
+
+function noteValue(note: string, label: string) {
+  const part = String(note || "").split(" · ").find((value) => value.startsWith(`${label}: `));
+  return part ? part.slice(label.length + 2).trim() : "";
+}
+
+function editableRecord(item: any) {
+  if (item.type !== "gider") return item;
+  const note = String(item.note || "");
+  return {
+    ...item,
+    explanation: noteValue(note, "Açıklama"),
+    merchant: noteValue(note, "İşyeri") || item.title || "",
+    city: noteValue(note, "Şehir"),
+    channel: noteValue(note, "Ödeme") || "bilinmiyor",
+    status: noteValue(note, "Durum") || "kesinleşmiş",
+    project: noteValue(note, "İş/Proje"),
+  };
+}
 
 export default function GelirGiderPage() {
   const [tab, setTab] = useState<"gelir" | "gider">("gelir");
@@ -25,21 +53,39 @@ export default function GelirGiderPage() {
     const { data: expenses } = await supabase.from("expenses").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
 
     setIncomeTotal((incomes || []).reduce((t, i) => t + Number(i.amount || 0), 0));
-    setExpenseTotal((expenses || []).reduce((t, i) => t + Number(i.amount || 0), 0));
+    setExpenseTotal(confirmedExpenses(expenses).reduce((t, i) => t + Number(i.amount || 0), 0));
 
     setRecords([
       ...(incomes || []).map((i:any) => ({ ...i, type: "gelir" })),
       ...(expenses || []).map((e:any) => ({ ...e, type: "gider" })),
-    ].sort((a,b) => String(b.created_at).localeCompare(String(a.created_at))));
+    ].sort((a,b) => {
+      const aDate = String(a.type === "gelir" ? a.income_date : a.expense_date);
+      const bDate = String(b.type === "gelir" ? b.income_date : b.expense_date);
+      return bDate.localeCompare(aDate) || String(b.created_at).localeCompare(String(a.created_at));
+    }));
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const requested = new URLSearchParams(window.location.search).get("ekle");
+      if (requested === "gelir" || requested === "gider") setTab(requested);
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+  useEffect(() => {
+    if (!editing) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previous; };
+  }, [editing]);
 
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    const form = new FormData(e.currentTarget);
+    const formElement = e.currentTarget;
+    const form = new FormData(formElement);
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
     if (!user) return;
@@ -49,7 +95,10 @@ export default function GelirGiderPage() {
       title: String(form.get("title") || ""),
       amount: Number(form.get("amount") || 0),
       payment_method: String(form.get("method") || "Nakit"),
-      note: String(form.get("note") || ""),
+      note: [
+        String(form.get("note") || "").trim(),
+        String(form.get("project") || "").trim() ? `İş/Proje: ${String(form.get("project") || "").trim()}` : "",
+      ].filter(Boolean).join(" · "),
     };
 
     if (tab === "gelir") {
@@ -69,8 +118,8 @@ export default function GelirGiderPage() {
       }
     }
 
-    e.currentTarget.reset();
-    load();
+    formElement.reset();
+    await load();
   }
 
   async function updateRecord() {
@@ -84,7 +133,17 @@ export default function GelirGiderPage() {
       note: editing.note || "",
     };
 
-    if (editing.type === "gider") payload.category = editing.category || "Genel";
+    if (editing.type === "gider") {
+      payload.category = editing.category || "Diğer";
+      payload.note = [
+        editing.explanation ? `Açıklama: ${editing.explanation}` : "Açıklama bekleniyor",
+        editing.merchant ? `İşyeri: ${editing.merchant}` : "",
+        editing.city ? `Şehir: ${editing.city}` : "",
+        `Ödeme: ${editing.channel || "bilinmiyor"}`,
+        `Durum: ${editing.status || "kesinleşmiş"}`,
+        editing.project ? `İş/Proje: ${editing.project}` : "",
+      ].filter(Boolean).join(" · ");
+    }
 
     const { error } = await supabase.from(table).update(payload).eq("id", editing.id);
     if (error) {
@@ -109,6 +168,7 @@ export default function GelirGiderPage() {
   const net = incomeTotal - expenseTotal;
 
   return (
+    <>
     <main className="v-enter min-h-screen px-4 pt-5 pb-36 max-w-[520px] mx-auto">
       <PageHeader overline="Valkea Finans" title="Gelir & Gider" subtitle="Kasa hareketleri" />
 
@@ -144,6 +204,7 @@ export default function GelirGiderPage() {
             <input name="date" type="date" defaultValue={today()} className="v-input" />
           </div>
           {tab === "gider" && <input name="category" placeholder="Kategori" className="v-input" />}
+          <input name="project" placeholder="İş / proje (isteğe bağlı)" className="v-input" />
           <select name="method" className="v-input">
             <option>Nakit</option><option>Havale/EFT</option><option>Kredi Kartı</option><option>Diğer</option>
           </select>
@@ -174,7 +235,9 @@ export default function GelirGiderPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-sm truncate">{r.title}</h3>
-                  <p className="text-mute text-xs font-medium">{r.payment_method || "Yöntem yok"}{r.category ? ` · ${r.category}` : ""}</p>
+                  <p className="text-mute text-xs font-medium flex items-center gap-1.5 flex-wrap">
+                    <span>{r.payment_method || "Yöntem yok"}{r.category ? ` · ${r.category}` : ""}</span>
+                  </p>
                 </div>
                 <p className={`v-num font-extrabold text-[15px] shrink-0 ${isIncome ? "text-mint" : "text-rose"}`}>
                   {isIncome ? "+" : "−"}{money(Number(r.amount))}
@@ -182,7 +245,7 @@ export default function GelirGiderPage() {
               </div>
 
               <div className="flex gap-2 mt-3">
-                <button onClick={() => setEditing(r)} className="v-btn v-btn-soft flex-1 !py-2.5 !text-[13px]">
+                <button onClick={() => setEditing(editableRecord(r))} className="v-btn v-btn-soft flex-1 !py-2.5 !text-[13px]">
                   <IEdit size={15} /> Düzenle
                 </button>
                 <button onClick={() => deleteRecord(r)} className="v-btn v-btn-rose !py-2.5 !px-4 !text-[13px]">
@@ -194,24 +257,35 @@ export default function GelirGiderPage() {
         })}
       </section>
 
-      {/* Düzenleme sheet */}
-      {editing && (
-        <section className="fixed inset-0 bg-ink/40 backdrop-blur-sm z-[99999] grid place-items-end" onClick={() => setEditing(null)}>
-          <div className="v-enter bg-white rounded-t-[28px] p-5 pb-8 w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    </main>
+
+      {/* Düzenleme sheet — portal, mobilde dönüştürülmüş sayfa kapsayıcısından etkilenmez */}
+      {editing && createPortal(
+        <section role="dialog" aria-modal="true" aria-labelledby="record-dialog-title" className="fixed inset-0 bg-ink/40 backdrop-blur-sm z-[99999] flex items-end justify-center" onClick={() => setEditing(null)}>
+          <div className="v-sheet-enter bg-white rounded-t-[28px] p-5 pb-[calc(2rem+env(safe-area-inset-bottom))] w-full max-w-[520px] max-h-[88dvh] overflow-y-auto shadow-[0_-20px_60px_rgba(11,16,32,0.22)]" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-line" />
-            <h2 className="text-xl font-extrabold tracking-tight mb-4">Kaydı Düzenle</h2>
+            <h2 id="record-dialog-title" className="text-xl font-extrabold tracking-tight">Kaydı düzenle</h2>
+            <p className="text-sm text-mute mt-1 mb-4">{editing.type === "gider" ? "Açıklama ve harcama bilgilerini ayrı ayrı düzenle." : "Başlık, tutar ve açıklamayı güncelle."}</p>
             <div className="grid gap-2.5">
-              <input value={editing.title || ""} onChange={(e) => setEditing({...editing, title:e.target.value})} className="v-input" />
-              <input value={editing.amount || ""} type="number" onChange={(e) => setEditing({...editing, amount:e.target.value})} className="v-input" />
-              <textarea value={editing.note || ""} rows={2} onChange={(e) => setEditing({...editing, note:e.target.value})} className="v-input resize-none" />
+              <label className="grid gap-1.5"><span className="v-overline">Başlık</span><input value={editing.title || ""} onChange={(e) => setEditing({...editing, title:e.target.value})} className="v-input" /></label>
+              <label className="grid gap-1.5"><span className="v-overline">Tutar</span><input value={editing.amount || ""} type="number" onChange={(e) => setEditing({...editing, amount:e.target.value})} className="v-input" /></label>
+              {editing.type === "gider" ? <>
+                <label className="grid gap-1.5"><span className="v-overline">Bu harcama ne içindi?</span><textarea aria-label="Açıklama" placeholder="Örn: Antalya tatilinde akşam yemeği" value={editing.explanation || ""} rows={3} onChange={(e) => setEditing({...editing, explanation:e.target.value})} className="v-input resize-none" /></label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <label className="grid gap-1.5"><span className="v-overline">Kategori</span><select value={editing.category || "Diğer"} onChange={(e) => setEditing({...editing, category:e.target.value})} className="v-input">{["Market","Ulaşım","Yemek","Fatura","Sağlık","Eğlence","Konaklama","Akaryakıt","Kira","Abonelik","Diğer"].map(value => <option key={value}>{value}</option>)}</select></label>
+                  <label className="grid gap-1.5"><span className="v-overline">Şehir</span><input placeholder="Örn: Ankara" value={editing.city || ""} onChange={(e) => setEditing({...editing, city:e.target.value})} className="v-input" /></label>
+                </div>
+                <label className="grid gap-1.5"><span className="v-overline">Ödeme şekli</span><select value={editing.channel || "bilinmiyor"} onChange={(e) => setEditing({...editing, channel:e.target.value})} className="v-input">{CHANNELS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              </> : <label className="grid gap-1.5"><span className="v-overline">Açıklama</span><textarea aria-label="Açıklama" placeholder="Açıklama ekle" value={editing.note || ""} rows={3} onChange={(e) => setEditing({...editing, note:e.target.value})} className="v-input resize-none" /></label>}
               <div className="grid grid-cols-2 gap-2.5">
                 <button onClick={updateRecord} className="v-btn v-btn-dark">Kaydet</button>
                 <button onClick={() => setEditing(null)} className="v-btn v-btn-soft">Vazgeç</button>
               </div>
             </div>
           </div>
-        </section>
+        </section>,
+        document.body
       )}
-    </main>
+    </>
   );
 }

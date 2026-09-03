@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
+import { aiErrorResponse } from "@/utils/ai-error";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,10 +39,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: true, text });
-  } catch (err: any) {
-    return NextResponse.json(
-      { ok: false, message: "Ses işleme hatası: " + err.message },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    console.error("Voice analysis failed", err);
+    return aiErrorResponse(err, "Ses şu anda işlenemedi. Lütfen tekrar dene.");
   }
 }

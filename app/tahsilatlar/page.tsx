@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { PageHeader, EmptyState, money, today } from "@/components/ui";
 import { ILira, IAlert, ICheck, IMessage, ITrash, IPlus } from "@/components/Icons";
+import { isValidDateKey } from "@/utils/date";
+import { getValidSession } from "@/utils/auth-client";
 
 const supabase = createClient();
 
@@ -13,10 +15,10 @@ export default function TahsilatlarPage() {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today());
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   async function load() {
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
+    const user = (await getValidSession(supabase))?.user;
 
     if (!user) {
       window.location.href = "/login";
@@ -38,19 +40,21 @@ export default function TahsilatlarPage() {
   }, []);
 
   async function addPayment() {
+    const numericAmount = Number(amount);
     if (!title.trim() || !amount) {
       alert("Başlık ve tutar gir.");
       return;
     }
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) { alert("Geçerli bir tutar gir."); return; }
+    if (!isValidDateKey(date)) { alert("Geçerli bir vade tarihi seç."); return; }
 
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
+    const user = (await getValidSession(supabase))?.user;
     if (!user) return;
 
     const { error } = await supabase.from("payment_tracking").insert({
       user_id: user.id,
-      title,
-      amount: Number(amount),
+      title: title.trim(),
+      amount: numericAmount,
       due_date: date,
       status: "bekliyor",
     });
@@ -67,42 +71,52 @@ export default function TahsilatlarPage() {
   }
 
   async function markPaid(item: any) {
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
+    if (savingId) return;
+    const user = (await getValidSession(supabase))?.user;
     if (!user) return;
+    setSavingId(item.id);
+    let createdIncomeId: string | undefined;
+    try {
+      let incomeId = item.income_id as string | undefined;
+      if (!item.income_created) {
+        const note = `Tahsilat kaydı · payment:${item.id}`;
+        const { data: existing, error: existingError } = await supabase.from("income").select("id")
+          .eq("user_id", user.id).eq("note", note).limit(1);
+        if (existingError) throw existingError;
+        incomeId = existing?.[0]?.id;
+        if (!incomeId) {
+          const { data: created, error: createError } = await supabase.from("income").insert({
+            user_id: user.id, title: item.title, amount: Number(item.amount || 0),
+            income_date: today(), payment_method: "Tahsilat", note,
+          }).select("id").single();
+          if (createError || !created) throw createError || new Error("Gelir kaydı oluşturulamadı.");
+          incomeId = created.id;
+          createdIncomeId = created.id;
+        }
+      }
 
-    await supabase
-      .from("payment_tracking")
-      .update({
-        status: "ödendi",
-        paid_date: today(),
-        income_created: true,
-      })
-      .eq("id", item.id);
-
-    if (!item.income_created) {
-      const { data: createdIncome } = await supabase.from("income").insert({
-      user_id: user.id,
-      title: item.title,
-      amount: Number(item.amount || 0),
-      income_date: today(),
-      payment_method: "Tahsilat",
-      note: "Tahsilat ekranından ödendi olarak işaretlendi.",
-    }).select().single();
-
-    await supabase
-      .from("payment_tracking")
-      .update({ income_id: createdIncome?.id, income_created: true })
-      .eq("id", item.id);
+      const { data: updated, error: updateError } = await supabase.from("payment_tracking")
+        .update({ status: "ödendi", paid_date: today(), income_id: incomeId || null, income_created: true })
+        .eq("id", item.id).eq("user_id", user.id).select("id").maybeSingle();
+      if (updateError || !updated) {
+        if (createdIncomeId) await supabase.from("income").delete().eq("id", createdIncomeId).eq("user_id", user.id);
+        throw updateError || new Error("Tahsilat durumu güncellenemedi.");
+      }
+      await load();
+    } catch (error) {
+      alert(error instanceof Error ? `Tahsilat tamamlanamadı: ${error.message}` : "Tahsilat tamamlanamadı.");
+    } finally {
+      setSavingId(null);
     }
-
-    load();
   }
 
   async function deletePayment(item: any) {
-    if (!confirm("Bu tahsilat kaydı silinsin mi?")) return;
+    if (!confirm("Bu tahsilat takibi silinsin mi? Oluşturulmuş gelir kaydı korunur.")) return;
 
-    await supabase.from("payment_tracking").delete().eq("id", item.id);
+    const user = (await getValidSession(supabase))?.user;
+    if (!user) return;
+    const { error } = await supabase.from("payment_tracking").delete().eq("id", item.id).eq("user_id", user.id);
+    if (error) { alert("Tahsilat silinemedi: " + error.message); return; }
     load();
   }
 
@@ -188,8 +202,8 @@ export default function TahsilatlarPage() {
 
             <div className="flex gap-2 mt-3">
               {!isPaid ? (
-                <button onClick={() => markPaid(item)} className="v-btn v-btn-mint flex-1 !py-2.5 !text-[13px]">
-                  <ICheck size={15} /> Ödendi
+                <button disabled={savingId === item.id} onClick={() => markPaid(item)} className="v-btn v-btn-mint flex-1 !py-2.5 !text-[13px] disabled:opacity-50">
+                  <ICheck size={15} /> {savingId === item.id ? "İşleniyor..." : "Ödendi"}
                 </button>
               ) : (
                 <div className="v-btn v-btn-soft flex-1 !py-2.5 !text-[13px] pointer-events-none opacity-70">
@@ -199,8 +213,9 @@ export default function TahsilatlarPage() {
               <button
                 onClick={() => {
                   const msg = `Merhaba, ${item.title} için ${money(Number(item.amount || 0))} tutarındaki ödeme günümüz gelmiştir. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.`;
-                  navigator.clipboard.writeText(msg);
-                  alert("WhatsApp mesajı kopyalandı.");
+                  navigator.clipboard.writeText(msg)
+                    .then(() => alert("WhatsApp mesajı kopyalandı."))
+                    .catch(() => alert("Mesaj kopyalanamadı. Tarayıcı pano iznini kontrol et."));
                 }}
                 className="v-btn v-btn-soft !py-2.5 !px-4 !text-[13px] !text-teal-deep"
               >

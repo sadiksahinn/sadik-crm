@@ -7,6 +7,7 @@ import { PageHeader, EmptyState, money, today } from "@/components/ui";
 import {
   IUsers, IAlert, ICheck, IMessage, IPlus, IPlayCircle, IBriefcase, IClock, ICheckCircle,
 } from "@/components/Icons";
+import { getValidSession } from "@/utils/auth-client";
 
 const supabase = createClient();
 
@@ -17,9 +18,10 @@ export default function IsPage() {
   const [contents, setContents]     = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
   const [tab, setTab]               = useState<"ozet"|"musteriler"|"tahsilat"|"gorev">("ozet");
+  const [savingId, setSavingId]     = useState<string | null>(null);
 
   async function load() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = (await getValidSession(supabase))?.user;
     if (!user) { window.location.href="/login"; return; }
 
     const [{ data: cust },{ data: cols },{ data: fols },{ data: conts },{ data: acts }] = await Promise.all([
@@ -40,17 +42,47 @@ export default function IsPage() {
   }
 
   async function markCollectionPaid(item: any) {
-    const { data: { user } } = await supabase.auth.getUser();
+    if (savingId) return;
+    const user = (await getValidSession(supabase))?.user;
     if (!user) return;
-    await supabase.from("payment_tracking").update({status:"ödendi",paid_date:today(),income_created:true}).eq("id",item.id);
-    if (!item.income_created) {
-      await supabase.from("income").insert({user_id:user.id,title:item.title,amount:Number(item.amount||0),income_date:today(),payment_method:"İş Alanı"});
+    setSavingId(item.id);
+    let createdIncomeId: string | undefined;
+    try {
+      let incomeId = item.income_id as string | undefined;
+      if (!item.income_created) {
+        const note = `Tahsilat kaydı · payment:${item.id}`;
+        const { data: existing, error: existingError } = await supabase.from("income").select("id")
+          .eq("user_id", user.id).eq("note", note).limit(1);
+        if (existingError) throw existingError;
+        incomeId = existing?.[0]?.id;
+        if (!incomeId) {
+          const { data: created, error: createError } = await supabase.from("income").insert({
+            user_id:user.id, title:item.title, amount:Number(item.amount||0), income_date:today(),
+            payment_method:"İş Alanı", note,
+          }).select("id").single();
+          if (createError || !created) throw createError || new Error("Gelir kaydı oluşturulamadı.");
+          incomeId = created.id;
+          createdIncomeId = created.id;
+        }
+      }
+      const { data: updated, error: updateError } = await supabase.from("payment_tracking")
+        .update({status:"ödendi",paid_date:today(),income_created:true,income_id:incomeId||null})
+        .eq("id",item.id).eq("user_id",user.id).select("id").maybeSingle();
+      if (updateError || !updated) {
+        if (createdIncomeId) await supabase.from("income").delete().eq("id",createdIncomeId).eq("user_id",user.id);
+        throw updateError || new Error("Tahsilat durumu güncellenemedi.");
+      }
+      await load();
+    } catch (error) {
+      alert(error instanceof Error ? `Tahsilat tamamlanamadı: ${error.message}` : "Tahsilat tamamlanamadı.");
+    } finally {
+      setSavingId(null);
     }
-    load();
   }
 
   const colTotal = collections.reduce((t,c)=>t+Number(c.amount||0),0);
   const overdueCollections = collections.filter(c=>c.due_date<today());
+  const dueTasks = tasks.filter(task => task.followup_date <= today());
   const activeCustomers = customers.filter(c=>{
     const svc = (c.client_services||[]).find((s:any)=>s.status==="devam ediyor");
     return !!svc;
@@ -111,6 +143,25 @@ export default function IsPage() {
       {/* ÖZET */}
       {tab==="ozet" && (
         <div className="grid gap-3">
+          <section className="v-card p-4 border border-[rgba(45,163,199,0.22)]">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#2da3c7] to-[#e8a33d] text-white grid place-items-center shrink-0"><IBriefcase size={18} /></div>
+              <div className="min-w-0 flex-1">
+                <p className="v-overline text-teal-deep">İş brifingi</p>
+                <h2 className="mt-1 font-extrabold tracking-tight">
+                  {overdueCollections.length + dueTasks.length > 0 ? `${overdueCollections.length + dueTasks.length} konu bugün dikkat istiyor` : "Bugünün işleri kontrol altında"}
+                </h2>
+                <p className="mt-1 text-xs font-medium leading-5 text-mute">
+                  {overdueCollections.length > 0 ? `${overdueCollections.length} gecikmiş tahsilat` : "Gecikmiş tahsilat yok"} · {dueTasks.length > 0 ? `${dueTasks.length} görev bekliyor` : "Bugünkü görevler tamam"} · {contents.length} yaklaşan içerik
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Link href="/hatirlatmalar" className="v-btn v-btn-soft !py-2.5 !text-xs">Görevler</Link>
+              <Link href="/tahsilatlar" className="v-btn v-btn-dark !py-2.5 !text-xs">Tahsilatlar</Link>
+            </div>
+          </section>
+
           {overdueCollections.length > 0 && (
             <button onClick={()=>setTab("tahsilat")} className="text-left rounded-[22px] p-4 text-white shadow-[0_12px_32px_rgba(225,29,72,0.28)] v-press"
               style={{ background: "linear-gradient(140deg, #e11d48, #be123c)" }}>
@@ -120,6 +171,19 @@ export default function IsPage() {
               </div>
               <p className="text-xs text-white/80 font-medium">{overdueCollections.length} müşterinin ödemesi gecikti — incele</p>
             </button>
+          )}
+
+          {dueTasks.length > 0 && (
+            <div className="v-card p-4">
+              <div className="flex items-center justify-between mb-2"><p className="v-overline">Bugünün görevleri</p><span className="v-chip v-chip-amber">{dueTasks.length}</span></div>
+              {dueTasks.slice(0, 3).map((task: any) => (
+                <div key={task.id} className="flex items-center gap-3 py-2.5 border-b border-line last:border-0">
+                  <button onClick={() => markTaskDone(task.id)} aria-label={`${task.title} görevini tamamla`} className="v-press h-8 w-8 rounded-xl border border-line bg-canvas text-teal-deep grid place-items-center shrink-0"><ICheck size={14} /></button>
+                  <div className="min-w-0 flex-1"><p className="truncate text-[13px] font-bold">{task.title}</p><p className={`text-[11px] font-semibold ${task.followup_date < today() ? "text-rose" : "text-mute"}`}>{task.followup_date < today() ? "Gecikti" : "Bugün"}</p></div>
+                </div>
+              ))}
+              {dueTasks.length > 3 && <Link href="/hatirlatmalar" className="mt-2 flex items-center justify-center text-xs font-extrabold text-teal-deep">Tüm görevleri gör</Link>}
+            </div>
           )}
 
           {contents.length > 0 && (
@@ -218,8 +282,8 @@ export default function IsPage() {
                   <p className={`v-num font-extrabold text-[15px] shrink-0 ${isOvr ? "text-rose" : "text-ink"}`}>{money(Number(item.amount))}</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={()=>markCollectionPaid(item)} className="v-btn v-btn-mint flex-1 !py-2.5 !text-[13px]">
-                    <ICheck size={15} /> Ödendi
+                  <button disabled={savingId===item.id} onClick={()=>markCollectionPaid(item)} className="v-btn v-btn-mint flex-1 !py-2.5 !text-[13px] disabled:opacity-50">
+                    <ICheck size={15} /> {savingId===item.id ? "İşleniyor..." : "Ödendi"}
                   </button>
                   <button onClick={()=>{
                     const msg=`Merhaba, ${item.title} için ${money(Number(item.amount))} tutarındaki ödeme günümüz gelmiştir. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.`;

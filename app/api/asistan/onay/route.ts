@@ -1,37 +1,81 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-);
+import { dateKey, nextMonthlyDate } from "@/utils/date";
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function nextPaymentDate(day: number) {
-  const d = new Date();
-  const currentDay = d.getDate();
-  d.setDate(day);
-  if (currentDay >= day) d.setMonth(d.getMonth() + 1);
-  return d.toISOString().slice(0, 10);
+  return dateKey();
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const proposal = body.proposal;
+    const accessToken = String(body.access_token || "");
+    if (!accessToken) {
+      return NextResponse.json({ ok: false, message: "Oturum bulunamadı." }, { status: 401 });
+    }
 
-    const { data: userData } = await supabase.auth.getUser(body.access_token);
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+    );
+
+    const { data: userData } = await supabase.auth.getUser(accessToken);
     const user = userData.user;
 
     if (!user) {
       return NextResponse.json({ ok: false, message: "Oturum bulunamadı." }, { status: 401 });
     }
 
-    if (!proposal?.customer_name) {
+    if (!proposal?.type) {
       return NextResponse.json({ ok: false, message: "Onaylanacak bilgi bulunamadı." });
+    }
+
+    if (proposal.type === "income") {
+      const title = String(proposal.title || proposal.customer_name || "Gelir").trim();
+      const amount = Number(proposal.amount || 0);
+      const incomeDate = String(proposal.income_date || today()).slice(0, 10);
+      if (!title || !(amount > 0)) return NextResponse.json({ ok: false, message: "Gelir adı veya tutarı eksik." });
+
+      const { data: existing } = await supabase.from("income").select("*")
+        .eq("user_id", user.id).eq("income_date", incomeDate).eq("amount", amount).eq("title", title).limit(1);
+      if (existing?.[0]) return NextResponse.json({ ok: true, type: "gelir", message: `Bu gelir zaten kayıtlı: ${title} · ${amount} TL`, record: { ...existing[0], type: "gelir", table: "income" } });
+
+      const { data, error } = await supabase.from("income").insert({
+        user_id: user.id, title, amount, income_date: incomeDate,
+        payment_method: proposal.payment_method || "Asistan", note: proposal.note || "Asistan onayıyla kaydedildi.",
+      }).select().single();
+      if (error) throw error;
+      return NextResponse.json({ ok: true, type: "gelir", message: `✅ Gelir kaydedildi.\n\n${title} · ${amount} TL`, record: { ...data, type: "gelir", table: "income" } });
+    }
+
+    if (proposal.type === "expense") {
+      const title = String(proposal.title || proposal.customer_name || "Harcama").trim();
+      const amount = Number(proposal.amount || 0);
+      const expenseDate = String(proposal.expense_date || today()).slice(0, 10);
+      if (!title || !(amount > 0)) return NextResponse.json({ ok: false, message: "Harcama adı veya tutarı eksik." });
+
+      const { data: existing } = await supabase.from("expenses").select("*")
+        .eq("user_id", user.id).eq("expense_date", expenseDate).eq("amount", amount).eq("title", title).limit(1);
+      if (existing?.[0]) return NextResponse.json({ ok: true, type: "gider", message: `Bu harcama zaten kayıtlı: ${title} · ${amount} TL`, record: { ...existing[0], type: "gider", table: "expenses" } });
+
+      const note = [
+        `Açıklama: ${proposal.explanation || proposal.note || title}`,
+        `Bağlam: ${proposal.context || "Kişisel"}`,
+        `Ödeme: ${proposal.payment_method || "bilinmiyor"}`,
+        "Durum: kesinleşmiş", "Kaynak: Valkea Asistan",
+      ].join(" · ");
+      const { data, error } = await supabase.from("expenses").insert({
+        user_id: user.id, title, amount, expense_date: expenseDate,
+        category: proposal.category || "Diğer", payment_method: proposal.payment_method || "Asistan", note,
+      }).select().single();
+      if (error) throw error;
+      return NextResponse.json({ ok: true, type: "gider", message: `✅ Harcama kaydedildi.\n\n${title} · ${amount} TL`, record: { ...data, type: "gider", table: "expenses" } });
+    }
+
+    if (!proposal.customer_name) {
+      return NextResponse.json({ ok: false, message: "Müşteri bilgisi bulunamadı." });
     }
 
     if (proposal.type === "job") {
@@ -58,7 +102,7 @@ export async function POST(req: Request) {
           service_type: "genel hizmet",
           monthly_fee: Number(proposal.amount || 0),
           payment_day: proposal.payment_day || null,
-          next_payment_date: proposal.payment_day ? nextPaymentDate(proposal.payment_day) : null,
+          next_payment_date: proposal.payment_day ? nextMonthlyDate(proposal.payment_day) : null,
           start_date: today(),
           status: "devam ediyor",
           notes: proposal.note || "",
@@ -83,7 +127,7 @@ export async function POST(req: Request) {
           customer_id: customer.id,
           service_id: service.id,
           title: `${proposal.customer_name} ödeme takibi`,
-          followup_date: nextPaymentDate(proposal.payment_day),
+          followup_date: nextMonthlyDate(proposal.payment_day),
           status: "bekliyor",
           priority: "önemli",
           message_suggestion: "Merhaba, bu ayki hizmet bedelimiz için ödeme günümüz geldi. Müsait olduğunuzda ödemenizi rica ederim. Teşekkür ederim.",
@@ -98,7 +142,7 @@ export async function POST(req: Request) {
           service_id: service.id,
           title: `${proposal.customer_name} tahsilat`,
           amount: Number(proposal.amount || 0),
-          due_date: proposal.payment_day ? nextPaymentDate(proposal.payment_day) : today(),
+          due_date: proposal.payment_day ? nextMonthlyDate(proposal.payment_day) : today(),
           status: "bekliyor",
           note: proposal.note || "AI iş kaydı sonrası otomatik tahsilat oluşturuldu.",
         });
@@ -178,7 +222,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: false, message: "Bu öneri türü henüz desteklenmiyor." });
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, message: "Hata: " + err.message }, { status: 500 });
+  } catch (error) {
+    console.error("Assistant approval failed", error);
+    return NextResponse.json({ ok: false, message: "Kayıt şu anda oluşturulamadı. Lütfen tekrar dene." }, { status: 500 });
   }
 }

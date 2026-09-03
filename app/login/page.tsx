@@ -4,8 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { withTimeout } from "@/utils/async";
 
 const supabase = createClient();
+const GOOGLE_AUTH_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";
+const PHONE_AUTH_ENABLED = process.env.NEXT_PUBLIC_PHONE_AUTH_ENABLED === "true";
 
 type Mode =
   | "login"
@@ -18,8 +21,9 @@ type Mode =
 
 const SPRING = { type: "spring", stiffness: 380, damping: 30 } as const;
 const SOFT   = { type: "spring", stiffness: 300, damping: 24 } as const;
-
 function turkishError(msg: string): string {
+  if (msg.includes("SERVICE_TIMEOUT") || msg.includes("Failed to fetch") || msg.includes("fetch failed") || msg.includes("NetworkError") || msg.includes("Load failed"))
+    return "Giriş servisine şu anda ulaşılamıyor. İnternet bağlantını kontrol edip tekrar dene.";
   if (msg.includes("Invalid login credentials"))    return "E-posta veya şifre hatalı.";
   if (msg.includes("Email not confirmed"))          return "E-postanı henüz doğrulamadın. Gelen kutunu kontrol et.";
   if (msg.includes("User already registered"))      return "Bu e-posta zaten kayıtlı. Giriş yapmayı dene.";
@@ -224,9 +228,20 @@ export default function LoginPage() {
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
 
+  function destination() {
+    const requested = new URLSearchParams(window.location.search).get("next") || "/";
+    return requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+  }
+
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if (p.get("error")) setError("E-posta doğrulama başarısız. Tekrar kayıt olmayı dene.");
+    const queryError = p.get("error");
+    const message = queryError === "sifre_baglantisi_gecersiz"
+      ? "Şifre yenileme bağlantısının süresi dolmuş. Yeni bir bağlantı iste."
+      : queryError
+        ? "E-posta doğrulama başarısız. Tekrar kayıt olmayı dene."
+        : "";
+    if (message) queueMicrotask(() => setError(message));
   }, []);
 
   function goTo(next: Mode, dir = 1) {
@@ -243,10 +258,15 @@ export default function LoginPage() {
   async function handleLogin() {
     if (!email || !password) { setError("E-posta ve şifre gir."); return; }
     setError(""); setLoading(true);
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (err) { setError(turkishError(err.message)); return; }
-    window.location.href = "/";
+    try {
+      const { error: err } = await withTimeout(supabase.auth.signInWithPassword({ email: email.trim(), password }));
+      if (err) { setError(turkishError(err.message)); return; }
+      window.location.href = destination();
+    } catch (err) {
+      setError(turkishError(err instanceof Error ? err.message : "Giriş yapılamadı."));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleRegister() {
@@ -254,35 +274,52 @@ export default function LoginPage() {
     if (!email)                       { setError("E-posta adresi gir."); return; }
     if (!password || password.length < 6) { setError("Şifre en az 6 karakter olmalı."); return; }
     setError(""); setLoading(true);
-    const { error: err } = await supabase.auth.signUp({
-      email, password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: { full_name: fullName.trim() },
-      },
-    });
-    setLoading(false);
-    if (err) { setError(turkishError(err.message)); return; }
-    goTo("check-email", 1);
+    try {
+      const { error: err } = await withTimeout(supabase.auth.signUp({
+        email: email.trim(), password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: { full_name: fullName.trim() },
+        },
+      }));
+      if (err) { setError(turkishError(err.message)); return; }
+      goTo("check-email", 1);
+    } catch (err) {
+      setError(turkishError(err instanceof Error ? err.message : "Kayıt oluşturulamadı."));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleGoogle() {
-    const { error: err } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (err) setError(turkishError(err.message));
+    setError(""); setLoading(true);
+    try {
+      const { error: err } = await withTimeout(supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(destination())}` },
+      }));
+      if (err) setError(turkishError(err.message));
+    } catch (err) {
+      setError(turkishError(err instanceof Error ? err.message : "Google ile giriş başlatılamadı."));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleForgotPassword() {
     if (!email) { setError("E-posta adresini gir."); return; }
     setError(""); setLoading(true);
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
-    });
-    setLoading(false);
-    if (err) { setError(turkishError(err.message)); return; }
-    goTo("reset-sent", 1);
+    try {
+      const { error: err } = await withTimeout(supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+      }));
+      if (err) { setError(turkishError(err.message)); return; }
+      goTo("reset-sent", 1);
+    } catch (err) {
+      setError(turkishError(err instanceof Error ? err.message : "Sıfırlama bağlantısı gönderilemedi."));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSendOtp() {
@@ -291,26 +328,36 @@ export default function LoginPage() {
     }
     const formatted = phone.startsWith("+") ? phone : `+90${phone.replace(/^0/, "")}`;
     setError(""); setLoading(true);
-    const { error: err } = await supabase.auth.signInWithOtp({ phone: formatted });
-    setLoading(false);
-    if (err) { setError(turkishError(err.message)); return; }
-    goTo("phone-otp", 1);
+    try {
+      const { error: err } = await withTimeout(supabase.auth.signInWithOtp({ phone: formatted }));
+      if (err) { setError(turkishError(err.message)); return; }
+      goTo("phone-otp", 1);
+    } catch (err) {
+      setError(turkishError(err instanceof Error ? err.message : "SMS gönderilemedi."));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleVerifyOtp() {
     if (otp.length !== 6) { setError("6 haneli kodu gir."); return; }
     const formatted = phone.startsWith("+") ? phone : `+90${phone.replace(/^0/, "")}`;
     setError(""); setLoading(true);
-    const { error: err } = await supabase.auth.verifyOtp({
-      phone: formatted, token: otp, type: "sms",
-    });
-    setLoading(false);
-    if (err) { setError(turkishError(err.message)); return; }
-    window.location.href = "/";
+    try {
+      const { error: err } = await withTimeout(supabase.auth.verifyOtp({
+        phone: formatted, token: otp, type: "sms",
+      }));
+      if (err) { setError(turkishError(err.message)); return; }
+      window.location.href = destination();
+    } catch (err) {
+      setError(turkishError(err instanceof Error ? err.message : "Kod doğrulanamadı."));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <main className="min-h-screen bg-[#f3f5fa] px-6 py-10 flex flex-col justify-center overflow-x-hidden overflow-y-auto">
+    <main className="min-h-svh w-full max-w-[520px] mx-auto bg-[#f3f5fa] px-5 py-6 sm:px-6 sm:py-10 flex flex-col justify-start sm:justify-center overflow-x-hidden">
 
       <motion.div className="relative h-20 w-full mb-6"
         initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
@@ -361,29 +408,31 @@ export default function LoginPage() {
                   </PrimaryBtn>
                 </Field>
 
-                <Field delay={0.2}><Divider /></Field>
+                {(GOOGLE_AUTH_ENABLED || PHONE_AUTH_ENABLED) && <Field delay={0.2}><Divider /></Field>}
 
-                {/* Google */}
-                <Field delay={0.23}>
-                  <motion.button onClick={handleGoogle}
-                    className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 font-extrabold flex items-center justify-center gap-3 text-slate-700 hover:border-slate-200 transition-colors"
-                    whileTap={{ scale: 0.97 }}>
-                    <GoogleIcon />
-                    Google ile Giriş Yap
-                  </motion.button>
-                </Field>
+                {GOOGLE_AUTH_ENABLED && (
+                  <Field delay={0.23}>
+                    <motion.button onClick={handleGoogle} disabled={loading}
+                      className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 font-extrabold flex items-center justify-center gap-3 text-slate-700 hover:border-slate-200 transition-colors disabled:opacity-50"
+                      whileTap={{ scale: 0.97 }}>
+                      <GoogleIcon />
+                      Google ile Giriş Yap
+                    </motion.button>
+                  </Field>
+                )}
 
-                {/* Telefon */}
-                <Field delay={0.27}>
-                  <motion.button onClick={() => goTo("phone", 1)}
-                    className="w-full bg-slate-100 rounded-2xl p-4 font-extrabold flex items-center justify-center gap-3 text-slate-700"
-                    whileTap={{ scale: 0.97 }}>
-                    <PhoneIcon />
-                    Telefon ile Giriş Yap
-                  </motion.button>
-                </Field>
+                {PHONE_AUTH_ENABLED && (
+                  <Field delay={0.27}>
+                    <motion.button onClick={() => goTo("phone", 1)}
+                      className="w-full bg-slate-100 rounded-2xl p-4 font-extrabold flex items-center justify-center gap-3 text-slate-700"
+                      whileTap={{ scale: 0.97 }}>
+                      <PhoneIcon />
+                      Telefon ile Giriş Yap
+                    </motion.button>
+                  </Field>
+                )}
 
-                <Field delay={0.31}><Divider /></Field>
+                {(GOOGLE_AUTH_ENABLED || PHONE_AUTH_ENABLED) && <Field delay={0.31}><Divider /></Field>}
 
                 <Field delay={0.34}>
                   <SecondaryBtn onClick={() => goTo("register", 1)}>
@@ -401,7 +450,7 @@ export default function LoginPage() {
 
               <Field delay={0}>
                 <h1 className="text-4xl font-extrabold text-slate-950">Hesap oluştur</h1>
-                <p className="text-slate-500 mt-1 mb-6">Valkea Assistant'a kayıt ol.</p>
+                <p className="text-slate-500 mt-1 mb-6">Valkea Asistant’a kayıt ol.</p>
               </Field>
 
               <div className="grid gap-3">
@@ -426,18 +475,20 @@ export default function LoginPage() {
                   </PrimaryBtn>
                 </Field>
 
-                <Field delay={0.24}><Divider /></Field>
-
-                <Field delay={0.27}>
-                  <motion.button onClick={handleGoogle}
-                    className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 font-extrabold flex items-center justify-center gap-3 text-slate-700"
-                    whileTap={{ scale: 0.97 }}>
-                    <GoogleIcon />
-                    Google ile Kayıt Ol
-                  </motion.button>
-                </Field>
-
-                <Field delay={0.31}><Divider /></Field>
+                {GOOGLE_AUTH_ENABLED && (
+                  <>
+                    <Field delay={0.24}><Divider /></Field>
+                    <Field delay={0.27}>
+                      <motion.button onClick={handleGoogle} disabled={loading}
+                        className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 font-extrabold flex items-center justify-center gap-3 text-slate-700 disabled:opacity-50"
+                        whileTap={{ scale: 0.97 }}>
+                        <GoogleIcon />
+                        Google ile Kayıt Ol
+                      </motion.button>
+                    </Field>
+                    <Field delay={0.31}><Divider /></Field>
+                  </>
+                )}
 
                 <Field delay={0.34}>
                   <SecondaryBtn onClick={() => goTo("login", -1)}>

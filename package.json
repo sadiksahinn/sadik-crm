@@ -21,9 +21,11 @@
     "openai": "^6.35.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "unpdf": "^1.8.1",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.19.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -33,7 +35,6 @@
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "@opennextjs/cloudflare": "^1.19.0",
     "wrangler": "^4.0.0"
   }
 }

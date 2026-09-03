@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { dateKey } from "@/utils/date";
 
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
 
@@ -15,8 +16,9 @@ function urlBase64ToUint8Array(base64String: string) {
 export default function PushManager() {
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if (!VAPID_PUBLIC) return;
 
-    async function setup() {
+    async function setup(requestPermission = false) {
       try {
         const supabase = createClient();
         const { data: sessionData } = await supabase.auth.getSession();
@@ -24,9 +26,10 @@ export default function PushManager() {
 
         const reg = await navigator.serviceWorker.register("/sw.js");
 
-        // İzin zaten granted veya daha önce istendi
+        // Bildirim izni yalnızca kullanıcının açıkça bastığı bir düğmeyle istenir.
         if (Notification.permission === "denied") return;
         if (Notification.permission === "default") {
+          if (!requestPermission) return;
           const perm = await Notification.requestPermission();
           if (perm !== "granted") return;
         }
@@ -48,18 +51,27 @@ export default function PushManager() {
 
         // Günlük brief push — günde bir kez
         const lastBriefKey = "valkea_last_push_brief";
-        const today = new Date().toISOString().slice(0, 10);
+        const today = dateKey();
         const lastBrief = localStorage.getItem(lastBriefKey);
         if (lastBrief !== today) {
-          await fetch(`/api/push/send?token=${sessionData.session.access_token}`);
+          await fetch("/api/push/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ access_token: sessionData.session.access_token, mode: "brief" }),
+          });
           localStorage.setItem(lastBriefKey, today);
         }
+
+        window.dispatchEvent(new CustomEvent("valkea:push-status", { detail: "granted" }));
       } catch {
         // Sessizce geç — push isteğe bağlı
       }
     }
 
-    setup();
+    const enable = () => setup(true);
+    window.addEventListener("valkea:enable-push", enable);
+    setup(false);
+    return () => window.removeEventListener("valkea:enable-push", enable);
   }, []);
 
   return null;

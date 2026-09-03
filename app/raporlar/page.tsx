@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { NetTrend, Donut } from "@/components/Charts";
 import { PageHeader, money } from "@/components/ui";
+import { monthInfo } from "@/utils/date";
+import { profitLossExpenses } from "@/utils/finance";
+import Link from "next/link";
+import { ISparkle, IChevronRight } from "@/components/Icons";
 
 const supabase = createClient();
 
@@ -11,29 +15,26 @@ const CAT_COLORS = ["#2da3c7", "#e8a33d", "#8b5cf6", "#f43f5e", "#059669", "#f59
 
 // Son 6 ayın etiketleri ve anahtarları
 function last6Months() {
-  const arr: { key: string; label: string }[] = [];
-  const d = new Date(); d.setDate(1);
-  for (let i = 5; i >= 0; i--) {
-    const m = new Date(d.getFullYear(), d.getMonth() - i, 1);
-    arr.push({ key: m.toISOString().slice(0, 7), label: m.toLocaleDateString("tr-TR", { month: "short" }) });
-  }
-  return arr;
+  return Array.from({ length: 6 }, (_, index) => {
+    const month = monthInfo(index - 5);
+    return { key: month.key, label: month.shortLabel };
+  });
 }
 
 function monthRange(offset: number) {
-  const d = new Date();
-  d.setDate(1);
-  d.setMonth(d.getMonth() + offset);
-  const start = d.toISOString().slice(0, 10);
-  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
-  const label = d.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
-  return { start, end, label };
+  const month = monthInfo(offset);
+  return { start: month.start, end: month.end, label: month.label };
 }
 
 type MonthData = { label: string; income: number; expense: number; net: number };
 
+function noteValue(note: string, label: string) {
+  const part = String(note || "").split(" · ").find((value) => value.startsWith(`${label}: `));
+  return part ? part.slice(label.length + 2).trim() : "";
+}
+
 export default function RaporlarPage() {
-  const [selectedTab, setSelectedTab] = useState<"aylik" | "musteriler" | "kategoriler">("aylik");
+  const [selectedTab, setSelectedTab] = useState<"aylik" | "musteriler" | "kategoriler" | "baglamlar">("aylik");
   const [months, setMonths] = useState<MonthData[]>([]);
   const [currentIncome, setCurrentIncome] = useState<any[]>([]);
   const [currentExpenses, setCurrentExpenses] = useState<any[]>([]);
@@ -54,10 +55,10 @@ export default function RaporlarPage() {
         ranges.map(async (r) => {
           const [{ data: inc }, { data: exp }] = await Promise.all([
             supabase.from("income").select("amount").eq("user_id", user.id).gte("income_date", r.start).lte("income_date", r.end),
-            supabase.from("expenses").select("amount").eq("user_id", user.id).gte("expense_date", r.start).lte("expense_date", r.end),
+            supabase.from("expenses").select("amount,note").eq("user_id", user.id).gte("expense_date", r.start).lte("expense_date", r.end),
           ]);
           const income = (inc || []).reduce((t, x) => t + Number(x.amount || 0), 0);
-          const expense = (exp || []).reduce((t, x) => t + Number(x.amount || 0), 0);
+          const expense = profitLossExpenses(exp).reduce((t, x) => t + Number(x.amount || 0), 0);
           return { label: r.label, income, expense, net: income - expense };
         })
       );
@@ -68,12 +69,12 @@ export default function RaporlarPage() {
       const sixStart = months6[0].key + "-01";
       const [{ data: inc6 }, { data: exp6 }] = await Promise.all([
         supabase.from("income").select("amount,income_date").eq("user_id", user.id).gte("income_date", sixStart),
-        supabase.from("expenses").select("amount,expense_date").eq("user_id", user.id).gte("expense_date", sixStart),
+        supabase.from("expenses").select("amount,expense_date,note").eq("user_id", user.id).gte("expense_date", sixStart),
       ]);
       const incByM: Record<string, number> = {};
       const expByM: Record<string, number> = {};
       (inc6 || []).forEach((r: any) => { const k = String(r.income_date).slice(0, 7); incByM[k] = (incByM[k] || 0) + Number(r.amount || 0); });
-      (exp6 || []).forEach((r: any) => { const k = String(r.expense_date).slice(0, 7); expByM[k] = (expByM[k] || 0) + Number(r.amount || 0); });
+      profitLossExpenses(exp6).forEach((r: any) => { const k = String(r.expense_date).slice(0, 7); expByM[k] = (expByM[k] || 0) + Number(r.amount || 0); });
       setTrend6(months6.map((m) => ({ label: m.label, net: (incByM[m.key] || 0) - (expByM[m.key] || 0) })));
 
       const cur = monthRange(0);
@@ -93,7 +94,7 @@ export default function RaporlarPage() {
       ]);
 
       setCurrentIncome(incData || []);
-      setCurrentExpenses(expData || []);
+      setCurrentExpenses(profitLossExpenses(expData));
       setPendingPayments(payData || []);
 
       // Müşteri bazlı kâr
@@ -123,6 +124,47 @@ export default function RaporlarPage() {
     }, [])
     .sort((a, b) => b.total - a.total);
 
+  const contextBreakdown = useMemo(() => currentExpenses.reduce((acc: { context: string; total: number; count: number }[], item: any) => {
+    const key = noteValue(item.note, "Bağlam") || "Belirtilmedi";
+    const found = acc.find((value) => value.context === key);
+    if (found) { found.total += Number(item.amount || 0); found.count += 1; }
+    else acc.push({ context: key, total: Number(item.amount || 0), count: 1 });
+    return acc;
+  }, []).sort((a, b) => b.total - a.total), [currentExpenses]);
+
+  const projectBreakdown = useMemo(() => {
+    const projects = new Map<string, { name: string; income: number; expense: number; net: number }>();
+    const add = (name: string, type: "income" | "expense", amount: number) => {
+      if (!name) return;
+      const current = projects.get(name) || { name, income: 0, expense: 0, net: 0 };
+      current[type] += amount;
+      current.net = current.income - current.expense;
+      projects.set(name, current);
+    };
+    currentIncome.forEach((item) => add(noteValue(item.note, "İş/Proje"), "income", Number(item.amount || 0)));
+    currentExpenses.forEach((item) => add(noteValue(item.note, "İş/Proje"), "expense", Number(item.amount || 0)));
+    return Array.from(projects.values()).sort((a, b) => b.income + b.expense - (a.income + a.expense));
+  }, [currentExpenses, currentIncome]);
+
+  const savingsRate = cur.income > 0 ? Math.round((cur.net / cur.income) * 100) : 0;
+  const profitableProject = projectBreakdown.filter((item) => item.income > 0).sort((a, b) => b.net - a.net)[0];
+  const lossProject = projectBreakdown.filter((item) => item.net < 0).sort((a, b) => a.net - b.net)[0];
+
+  const insights = useMemo(() => {
+    const result: string[] = [];
+    const previousExpense = months[1]?.expense || 0;
+    if (previousExpense > 0 && cur.expense > 0) {
+      const change = Math.round(((cur.expense - previousExpense) / previousExpense) * 100);
+      if (Math.abs(change) >= 5) result.push(`Giderlerin geçen aya göre %${Math.abs(change)} ${change > 0 ? "arttı" : "azaldı"}.`);
+    }
+    if (categoryBreakdown[0]) result.push(`Bu ay en yüksek gider kategorin ${categoryBreakdown[0].category}: ${money(categoryBreakdown[0].total)}.`);
+    if (contextBreakdown[0] && contextBreakdown[0].context !== "Belirtilmedi") result.push(`${contextBreakdown[0].context} bağlamındaki harcamaların ${money(contextBreakdown[0].total)}.`);
+    const unexplained = currentExpenses.filter((item) => !noteValue(item.note, "Açıklama")).length;
+    if (unexplained > 0) result.push(`${unexplained} harcama hâlâ açıklama bekliyor; rapor doğruluğu için tamamlamalısın.`);
+    if (totalPending > 0) result.push(`${money(totalPending)} bekleyen tahsilatın var.`);
+    return result.slice(0, 4);
+  }, [categoryBreakdown, contextBreakdown, cur.expense, currentExpenses, months, totalPending]);
+
   const maxBar = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 1);
 
   return (
@@ -139,6 +181,50 @@ export default function RaporlarPage() {
           </p>
         </div>
       </section>
+
+      <section className="v-card p-5 mb-4 border border-[rgba(45,163,199,0.22)]">
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#2da3c7] to-[#e8a33d] text-white grid place-items-center shrink-0"><ISparkle size={18} /></div>
+          <div className="min-w-0 flex-1">
+            <p className="v-overline text-teal-deep">Asistan yorumu</p>
+            <h2 className="mt-1 font-extrabold tracking-tight">Bu ay dikkat etmen gerekenler</h2>
+          </div>
+        </div>
+        <div className="mt-3 grid gap-2">
+          {(insights.length ? insights : ["Yeterli veri oluştuğunda gider değişimlerini ve fırsatları burada göstereceğim."]).map((insight) => (
+            <p key={insight} className="rounded-2xl bg-canvas px-3.5 py-3 text-xs font-semibold leading-5 text-sub">{insight}</p>
+          ))}
+        </div>
+      </section>
+
+      <section className="v-card p-5 mb-4">
+        <div className="flex items-center justify-between gap-3">
+          <div><p className="v-overline">Karar merkezi</p><h2 className="mt-1 font-extrabold tracking-tight">Kazanç mı, kayıp mı?</h2></div>
+          <span className={`v-chip ${cur.net >= 0 ? "v-chip-mint" : "v-chip-rose"}`}>{cur.net >= 0 ? "Artıdasın" : "Eksidesin"}</span>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2.5">
+          <div className="rounded-2xl bg-canvas p-3.5"><p className="v-overline">Kazanç oranı</p><p className={`v-num mt-1 text-xl font-extrabold ${savingsRate >= 0 ? "text-mint" : "text-rose"}`}>%{savingsRate}</p><p className="mt-1 text-[10px] font-semibold text-mute">Gelirden gider çıktıktan sonra</p></div>
+          <div className="rounded-2xl bg-canvas p-3.5"><p className="v-overline">Her ₺100 gelirden</p><p className={`v-num mt-1 text-xl font-extrabold ${cur.net >= 0 ? "text-mint" : "text-rose"}`}>{money(cur.income > 0 ? (cur.net / cur.income) * 100 : 0)}</p><p className="mt-1 text-[10px] font-semibold text-mute">Sende kalan net tutar</p></div>
+        </div>
+        <div className="mt-3 grid gap-2">
+          {profitableProject && <p className="rounded-2xl bg-[#e8f7f1] px-3.5 py-3 text-xs font-bold leading-5 text-[#08745b]">Tekrar değerlendir: {profitableProject.name} bu ay {money(profitableProject.net)} net kazandırdı.</p>}
+          {lossProject && <p className="rounded-2xl bg-[#fdeef1] px-3.5 py-3 text-xs font-bold leading-5 text-rose">Dikkat: {lossProject.name} için gelirden {money(Math.abs(lossProject.net))} daha fazla harcama görünüyor.</p>}
+          {!projectBreakdown.length && <p className="rounded-2xl bg-[rgba(232,163,61,0.12)] px-3.5 py-3 text-xs font-bold leading-5 text-[#8a5a10]">Harcama ve gelirlerde “İş / proje” alanını kullandıkça hangi işin gerçekten kazandırdığını burada göstereceğim.</p>}
+        </div>
+      </section>
+
+      {projectBreakdown.length > 0 && (
+        <section className="v-card p-5 mb-4">
+          <p className="font-extrabold tracking-tight">İş ve proje kârlılığı</p>
+          <p className="mt-1 mb-3 text-xs font-medium text-mute">Aynı proje adıyla bağlanan gelir ve giderler</p>
+          {projectBreakdown.map((item) => (
+            <div key={item.name} className="border-b border-line py-3 last:border-0">
+              <div className="flex items-start justify-between gap-3"><p className="min-w-0 font-bold text-sm break-words">{item.name}</p><p className={`v-num shrink-0 font-extrabold text-sm ${item.net >= 0 ? "text-mint" : "text-rose"}`}>{money(item.net)}</p></div>
+              <p className="mt-1 text-[11px] font-semibold text-mute">Gelir {money(item.income)} · Gider {money(item.expense)}</p>
+            </div>
+          ))}
+        </section>
+      )}
 
       {/* Net trend — son 6 ay */}
       <section className="v-card p-5 mb-4">
@@ -189,13 +275,13 @@ export default function RaporlarPage() {
 
       {/* Tabs */}
       <div className="v-seg mb-4">
-        {(["aylik", "musteriler", "kategoriler"] as const).map((tab) => (
+        {(["aylik", "kategoriler", "baglamlar", "musteriler"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setSelectedTab(tab)}
             className={`v-seg-btn ${selectedTab === tab ? "active" : ""}`}
           >
-            {tab === "aylik" ? "Bu Ay" : tab === "musteriler" ? "Müşteriler" : "Kategoriler"}
+            {tab === "aylik" ? "Bu Ay" : tab === "musteriler" ? "Müşteri" : tab === "baglamlar" ? "Bağlam" : "Kategori"}
           </button>
         ))}
       </div>
@@ -230,6 +316,27 @@ export default function RaporlarPage() {
             ))}
             {currentIncome.length === 0 && <p className="text-mute text-sm">Bu ay gelir kaydı yok.</p>}
           </div>
+        </section>
+      )}
+
+      {selectedTab === "baglamlar" && (
+        <section className="v-card p-5">
+          <p className="font-extrabold tracking-tight">Harcama Bağlamları</p>
+          <p className="mt-1 mb-3 text-xs font-medium text-mute">Tatil, iş, ev ve kişisel yaşam harcamaların</p>
+          {contextBreakdown.length === 0 && <p className="text-mute text-sm">Bu ay bağlam verisi yok.</p>}
+          {contextBreakdown.map((item, index) => {
+            const pct = Math.round((item.total / (cur.expense || 1)) * 100);
+            return (
+              <div key={item.context} className="py-3 border-b border-line last:border-0">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0"><p className="font-bold text-sm">{item.context}</p><p className="text-xs font-medium text-mute">{item.count} hareket · %{pct}</p></div>
+                  <p className="v-num shrink-0 font-extrabold text-rose text-sm">{money(item.total)}</p>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-[#e8ecf4] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: CAT_COLORS[index % CAT_COLORS.length] }} /></div>
+              </div>
+            );
+          })}
+          <Link href="/harcamalar" className="v-btn v-btn-soft w-full mt-4 !py-3 !text-xs">Hareketleri incele <IChevronRight size={14} /></Link>
         </section>
       )}
 

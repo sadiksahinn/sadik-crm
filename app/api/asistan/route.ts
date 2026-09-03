@@ -1,29 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-);
+import { aiErrorResponse } from "@/utils/ai-error";
+import { dateKey, monthInfo } from "@/utils/date";
+import { profitLossExpenses } from "@/utils/finance";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  return dateKey();
 }
 
 function monthStart() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-}
-
-function nextPaymentDate(day: number) {
-  const d = new Date();
-  const currentDay = d.getDate();
-  d.setDate(day);
-  if (currentDay >= day) d.setMonth(d.getMonth() + 1);
-  return d.toISOString().slice(0, 10);
+  return monthInfo().start;
 }
 
 function money(v: number) {
@@ -58,6 +47,10 @@ JSON:
   "story": null,
   "post": null,
   "reminder_date": null,
+  "category": "",
+  "explanation": "",
+  "context": "",
+  "payment_method": "",
   "note": "",
   "missing_questions": []
 }
@@ -66,6 +59,7 @@ Kurallar:
 - "iş aldım", "anlaştık", "hizmet vereceğim", "müşteri aldım" => job
 - "ödeme aldım", "ödedi", "para geldi", "tahsil ettim", "[müşteri] [tutar] ödedi" => income
 - "verdim", "harcadım", market, yakıt, yemek, fatura, kira, aidat vb. => expense
+- expense için category alanını Market, Yemek, Ulaşım, Sağlık, Fatura, Kira, İş veya Diğer olarak belirle; explanation kullanıcının harcama amacını anlatsın; context Kişisel, İş veya Tatil olsun; payment_method mesajda açıkça varsa çıkar
 - "ayda X reels Y story", "içerik planı" => service_plan
 - "hatırlat", "yarın ara", "not al", "randevu koy", "takvime ekle" => reminder, reminder_date tahmin et
 - "bugün ne yapıyoruz", "günlük plan", "ajanda" => daily_plan
@@ -92,8 +86,17 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const text = String(body.command || body.message || body.text || "").trim();
+    const accessToken = String(body.access_token || "");
+    if (!accessToken) {
+      return NextResponse.json({ ok: false, message: "Oturum bulunamadı. Tekrar giriş yap." }, { status: 401 });
+    }
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+    );
 
-    const { data: userData } = await supabase.auth.getUser(body.access_token);
+    const { data: userData } = await supabase.auth.getUser(accessToken);
     const user = userData.user;
 
     if (!user) {
@@ -616,52 +619,42 @@ export async function POST(req: Request) {
 
     // ── INCOME ────────────────────────────────────────────────────────────
     if (ai.type === "income") {
-      const { data, error } = await supabase
-        .from("income")
-        .insert({
-          title: ai.customer_name || ai.title || "Gelir",
-          amount: Number(ai.amount || 0),
-          income_date: today(),
-          payment_method: "asistan-ai",
-          note: text,
-          user_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      const amount = Number(ai.amount || 0);
+      const title = String(ai.customer_name || ai.title || "Gelir").trim();
+      if (!(amount > 0)) {
+        return NextResponse.json({ ok: true, type: "gelir", message: "Geliri kaydetmeden önce tutarı da yazar mısın?" });
+      }
 
       return NextResponse.json({
         ok: true,
-        type: "gelir",
-        message: `✨ Gelir kaydedildi.\n\n${data.title} · ${money(Number(data.amount))}`,
-        record: { ...data, type: "gelir", table: "income" },
+        type: "öneri",
+        message: `Şunu gelir olarak anladım 👇\n\n${title} · ${money(amount)}\n\nOnaylarsan kaydedeceğim.`,
+        proposal: {
+          type: "income", title, customer_name: title, amount,
+          income_date: today(), payment_method: ai.payment_method || "Asistan",
+          note: ai.explanation || ai.note || text,
+        },
       });
     }
 
     // ── EXPENSE ───────────────────────────────────────────────────────────
     if (ai.type === "expense") {
-      const { data, error } = await supabase
-        .from("expenses")
-        .insert({
-          title: ai.title || ai.customer_name || "Gider",
-          amount: Number(ai.amount || 0),
-          expense_date: today(),
-          category: "Genel",
-          payment_method: "asistan-ai",
-          note: text,
-          user_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      const amount = Number(ai.amount || 0);
+      const title = String(ai.title || ai.customer_name || "Harcama").trim();
+      if (!(amount > 0)) {
+        return NextResponse.json({ ok: true, type: "gider", message: "Harcamayı kaydetmeden önce tutarı da yazar mısın?" });
+      }
 
       return NextResponse.json({
         ok: true,
-        type: "gider",
-        message: `✨ Gider kaydedildi.\n\n${data.title} · ${money(Number(data.amount))}`,
-        record: { ...data, type: "gider", table: "expenses" },
+        type: "öneri",
+        message: `Şunu harcama olarak anladım 👇\n\n${title} · ${money(amount)}\nKategori: ${ai.category || "Diğer"}\nBağlam: ${ai.context || "Kişisel"}\n\nOnaylarsan kaydedeceğim.`,
+        proposal: {
+          type: "expense", title, customer_name: title, amount,
+          expense_date: today(), category: ai.category || "Diğer",
+          context: ai.context || "Kişisel", payment_method: ai.payment_method || "Asistan",
+          explanation: ai.explanation || ai.note || text, note: text,
+        },
       });
     }
 
@@ -695,7 +688,9 @@ export async function POST(req: Request) {
       ]);
 
       const totalIncome = (incomes || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
-      const totalExpense = (expenses || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
+      const bookedExpenses = profitLossExpenses(expenses);
+      const pendingExpenses: any[] = [];
+      const totalExpense = bookedExpenses.reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
       const totalPayment = (payments || []).reduce((t: number, i: any) => t + Number(i.amount || 0), 0);
 
       // Borç & aylık yükümlülükler
@@ -751,7 +746,8 @@ export async function POST(req: Request) {
           pending_collections: payments?.length || 0,
         },
         recent_income: (incomes || []).slice(0, 6),
-        recent_expenses: (expenses || []).slice(0, 6),
+        recent_expenses: bookedExpenses.slice(0, 6),
+        pending_card_expenses: pendingExpenses.slice(0, 6),
         pending_collections: (payments || []).slice(0, 6),
         upcoming_tasks: (followups || []).slice(0, 6),
         customers: (customers || []).slice(0, 6),
@@ -793,10 +789,8 @@ Kurallar: Türkçe yaz. Kısa ve net ol. Rakamları açıkça söyle. Risk varsa
         "- Suite Halı 20.000 TL ödeme yaptı\n" +
         "- Bugün ne yapıyoruz?",
     });
-  } catch (err: any) {
-    return NextResponse.json(
-      { ok: false, message: "Hata: " + err.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error("Assistant command failed", error);
+    return aiErrorResponse(error, "Asistan işlemi şu anda tamamlanamadı. Lütfen tekrar dene.");
   }
 }

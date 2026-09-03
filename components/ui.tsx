@@ -5,6 +5,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { IArrowLeft } from "./Icons";
+import { dateKey } from "@/utils/date";
 
 export function money(v: number) {
   return new Intl.NumberFormat("tr-TR", {
@@ -15,7 +16,7 @@ export function money(v: number) {
 }
 
 export function today() {
-  return new Date().toISOString().slice(0, 10);
+  return dateKey();
 }
 
 /* Sayfa başlığı — geri butonu + overline + başlık + sağ aksiyonlar */

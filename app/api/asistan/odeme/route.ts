@@ -1,21 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-);
+import { dateKey, nextMonthlyDate } from "@/utils/date";
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function nextPaymentDate(day: number) {
-  const d = new Date();
-  const currentDay = d.getDate();
-  d.setDate(day);
-  if (currentDay >= day) d.setMonth(d.getMonth() + 1);
-  return d.toISOString().slice(0, 10);
+  return dateKey();
 }
 
 export async function POST(req: Request) {
@@ -23,8 +11,18 @@ export async function POST(req: Request) {
     const body = await req.json();
     const action = body.action;
     const record = body.record;
+    const accessToken = String(body.access_token || "");
+    if (!accessToken) {
+      return NextResponse.json({ ok: false, message: "Oturum bulunamadı." }, { status: 401 });
+    }
 
-    const { data: userData } = await supabase.auth.getUser(body.access_token);
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+    );
+
+    const { data: userData } = await supabase.auth.getUser(accessToken);
     const user = userData.user;
 
     if (!user) {
@@ -65,7 +63,7 @@ export async function POST(req: Request) {
         .from("followups")
         .insert({
           title: `${record.title} ödeme takibi`,
-          followup_date: nextPaymentDate(paymentDay),
+          followup_date: nextMonthlyDate(paymentDay),
           status: "bekliyor",
           priority: "önemli",
           message_suggestion:
@@ -85,7 +83,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: false, message: "Geçersiz işlem." });
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, message: "Hata: " + err.message }, { status: 500 });
+  } catch (error) {
+    console.error("Assistant payment action failed", error);
+    return NextResponse.json({ ok: false, message: "İşlem şu anda tamamlanamadı. Lütfen tekrar dene." }, { status: 500 });
   }
 }

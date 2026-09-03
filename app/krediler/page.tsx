@@ -1,47 +1,54 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { PageHeader, EmptyState, money, Progress } from "@/components/ui";
-import { ICard, IBank, IPlus, ITrash, ICheck, ICar, IHomeAlt, IUser, IBriefcase } from "@/components/Icons";
+import { ICard, IBank, IPlus, ITrash, ICheck, ICar, IHomeAlt, IUser, IBriefcase, IEdit } from "@/components/Icons";
+import { dateKey } from "@/utils/date";
 
 const supabase = createClient();
 
 const LOAN_TYPES = ["bireysel","konut","araç","ihtiyaç","taşıt"];
-const CARD_BANKS = ["Ziraat","Yapı Kredi","İş Bankası","Garanti","Akbank","Halkbank","Vakıfbank","QNB","ING","Diğer"];
+const CARD_BANKS = ["Enpara","Ziraat","Yapı Kredi","İş Bankası","Garanti","Akbank","Halkbank","Vakıfbank","QNB","ING","Diğer"];
 
-const THIS_MONTH = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-const TODAY = new Date().toISOString().slice(0, 10);
+const currentDate = () => dateKey();
+const currentMonth = () => currentDate().slice(0, 7);
 
 export default function KredilerPage() {
   const [cards, setCards]     = useState<any[]>([]);
   const [loans, setLoans]     = useState<any[]>([]);
   const [cardPayments, setCardPayments] = useState<any[]>([]);
+  const [loanPayments, setLoanPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [addingCard, setAddingCard] = useState(false);
+  const [editingCardId, setEditingCardId] = useState<string|null>(null);
   const [addingLoan, setAddingLoan] = useState(false);
   const [payingCardId, setPayingCardId] = useState<string|null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [payType, setPayType] = useState<"min"|"full"|"custom">("custom");
+  const [cardPeriod, setCardPeriod] = useState<"statement"|"current"|"future">("current");
   const [cardForm, setCardForm] = useState({ bank_name:"", card_name:"", credit_limit:"", current_balance:"", payment_day:"", min_payment:"" });
   const [loanForm, setLoanForm] = useState({ bank_name:"", loan_type:"bireysel", title:"", total_amount:"", remaining_amount:"", monthly_payment:"", payment_day:"", remaining_months:"" });
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { window.location.href="/login"; return; }
-    const [{ data: c }, { data: l }, { data: cp }] = await Promise.all([
+    const [{ data: c }, { data: l }, { data: cp }, { data: lp }] = await Promise.all([
       supabase.from("credit_cards").select("*").eq("user_id",user.id).order("created_at",{ascending:false}),
       supabase.from("loans").select("*").eq("user_id",user.id).order("created_at",{ascending:false}),
       supabase.from("card_payments").select("*").eq("user_id",user.id).order("payment_date",{ascending:false}),
+      supabase.from("expenses").select("*").eq("user_id",user.id).eq("payment_method","Kredi Taksiti").gte("expense_date",currentMonth()+"-01"),
     ]);
-    setCards(c||[]); setLoans(l||[]); setCardPayments(cp||[]);
+    setCards(c||[]); setLoans(l||[]); setCardPayments(cp||[]); setLoanPayments(lp||[]);
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
 
   // Bir kartın bu ay yaptığı ödemeler / son ödeme (geçmişten hesaplanır — ay dönünce otomatik sıfırlanır)
   function cardMonthPayments(cardId: string) {
-    return cardPayments.filter(p => p.card_id === cardId && String(p.payment_date||"").slice(0,7) === THIS_MONTH);
+    return cardPayments.filter(p => p.card_id === cardId && String(p.payment_date||"").slice(0,7) === currentMonth());
   }
   function cardPaidThisMonth(cardId: string) {
     return cardMonthPayments(cardId).reduce((t,p)=>t+Number(p.amount||0), 0);
@@ -60,30 +67,60 @@ export default function KredilerPage() {
   async function saveCardPayment(card: any) {
     const amount = Number(payAmount) || 0;
     if (amount <= 0) { alert("Geçerli bir tutar gir."); return; }
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Oturum bulunamadı.");
 
-    // 1) Ödeme geçmişine yaz
-    await supabase.from("card_payments").insert({
-      user_id: user.id, card_id: card.id, amount,
-      payment_type: payType, payment_date: TODAY,
-    });
-    // 2) Kart borcunu düş + bu ay ödendi işaretle
-    const newBalance = Math.max(0, Number(card.current_balance||0) - amount);
-    await supabase.from("credit_cards").update({
-      current_balance: newBalance, is_paid_this_month: true, last_paid_date: TODAY,
-    }).eq("id", card.id);
+      const { data: payment, error: paymentError } = await supabase.from("card_payments").insert({
+        user_id: user.id, card_id: card.id, amount,
+        payment_type: payType, payment_date: currentDate(),
+      }).select("id").single();
+      if (paymentError || !payment) throw paymentError || new Error("Ödeme kaydı oluşturulamadı.");
 
-    setPayingCardId(null); setPayAmount(""); setPayType("custom");
-    load();
+      const newBalance = Math.max(0, Number(card.current_balance||0) - amount);
+      const { data: updatedCard, error: cardError } = await supabase.from("credit_cards").update({
+        current_balance: newBalance, is_paid_this_month: true, last_paid_date: currentDate(),
+      }).eq("id", card.id).eq("user_id", user.id).select("id").maybeSingle();
+      if (cardError || !updatedCard) {
+        await supabase.from("card_payments").delete().eq("id", payment.id).eq("user_id", user.id);
+        throw cardError || new Error("Kart borcu güncellenemedi.");
+      }
+
+      setPayingCardId(null); setPayAmount(""); setPayType("custom");
+      await load();
+    } catch (error) {
+      alert(error instanceof Error ? `Ödeme kaydedilemedi: ${error.message}` : "Ödeme kaydedilemedi.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function saveCard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user||!cardForm.bank_name) return;
-    await supabase.from("credit_cards").insert({ user_id:user.id, ...cardForm, credit_limit:Number(cardForm.credit_limit)||0, current_balance:Number(cardForm.current_balance)||0, payment_day:Number(cardForm.payment_day)||0, min_payment:Number(cardForm.min_payment)||0 });
+    const values = { ...cardForm, credit_limit:Number(cardForm.credit_limit)||0, current_balance:Number(cardForm.current_balance)||0, payment_day:Number(cardForm.payment_day)||0, min_payment:Number(cardForm.min_payment)||0 };
+    if (editingCardId) {
+      await supabase.from("credit_cards").update(values).eq("id", editingCardId).eq("user_id", user.id);
+    } else {
+      await supabase.from("credit_cards").insert({ user_id:user.id, ...values });
+    }
     setCardForm({ bank_name:"", card_name:"", credit_limit:"", current_balance:"", payment_day:"", min_payment:"" });
-    setAddingCard(false); load();
+    setEditingCardId(null); setAddingCard(false); load();
+  }
+
+  function editCard(card: any) {
+    setCardForm({
+      bank_name: String(card.bank_name || ""),
+      card_name: String(card.card_name || ""),
+      credit_limit: String(Number(card.credit_limit) || ""),
+      current_balance: String(Number(card.current_balance) || ""),
+      payment_day: String(Number(card.payment_day) || ""),
+      min_payment: String(Number(card.min_payment) || ""),
+    });
+    setEditingCardId(card.id);
+    setAddingCard(true);
+    window.scrollTo({ top: 250, behavior: "smooth" });
   }
 
   async function saveLoan() {
@@ -97,13 +134,55 @@ export default function KredilerPage() {
   async function deleteCard(id: string) { if(!confirm("Silinsin mi?")) return; await supabase.from("credit_cards").delete().eq("id",id); load(); }
   async function deleteLoan(id: string) { if(!confirm("Silinsin mi?")) return; await supabase.from("loans").delete().eq("id",id); load(); }
 
-  const totalCardBalance  = cards.reduce((t,c)=>t+Number(c.current_balance||0),0);
-  const totalCardMinimum  = cards.reduce((t,c)=>t+Number(c.min_payment||0),0);
+  function loanPaidThisMonth(loanId: string) {
+    return loanPayments.some(payment => String(payment.note || "").includes(`loan:${loanId}`));
+  }
+
+  async function toggleLoanPaid(loan: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const note = `Aylık kredi taksiti · loan:${loan.id}`;
+    if (loanPaidThisMonth(loan.id)) {
+      await supabase.from("expenses").delete().eq("user_id", user.id).eq("payment_method", "Kredi Taksiti").eq("note", note).gte("expense_date", currentMonth() + "-01");
+    } else {
+      await supabase.from("expenses").insert({
+        user_id: user.id,
+        title: loan.title || `${loan.bank_name} kredisi`,
+        amount: Number(loan.monthly_payment || 0),
+        expense_date: currentDate(),
+        category: "Kredi",
+        payment_method: "Kredi Taksiti",
+        note,
+      });
+    }
+    load();
+  }
+
+  const isVirtualCard = (card: any) => /sanal/i.test(String(card.card_name || ""));
+  // Sanal kart borcu ana kart ekstresine de yansıdığı için toplamda ikinci kez sayılmaz.
+  const payableCards = cards.filter(card => !isVirtualCard(card));
+  const totalCardBalance  = payableCards.reduce((t,c)=>t+Number(c.current_balance||0),0);
+  const totalCardMinimum  = payableCards.reduce((t,c)=>t+Number(c.min_payment||0),0);
   const totalLoanMonthly  = loans.reduce((t,l)=>t+Number(l.monthly_payment||0),0);
   const totalMonthly      = totalCardMinimum + totalLoanMonthly;
   const totalPaidThisMonth = cardPayments
-    .filter(p => String(p.payment_date||"").slice(0,7) === THIS_MONTH)
+    .filter(p => String(p.payment_date||"").slice(0,7) === currentMonth())
     .reduce((t,p)=>t+Number(p.amount||0), 0);
+
+  function paymentDayText(dayValue: unknown, balanceValue: unknown) {
+    const day = Number(dayValue || 0);
+    const balance = Number(balanceValue || 0);
+    if (!day) return "Son ödeme günü girilmedi";
+    if (balance <= 0) return "Ödenecek kart borcu yok";
+    const todayDay = Number(currentDate().slice(-2));
+    if (day === todayDay) return "Son ödeme günü bugün";
+    if (day > todayDay) return `Ödemeye ${day - todayDay} gün kaldı`;
+    return `Son ödeme günü ayın ${day}. günü`;
+  }
+
+  const cardTheme = (card: any) => card.bank_name === "Garanti"
+    ? "linear-gradient(145deg, #008c49 0%, #00a650 55%, #00763f 100%)"
+    : "linear-gradient(135deg, #1a2540 0%, #0d1426 60%, #14304a 100%)";
 
   const loanIcon = (type: string) => {
     if (type === "konut") return <IHomeAlt size={18} />;
@@ -114,7 +193,7 @@ export default function KredilerPage() {
 
   return (
     <main className="v-enter min-h-screen px-4 pt-5 pb-36 max-w-[520px] mx-auto">
-      <PageHeader overline="Valkea Finans" title="Krediler" subtitle="Kredi kartları ve krediler" />
+      <PageHeader overline="Valkea Finans" title="Kartlar ve Krediler" subtitle="Borçlarını, limitlerini ve ödeme günlerini takip et" />
 
       {/* Aylık yükümlülük hero */}
       <section className="v-hero p-5 mb-5">
@@ -149,7 +228,7 @@ export default function KredilerPage() {
       {/* ── KREDİ KARTLARI ── */}
       <div className="flex justify-between items-center mb-3">
         <p className="v-overline">Kredi kartları ({cards.length})</p>
-        <button onClick={()=>setAddingCard(v=>!v)} className="v-btn v-btn-dark !py-2 !px-3.5 !text-xs">
+        <button onClick={()=>{ setEditingCardId(null); setCardForm({ bank_name:"", card_name:"", credit_limit:"", current_balance:"", payment_day:"", min_payment:"" }); setAddingCard(v=>!v); }} className="v-btn v-btn-dark !py-2 !px-3.5 !text-xs">
           <IPlus size={14} /> Ekle
         </button>
       </div>
@@ -169,14 +248,14 @@ export default function KredilerPage() {
               <input placeholder="Min. Ödeme (₺)" type="number" value={cardForm.min_payment} onChange={e=>setCardForm({...cardForm,min_payment:e.target.value})} className="v-input" />
             </div>
             <div className="flex gap-2.5">
-              <button onClick={saveCard} className="v-btn v-btn-dark flex-1">Kaydet</button>
-              <button onClick={()=>setAddingCard(false)} className="v-btn v-btn-soft flex-1">İptal</button>
+              <button onClick={saveCard} className="v-btn v-btn-dark flex-1">{editingCardId ? "Güncelle" : "Kaydet"}</button>
+              <button onClick={()=>{ setAddingCard(false); setEditingCardId(null); }} className="v-btn v-btn-soft flex-1">İptal</button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="grid gap-3 mb-6">
+      <div className="flex gap-4 mb-7 v-stagger overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4 pb-3">
         {loading && [1,2].map(i => <div key={i} className="skeleton h-[170px]" />)}
         {cards.map(card => {
           const usage = card.credit_limit > 0 ? Math.round((card.current_balance/card.credit_limit)*100) : 0;
@@ -184,27 +263,44 @@ export default function KredilerPage() {
           const last = cardLastPayment(card.id);
           const isPaying = payingCardId === card.id;
           return (
-            <div key={card.id} className="v-card overflow-hidden">
+            <article key={card.id} className="v-card v-credit-card-shell overflow-hidden min-w-[88%] sm:min-w-[420px] snap-center">
               {/* Kart görünümlü üst kısım */}
-              <div className="relative p-4 text-white"
-                style={{ background: "linear-gradient(135deg, #1a2540 0%, #0d1426 60%, #14304a 100%)" }}>
-                <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-teal/20 blur-2xl" />
+              <div className="v-credit-card relative p-5 text-white"
+                style={{ background: cardTheme(card) }}>
+                <div className="v-card-orb absolute -top-10 -right-10 h-36 w-36 rounded-full bg-teal/25 blur-2xl" />
+                <div className="v-card-shine" aria-hidden="true" />
                 <div className="relative z-10 flex items-start justify-between">
                   <div>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <ICard size={17} />
-                      <p className="font-extrabold text-[15px]">{card.bank_name} {card.card_name||""}</p>
+                    <div className="flex items-center gap-2.5 mb-1">
+                      <span className="h-9 w-9 rounded-xl bg-white/10 grid place-items-center border border-white/10"><ICard size={18} /></span>
+                      <div>
+                        <p className="font-extrabold text-[16px] leading-tight">{card.card_name || `${card.bank_name} Kartım`}</p>
+                        <p className="text-[11px] text-white/60 font-bold mt-0.5">{card.bank_name} · {isVirtualCard(card) ? "Sanal kart" : "Kredi kartı"}</p>
+                      </div>
                     </div>
-                    {card.payment_day ? <p className="text-xs text-white/50 font-medium">Son ödeme: her ayın {card.payment_day}. günü</p> : null}
                   </div>
-                  <button onClick={()=>deleteCard(card.id)} className="v-press h-8 w-8 rounded-xl bg-white/10 grid place-items-center text-white/70">
-                    <ITrash size={14} />
-                  </button>
+                  <div className="flex gap-1.5">
+                    <button onClick={()=>editCard(card)} aria-label={`${card.card_name || "Kart"} düzenle`} className="v-press h-8 w-8 rounded-xl bg-white/10 grid place-items-center text-white/70">
+                      <IEdit size={14} />
+                    </button>
+                    <button onClick={()=>deleteCard(card.id)} aria-label={`${card.card_name || "Kart"} sil`} className="v-press h-8 w-8 rounded-xl bg-white/10 grid place-items-center text-white/70">
+                      <ITrash size={14} />
+                    </button>
+                  </div>
+                </div>
+                <div className="relative z-10 mt-6 flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-white/45 font-extrabold">Güncel borç</p>
+                    <p className="v-num text-[26px] font-black leading-none mt-1">{money(card.current_balance)}</p>
+                  </div>
+                  <span className={`v-chip border ${Number(card.current_balance||0) <= 0 ? "bg-emerald-400/15 text-emerald-200 border-emerald-300/20" : "bg-amber-300/10 text-amber-200 border-amber-200/15"}`}>
+                    {paymentDayText(card.payment_day, card.current_balance)}
+                  </span>
                 </div>
                 {card.credit_limit > 0 && (
                   <div className="relative z-10 mt-3.5">
                     <div className="flex justify-between mb-1.5">
-                      <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Kullanım</span>
+                      <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Limitin %{usage} kullanıldı</span>
                       <span className={`v-num text-[11px] font-extrabold ${usage>80?"text-rose-300":"text-amber-300"}`}>%{usage}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-white/15 overflow-hidden">
@@ -215,17 +311,27 @@ export default function KredilerPage() {
               </div>
 
               <div className="p-4">
-                <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="v-seg mb-3" aria-label="Kart dönemi">
+                  <button onClick={()=>setCardPeriod("statement")} className={`v-seg-btn ${cardPeriod === "statement" ? "active" : ""}`}>Ekstre</button>
+                  <button onClick={()=>setCardPeriod("current")} className={`v-seg-btn ${cardPeriod === "current" ? "active" : ""}`}>Dönem içi</button>
+                  <button onClick={()=>setCardPeriod("future")} className={`v-seg-btn ${cardPeriod === "future" ? "active" : ""}`}>Gelecek dönem</button>
+                </div>
+                {cardPeriod !== "current" && (
+                  <p className="text-[11px] text-mute font-semibold mb-3 px-1">
+                    {cardPeriod === "statement" ? "Kesilmiş ekstre tutarı kart bilgileriyle birlikte güncellendiğinde burada görünür." : "Taksitli gelecek dönem hareketleri yüklendiğinde burada görünür."}
+                  </p>
+                )}
+                <div className="grid grid-cols-3 gap-2 mb-4">
                   <div className="text-center py-2 rounded-xl bg-canvas">
-                    <p className="v-overline !text-[9px]">Limit</p>
+                    <p className="v-overline !text-[9px]">Toplam limit</p>
                     <p className="v-num font-extrabold text-[13px]">{money(card.credit_limit)}</p>
                   </div>
-                  <div className="text-center py-2 rounded-xl bg-[#fdeef1]">
-                    <p className="v-overline !text-[9px] !text-rose/70">Borç</p>
-                    <p className="v-num font-extrabold text-[13px] text-rose">{money(card.current_balance)}</p>
+                  <div className="text-center py-2 rounded-xl bg-[#e8f7f1]">
+                    <p className="v-overline !text-[9px] !text-mint/70">Kullanılabilir</p>
+                    <p className="v-num font-extrabold text-[13px] text-mint">{money(Math.max(0, Number(card.credit_limit||0)-Number(card.current_balance||0)))}</p>
                   </div>
                   <div className="text-center py-2 rounded-xl bg-[rgba(232,163,61,0.12)]">
-                    <p className="v-overline !text-[9px] !text-[#a16a14]/70">Minimum</p>
+                    <p className="v-overline !text-[9px] !text-[#a16a14]/70">Asgari ödeme</p>
                     <p className="v-num font-extrabold text-[13px] text-[#a16a14]">{money(card.min_payment)}</p>
                   </div>
                 </div>
@@ -235,12 +341,14 @@ export default function KredilerPage() {
                   <div className="min-w-0">
                     {paid > 0
                       ? <span className="v-chip v-chip-mint"><ICheck size={12} /> Bu ay {money(paid)} ödendi</span>
-                      : <span className="text-xs text-mute font-medium">Bu ay henüz ödeme yok</span>}
+                      : <span className="text-xs text-mute font-medium">Bu ay ödeme kaydı bulunmuyor</span>}
                     {last && <p className="text-[11px] text-mute font-medium mt-1">Son ödeme: {last.payment_date} · {money(last.amount)}</p>}
                   </div>
-                  <button onClick={()=>openPay(card)} className={`v-btn !py-2 !px-3.5 !text-xs whitespace-nowrap ${isPaying ? "v-btn-soft" : "v-btn-teal"}`}>
-                    {isPaying?"Kapat":"Ödeme Yap"}
-                  </button>
+                  {!isVirtualCard(card) ? (
+                    <button onClick={()=>openPay(card)} className={`v-btn !py-2 !px-3.5 !text-xs whitespace-nowrap ${isPaying ? "v-btn-soft" : "v-btn-teal"}`}>
+                      {isPaying?"Ödeme alanını kapat":"Borç öde"}
+                    </button>
+                  ) : <span className="v-chip v-chip-teal">Ana kart ekstresine yansır</span>}
                 </div>
 
                 {isPaying && (
@@ -261,15 +369,29 @@ export default function KredilerPage() {
                     </div>
                     <input type="number" placeholder="Tutar (₺)" value={payAmount} onChange={e=>{setPayAmount(e.target.value);setPayType("custom");}} className="v-input" />
                     <div className="flex gap-2.5">
-                      <button onClick={()=>saveCardPayment(card)} className="v-btn v-btn-mint flex-1 !py-2.5 !text-[13px]">
-                        <ICheck size={15} /> Ödemeyi Kaydet
+                      <button disabled={saving} onClick={()=>saveCardPayment(card)} className="v-btn v-btn-mint flex-1 !py-2.5 !text-[13px] disabled:opacity-50">
+                        <ICheck size={15} /> {saving ? "Kaydediliyor..." : "Ödemeyi Kaydet"}
                       </button>
                       <button onClick={()=>setPayingCardId(null)} className="v-btn v-btn-soft flex-1 !py-2.5 !text-[13px]">İptal</button>
                     </div>
                   </div>
                 )}
+                <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-line">
+                  <button onClick={()=>!isVirtualCard(card) && openPay(card)} disabled={isVirtualCard(card)} className="v-card-action">
+                    <span className="v-card-action-icon"><ICheck size={17} /></span>
+                    <span>{isVirtualCard(card) ? "Ana karttan öde" : "Borç öde"}</span>
+                  </button>
+                  <Link href="/harcamalar" className="v-card-action">
+                    <span className="v-card-action-icon"><ICard size={17} /></span>
+                    <span>Harcamalar</span>
+                  </Link>
+                  <button onClick={()=>editCard(card)} className="v-card-action">
+                    <span className="v-card-action-icon"><IEdit size={17} /></span>
+                    <span>Ayarlar</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            </article>
           );
         })}
         {!loading && cards.length===0 && !addingCard && (
@@ -314,6 +436,7 @@ export default function KredilerPage() {
         {loading && <div className="skeleton h-[150px]" />}
         {loans.map(loan => {
           const progress = loan.total_amount > 0 ? Math.round(((loan.total_amount - loan.remaining_amount)/loan.total_amount)*100) : 0;
+          const paid = loanPaidThisMonth(loan.id);
           return (
             <div key={loan.id} className="v-card p-4">
               <div className="flex justify-between items-start mb-3">
@@ -353,6 +476,9 @@ export default function KredilerPage() {
                   <Progress pct={progress} />
                 </div>
               )}
+              <button onClick={()=>toggleLoanPaid(loan)} className={`v-btn w-full mt-3 !py-2.5 !text-[13px] ${paid ? "v-btn-soft" : "v-btn-mint"}`}>
+                <ICheck size={15} /> {paid ? "Bu ay ödendi (geri al)" : "Taksiti ödendi işaretle"}
+              </button>
             </div>
           );
         })}
